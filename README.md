@@ -1,2 +1,2 @@
-# LJY_GAN
-GAN with pytorch
+# Lee Je Yeol
+Machine Learning Implemetation Project with Pytorch
