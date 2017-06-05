@@ -1,2 +1,2 @@
-# -LJY-GAN
+# LJY_GAN
 GAN with pytorch
