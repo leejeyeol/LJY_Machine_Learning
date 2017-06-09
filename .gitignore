@@ -1,2 +1,5 @@
 .idea/*.*
 data/*.*
+data/
+GAN/*.png
+GAN/*.pth
