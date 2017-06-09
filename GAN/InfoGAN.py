@@ -12,6 +12,26 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 import torch.optim as optim
 
+def one_hot(size, index):
+    """ Creates a matrix of one hot vectors.
+        ```
+        import torch
+        import torch_extras
+        setattr(torch, 'one_hot', torch_extras.one_hot)
+        size = (3, 3)
+        index = torch.LongTensor([2, 0, 1]).view(-1, 1)
+        torch.one_hot(size, index)
+        # [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
+        ```
+    """
+    mask = torch.LongTensor(*size).fill_(0)
+    ones = 1
+    if isinstance(index, Variable):
+        ones = Variable(torch.LongTensor(index.size()).fill_(1))
+        mask = Variable(mask, volatile=index.volatile)
+    ret = mask.scatter_(1, index, ones)
+    return ret
+
 
 #======================================================================================================================
 # Options
@@ -79,13 +99,19 @@ nz = int(options.nz)
 ngf = int(options.ngf)
 ndf = int(options.ndf)
 nc = int(options.nc)
+nconC = 2
+ncatC = 10
 
 #======================================================================================================================
 # Models
 #======================================================================================================================
 
 # todo add 4 datasets and models
+# todo netG add c
+# todo netD add Q()
 # todo result visualize
+
+
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -102,7 +128,7 @@ class _netG(nn.Module):
         self.ngpu = ngpu
         self.main = nn.Sequential(
             # nz*1*1 => 1024*1*1
-            nn.ConvTranspose2d(in_channels=nz, out_channels=1024, kernel_size=1, bias=False),
+            nn.ConvTranspose2d(in_channels=nz+nconC+ncatC, out_channels=1024, kernel_size=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(True),
 
@@ -181,8 +207,15 @@ criterion = nn.BCELoss()
 
 
 input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
+final_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1)
 noise = torch.FloatTensor(options.batchSize, nz, 1, 1)
-fixed_noise = torch.FloatTensor(options.batchSize, nz, 1, 1).normal_(0, 1)
+
+noise_c1 = torch.FloatTensor(options.batchSize, 1, 1, 1)
+noise_c2 = torch.FloatTensor(options.batchSize, 1, 1, 1)
+onehot_c = torch.FloatTensor(options.batchSize, 10)
+
+#for test
+fixed_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1)
 
 label = torch.FloatTensor(options.batchSize)
 real_label = 1
@@ -193,12 +226,20 @@ if options.cuda:
     netG.cuda()
     criterion.cuda()
     input, label = input.cuda(), label.cuda()
-    noise, fixed_noise = noise.cuda(), fixed_noise.cuda()
+    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), fixed_noise.cuda(), noise_c1.cuda(),\
+                                                         noise_c2.cuda(), onehot_c.cuda()
 
 # make to variables
 input = Variable(input)
 label = Variable(label)
+
+final_noise = Variable(final_noise)
+
 noise = Variable(noise)
+noise_c1 = Variable(noise_c1)
+noise_c2 = Variable(noise_c2)
+onehot_c = Variable(onehot_c)
+
 fixed_noise = Variable(fixed_noise)
 
 # setup optimizer
@@ -225,7 +266,18 @@ for epoch in range(options.iteration):
         # train with fake
         noise.data.resize_(batch_size, nz, 1, 1)
         noise.data.normal_(0, 1)
-        fake = netG(noise)
+        noise_c1.data.resize_(batch_size, 1, 1, 1)
+        noise_c1.data.normal_(0, 1)
+        noise_c2.data.resize_(batch_size, 1, 1, 1)
+        noise_c2.data.normal_(0, 1)
+
+        onehot_c.data = one_hot((batch_size, 10), torch.LongTensor([random.randrange(0, 10) for i in range(64)]).view(-1, 1)).cuda()
+        onehot_c = onehot_c.float()
+        onehot_c.data.resize_(batch_size, 10, 1, 1)
+
+        final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
+
+        fake = netG(final_noise )
         label.data.fill_(fake_label)
         output = netD(fake.detach())
         errD_fake = criterion(output, label)
