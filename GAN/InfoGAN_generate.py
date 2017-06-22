@@ -4,14 +4,10 @@ import random
 import torch
 import torch.nn as nn
 import torch.nn.init
-import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
-import torch.optim as optim
 
 # import custom package
 import LJY_utils
@@ -140,9 +136,12 @@ print("Generating Start!")
 # train with real data  ========================================================================================
 # generate noise    ============================================================================================
 
-c1 = False
-c2 = True
+# select variation
+c1 = False # true : c1 and ccat     false : ccat
+c2 = True # true : c2 and ccat      false : ccat
 
+
+# make random noise
 noise.data.resize_(batchSize, nz, 1, 1)
 noise.data.normal_(0, 1)
 #nn.init.uniform(noise, 0.5, 0.5)
@@ -185,7 +184,7 @@ else:
     noise_c2.data.resize_(batchSize, 1, 1, 1)
     noise_c2=noise_c2.cuda()
 
-
+# visualize c_cat
 onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([0, 0, 0, 0, 0, 0, 0, 0,
                                                                      1, 1, 1, 1, 1, 1, 1, 1,
                                                                      2, 2, 2, 2, 2, 2, 2, 2,
@@ -202,6 +201,8 @@ onehot_c.data.resize_(batchSize, 10, 1, 1)
 
 final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
 fake = netG(final_noise)
+
+#visualize generation of InfoGAN
 vutils.save_image(fake.data,
         '%s/generate_samples.png' % (options.outf),
         normalize=False)

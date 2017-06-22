@@ -137,8 +137,7 @@ criterion_G = nn.BCELoss()
 criterion_cat = nn.BCELoss()
 criterion_con = nn.MSELoss()
 
-# setu
-# p optimizer   ====================================================================================================
+# setup optimizer   ====================================================================================================
 Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
 optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
@@ -155,11 +154,7 @@ noise_c1 = torch.FloatTensor(options.batchSize, 1, 1, 1)
 noise_c2 = torch.FloatTensor(options.batchSize, 1, 1, 1)
 onehot_c = torch.FloatTensor(options.batchSize, 10, 1, 1)
 
-
-
-
-# for check   ==========================================================================================================
-fixed_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1)
+fixed_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1) # used for visualize
 
 label = torch.FloatTensor(options.batchSize)
 real_label = 1
@@ -199,7 +194,7 @@ print("Training Start!")
 for epoch in range(options.iteration):
     for i, data in enumerate(dataloader, 0):
         ############################
-        # (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
+        # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
         optimizerD.zero_grad()
@@ -245,10 +240,8 @@ for epoch in range(options.iteration):
         errD = errD_real + errD_fake
         optimizerD.step()
 
-        #just optimize q???
-
         ############################
-        # (2) Update G network: maximize log(D(G(z)))
+        # (2) Update G network and Q network
         ###########################
         optimizerG.zero_grad()
         label.data.fill_(real_label)  # fake labels are real for generator cost
@@ -270,11 +263,7 @@ for epoch in range(options.iteration):
         optimizerQ.step()
         optimizerG.step()
 
-        ############################
-        # (2) Update  network: maximize log(D(G(z)))
-        ###########################
-
-
+        #visualize
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f Loss_Q_cat: %.4f Loss_Q_con: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
               % (epoch, options.iteration, i, len(dataloader),
                  errD.data[0], errG.data[0], errQ_cat.data[0], errQ_con.data[0], D_x, D_G_z1, D_G_z2))
