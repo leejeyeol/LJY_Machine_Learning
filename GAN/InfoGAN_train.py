@@ -92,7 +92,7 @@ dataloader = torch.utils.data.DataLoader(
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-
+# normalize to -1~1
 ngpu = int(options.ngpu)
 nz = int(options.nz)
 ngf = int(options.ngf)
@@ -153,8 +153,8 @@ noise = torch.FloatTensor(options.batchSize, nz, 1, 1)
 
 noise_c1 = torch.FloatTensor(options.batchSize, 1, 1, 1)
 noise_c2 = torch.FloatTensor(options.batchSize, 1, 1, 1)
-onehot_c = torch.FloatTensor(options.batchSize, 10)
-onehot_c_f = torch.FloatTensor(options.batchSize, 10, 1, 1)
+onehot_c = torch.FloatTensor(options.batchSize, 10, 1, 1)
+
 
 
 
@@ -174,9 +174,9 @@ if options.cuda:
     criterion_cat.cuda()
     criterion_con.cuda()
     input, label = input.cuda(), label.cuda()
-    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c, onehot_c_f = final_noise.cuda(), noise.cuda(), \
+    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
                                                                     fixed_noise.cuda(), noise_c1.cuda(),\
-                                                                    noise_c2.cuda(), onehot_c.cuda(), onehot_c_f.cuda()
+                                                                    noise_c2.cuda(), onehot_c.cuda()
 
 
 
@@ -190,7 +190,6 @@ noise = Variable(noise)
 noise_c1 = Variable(noise_c1)
 noise_c2 = Variable(noise_c2)
 onehot_c = Variable(onehot_c)
-onehot_c_f = Variable(onehot_c_f)
 fixed_noise = Variable(fixed_noise)
 
 
@@ -244,7 +243,6 @@ for epoch in range(options.iteration):
         D_G_z1 = outputD.data.mean()
 
         errD = errD_real + errD_fake
-       # errD.backward()
         optimizerD.step()
 
         #just optimize q???
@@ -270,11 +268,10 @@ for epoch in range(options.iteration):
 
         D_G_z2 = outputD.data.mean()
         optimizerQ.step()
-        optimizerD.step()
         optimizerG.step()
 
         ############################
-        # (2) Update G network: maximize log(D(G(z)))
+        # (2) Update  network: maximize log(D(G(z)))
         ###########################
 
 
