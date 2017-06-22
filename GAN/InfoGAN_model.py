@@ -7,7 +7,7 @@ class _netG(nn.Module):
         super(_netG, self).__init__()
         self.ngpu = ngpu
         self.main = nn.Sequential(
-            # nz*1*1 => 1024*1*1
+            # nz(72)*1*1 => 1024*1*1
             nn.ConvTranspose2d(in_channels=in_channels, out_channels=1024, kernel_size=1, bias=False),
             nn.BatchNorm2d(1024),
             nn.ReLU(True),
@@ -24,6 +24,7 @@ class _netG(nn.Module):
 
             # 64*14*14 => 1*28*28
             nn.ConvTranspose2d(64, 1, 4, 2, 1),
+            nn.Tanh()
         )
 
     def forward(self, input):
@@ -41,17 +42,17 @@ class _netD(nn.Module):
         self.main = nn.Sequential(
             # 1*28*28 => 64*14*14
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
 
             # 64*14*14 => 128*7*7
             nn.Conv2d(64, 128, 4, 2, 1),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
 
-            # 128*7*7 => 1024
+            # 128*7*7 => 1024*1*1
             nn.Conv2d(128, 1024, 7, 1, 0, bias=False),
             nn.BatchNorm2d(1024),
-            nn.LeakyReLU(0.2, inplace=True)
+            nn.LeakyReLU(0.1, inplace=True)
         )
         self.main_netD = nn.Sequential(
             # 1024 => 1
@@ -78,7 +79,7 @@ class _netQ(nn.Module):
             # 1024 => 128
             nn.Conv2d(1024, 128, 1, 1, 0, bias=False),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.1, inplace=True),
         )
         self.cat_netQ = nn.Sequential(
             # 128 -> onehot code
@@ -86,8 +87,9 @@ class _netQ(nn.Module):
             nn.Softmax2d()
         )
         self.con_netQ = nn.Sequential(
-            # 128 ->
+            # 128 -> 2
             nn.Conv2d(128, nconC, 1, 1, 0, bias=False),
+            nn.Tanh()
         )
 
     def forward(self, input):

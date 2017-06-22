@@ -3,6 +3,7 @@ import os
 import random
 import torch
 import torch.nn as nn
+import torch.nn.init
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.utils.data
@@ -32,7 +33,6 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
-parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
 
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
@@ -145,35 +145,33 @@ print("Generating Start!")
 # generate noise    ============================================================================================
 noise.data.resize_(batchSize, nz, 1, 1)
 noise.data.normal_(0, 1)
-
 noise_c1.data.resize_(batchSize, 1, 1, 1)
-noise_c1.data.normal_(0, 1)
-
+nn.init.uniform(noise_c1, -1, 1)
 noise_c2.data.resize_(batchSize, 1, 1, 1)
-noise_c2.data.normal_(0, 1)
+nn.init.uniform(noise_c2, -1, 1)
 
-onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([random.randrange(0, 10) for i in
-                                                                      range(batchSize)]).view(-1, 1)).cuda()
-'''
-onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([0, 0, 0, 0, 0, 0, 0, 0,
-                                                                     1, 1, 1, 1, 1, 1, 1, 1,
-                                                                     2, 2, 2, 2, 2, 2, 2, 2,
-                                                                     3, 3, 3, 3, 3, 3, 3, 3,
-                                                                     4, 4, 4, 4, 4, 4, 4, 4,
-                                                                     5, 5, 5, 5, 5, 5, 5, 5,
-                                                                     6, 6, 6, 6, 6, 6, 6, 6,
-                                                                     7, 7, 7, 7, 7, 7, 7, 7,
-                                                                     8, 8, 8, 8, 8, 8, 8, 8,
-                                                                     9, 9, 9, 9, 9, 9, 9, 9]).view(-1,1)).cuda()
-'''
+z=9
+onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,
+                                                                     z, z, z, z, z, z, z, z,]).view(-1,1)).cuda()
+
 onehot_c = onehot_c.float()
 onehot_c.data.resize_(batchSize, 10, 1, 1)
 
 final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
 fake = netG(fixed_noise)
+print(onehot_c)
 vutils.save_image(fake.data,
         '%s/generate_samples.png' % (options.outf),
         normalize=True)
+
 
 
 # Je Yeol. Lee \[T]/
