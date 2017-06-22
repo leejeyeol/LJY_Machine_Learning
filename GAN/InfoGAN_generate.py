@@ -120,8 +120,8 @@ label = torch.FloatTensor(batchSize)
 if options.cuda:
     netG.cuda()
     input, label = input.cuda(), label.cuda()
-    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
-                                                                    fixed_noise.cuda(), noise_c1.cuda(),\
+    final_noise, noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
+                                                                    noise_c1.cuda(),\
                                                                     noise_c2.cuda(), onehot_c.cuda()
 
 # make to variables ====================================================================================================
@@ -133,44 +133,43 @@ noise_c1 = Variable(noise_c1)
 noise_c2 = Variable(noise_c2)
 onehot_c = Variable(onehot_c)
 
-fixed_noise = Variable(fixed_noise)
-
 # training start
 print("Generating Start!")
 
-############################
-# (1) Update D network: maximize log(D(x)) + log(1 - D(G(z)))
-###########################
+
 # train with real data  ========================================================================================
 # generate noise    ============================================================================================
+
+
+
 noise.data.resize_(batchSize, nz, 1, 1)
 noise.data.normal_(0, 1)
+#nn.init.uniform(noise, 0.5, 0.5)
 noise_c1.data.resize_(batchSize, 1, 1, 1)
 nn.init.uniform(noise_c1, -1, 1)
 noise_c2.data.resize_(batchSize, 1, 1, 1)
 nn.init.uniform(noise_c2, -1, 1)
 
-z=9
-onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,
-                                                                     z, z, z, z, z, z, z, z,]).view(-1,1)).cuda()
+
+onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([0, 0, 0, 0, 0, 0, 0, 0,
+                                                                     1, 1, 1, 1, 1, 1, 1, 1,
+                                                                     2, 2, 2, 2, 2, 2, 2, 2,
+                                                                     3, 3, 3, 3, 3, 3, 3, 3,
+                                                                     4, 4, 4, 4, 4, 4, 4, 4,
+                                                                     5, 5, 5, 5, 5, 5, 5, 5,
+                                                                     6, 6, 6, 6, 6, 6, 6, 6,
+                                                                     7, 7, 7, 7, 7, 7, 7, 7,
+                                                                     8, 8, 8, 8, 8, 8, 8, 8,
+                                                                     9, 9, 9, 9, 9, 9, 9, 9]).view(-1,1)).cuda()
 
 onehot_c = onehot_c.float()
 onehot_c.data.resize_(batchSize, 10, 1, 1)
 
 final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
-fake = netG(fixed_noise)
-print(onehot_c)
+fake = netG(final_noise)
 vutils.save_image(fake.data,
         '%s/generate_samples.png' % (options.outf),
-        normalize=True)
+        normalize=False)
 
 
 
