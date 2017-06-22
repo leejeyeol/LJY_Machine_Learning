@@ -267,13 +267,16 @@ for epoch in range(options.iteration):
 
         hook = errQ_cat.register_hook(lambda grad: grad * Q_Influence)
         errQ_con.backward()
-#        errQ = errQ_cat + errQ_con
- #       hook = errQ.register_hook(lambda grad: grad * Q_Influence)
-  #      errQ.backward(retain_variables=True)
 
         D_G_z2 = outputD.data.mean()
         optimizerQ.step()
+        optimizerD.step()
         optimizerG.step()
+
+        ############################
+        # (2) Update G network: maximize log(D(G(z)))
+        ###########################
+
 
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f Loss_Q_cat: %.4f Loss_Q_con: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
               % (epoch, options.iteration, i, len(dataloader),
