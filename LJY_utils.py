@@ -1,6 +1,8 @@
 import os
 import torch
 from torch.autograd import Variable
+import glob
+
 
 # one hot generator
 def one_hot(size, index):
@@ -31,3 +33,22 @@ def weights_init(m):
     elif classname.find('BatchNorm') != -1:
         m.weight.data.normal_(1.0, 0.02)
         m.bias.data.fill_(0)
+
+def make_dir(path):
+    # if there is no directory, make a directory.
+    # make_dir(save_path)
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print("the save directory is maked.")
+    return
+
+def get_file_paths(path, separator, file_type):
+    # return file list of the given type in the given path.
+    # image_files = get_file_paths(image_folder, '/*.', ['png', 'PNG'])
+    file_paths = []
+    if not os.path.exists(path):
+        return file_paths
+    for extension in file_type:
+        file_paths += glob.glob(path + separator + extension)
+    file_paths.sort()
+    return file_paths

@@ -1,0 +1,26 @@
+1. loading images to program
+==preprocessing
+
+image
+
+reflection light--
+find reflection light
+remove reflection light
+save
+--
+
+(saved) image = > --SLIC superpixelize-- = > superpixel image(object?) save
+
+superpixel image = > 4 type feature extraction
+1. Color histogram
+2. Histogram of Gradient
+3. LM filter
+4. embedding to LBP channel
+result : vector
+
+Sparse autoencoder for 4 channel => hidden representation vectors = > features.
+
+
+
+
+
