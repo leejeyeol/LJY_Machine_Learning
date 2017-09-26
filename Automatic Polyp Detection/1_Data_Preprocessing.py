@@ -23,10 +23,10 @@ def Specular_Reflection_Detection(original_image_path):
 
 
         specular_reflection = Find_Specular_Reflection(original_image)
-        specular_reflection = cv2.dilate(specular_reflection,cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5)))
+        specular_reflection = cv2.dilate(specular_reflection, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5)))
         reflection_removed_image = Repainting_Specular_Reflection(specular_reflection, original_image)
         cv2.imwrite(os.path.join(save_path, os.path.split(image)[-1]), reflection_removed_image)
-        print("[%d/%d]"%(i, len(image_list)))
+        print("[%d/%d]"%(i+1, len(image_list)))
 
 
     # find Specular reflection

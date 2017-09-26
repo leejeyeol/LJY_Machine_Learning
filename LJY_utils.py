@@ -52,3 +52,17 @@ def get_file_paths(path, separator, file_type):
         file_paths += glob.glob(path + separator + extension)
     file_paths.sort()
     return file_paths
+
+
+def files_rename(files_path, extensions_list):
+    file_list = get_file_paths(files_path, "/*.", extensions_list)
+
+    # example : 1,11,111,112....12....2,21,211,212 ... => 000001,0000002...
+    for i in range(0, len(file_list)):
+        new_path = file_list[i].replace(file_list[i].split('/')[-1],'')+"%06d"%(int(file_list[i].split('/')[-1].split('.')[0]))+'.png'
+        os.rename(file_list[i], new_path)
+
+def extract_filename_from_path(path):
+    name = path.split('/')[-1].split('.')[0]
+    return name
+
