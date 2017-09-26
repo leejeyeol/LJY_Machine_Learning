@@ -108,6 +108,6 @@ def makeLMfilters():
 
 # Call the make filter function
 F = makeLMfilters()
-
+# F.shape = 0:49 1:49 2:48
 # filter 2d  => 48 reponse map per image.
 # when use it, calc mean,variance of 48 response as vector per superpixel.
