@@ -2,6 +2,7 @@ import os
 import torch
 from torch.autograd import Variable
 import glob
+import numpy as np
 
 
 # one hot generator
@@ -66,3 +67,36 @@ def extract_filename_from_path(path):
     name = path.split('/')[-1].split('.')[0]
     return name
 
+def integer_histogram(data):
+    # data == array
+    unique_elements = np.unique(data)
+    histogram = np.histogram(data, (unique_elements.max()-unique_elements.min()))
+    return histogram
+
+def three_channel_image_interger_histogram(data):
+    unique_elements_0 = np.unique(data[:, :, 0])
+    unique_elements_1 = np.unique(data[:, :, 1])
+    unique_elements_2 = np.unique(data[:, :, 2])
+    total_min = np.min([unique_elements_0.min(), unique_elements_1.min(), unique_elements_2.min()])
+    total_max = np.max([unique_elements_0.max(), unique_elements_1.max(), unique_elements_2.max()])
+    histogram_0 = np.histogram(data[:, :, 0], [x for x in range(total_min, total_max + 1)])
+    histogram_1 = np.histogram(data[:, :, 1], [x for x in range(total_min, total_max + 1)])
+    histogram_2 = np.histogram(data[:, :, 2], [x for x in range(total_min, total_max + 1)])
+    histogram = [histogram_0[0], histogram_1[0], histogram_2[0]]
+
+    return histogram
+
+def three_channel_superpixel_interger_histogram(data, mask):
+    unique_elements_0 = np.unique(data[:, :, 0])
+    unique_elements_1 = np.unique(data[:, :, 1])
+    unique_elements_2 = np.unique(data[:, :, 2])
+    total_min = np.min([unique_elements_0.min(), unique_elements_1.min(), unique_elements_2.min()])
+    total_max = np.max([unique_elements_0.max(), unique_elements_1.max(), unique_elements_2.max()])
+
+    # mask =[weight, height, channel]
+    histogram_0 = np.histogram(data[:, :, 0][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
+    histogram_1 = np.histogram(data[:, :, 1][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
+    histogram_2 = np.histogram(data[:, :, 2][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
+    histogram = np.append(histogram_0[0], [histogram_1[0], histogram_2[0]])
+
+    return histogram
