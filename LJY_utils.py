@@ -5,6 +5,8 @@ import glob
 import numpy as np
 
 
+
+
 # one hot generator
 def one_hot(size, index):
     """ Creates a matrix of one hot vectors.
@@ -40,7 +42,7 @@ def make_dir(path):
     # make_dir(save_path)
     if not os.path.exists(path):
         os.makedirs(path)
-        print("the save directory is maked.")
+        print(path+" : the save directory is maked.")
     return
 
 def get_file_paths(path, separator, file_type):
@@ -60,17 +62,23 @@ def files_rename(files_path, extensions_list):
 
     # example : 1,11,111,112....12....2,21,211,212 ... => 000001,0000002...
     for i in range(0, len(file_list)):
-        new_path = file_list[i].replace(file_list[i].split('/')[-1],'')+"%06d"%(int(file_list[i].split('/')[-1].split('.')[0]))+'.png'
+        new_path = file_list[i].replace(file_list[i].split('/')[-1],'')+"%06d"%(int(file_list[i].split('/')[-1].split('.')[0]))+extensions_list[0]
         os.rename(file_list[i], new_path)
 
 def extract_filename_from_path(path):
     name = path.split('/')[-1].split('.')[0]
     return name
 
+
+
 def integer_histogram(data):
     # data == array
     unique_elements = np.unique(data)
     histogram = np.histogram(data, (unique_elements.max()-unique_elements.min()))
+    return histogram
+
+def integer_histogram(data,min,max):
+    histogram = np.histogram(data, bins=max-min, range=(min, max))
     return histogram
 
 def three_channel_image_interger_histogram(data):
@@ -100,3 +108,20 @@ def three_channel_superpixel_interger_histogram(data, mask):
     histogram = np.append(histogram_0[0], [histogram_1[0], histogram_2[0]])
 
     return histogram
+
+def three_channel_superpixel_interger_histogram_LAB(data, mask):
+
+    # mask =[weight, height, channel]
+    histogram_0 = np.histogram(data[:, :, 0][mask[:, :, 0]], [x for x in range(0, 100 + 1)])
+    histogram_1 = np.histogram(data[:, :, 1][mask[:, :, 0]], [x for x in range(-128, 127 + 1)])
+    histogram_2 = np.histogram(data[:, :, 2][mask[:, :, 0]], [x for x in range(-128, 127 + 1)])
+    histogram = np.append(histogram_0[0], [histogram_1[0], histogram_2[0]])
+
+    return histogram
+
+
+def copy_2darray_into_3rd_dimension(array):
+    return np.repeat(array[:, :, np.newaxis], 3, axis=2)
+
+def HWC_to_CHW_3d(array):
+    return np.transpose(array, (2, 0, 1))

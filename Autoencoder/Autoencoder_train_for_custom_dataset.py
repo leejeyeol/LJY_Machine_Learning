@@ -15,7 +15,7 @@ import torch.optim as optim
 # import custom package
 import datasets
 import LJY_utils
-import GAN.InfoGAN_model as model
+import Autoencoder.Autoencoder_model as model
 
 
 
@@ -86,14 +86,9 @@ if torch.cuda.is_available() and not options.cuda:
 #=======================================================================================================================
 
 # MNIST call and load   ================================================================================================
+dataset = datasets.RGBImageSet('/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/train')
 
-dataloader = torch.utils.data.DataLoader(
-    dset.MNIST('../data', train=True, download=True,
-                   transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.5,), (0.5,))
-                   ])),
-    batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+dataloader = torch.utils.data.DataLoader(dataset, batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
 
 # normalize to -1~1
 ngpu = int(options.ngpu)
@@ -111,43 +106,19 @@ ncatC = 10
 
 
 # Generator ============================================================================================================
-netG = model._netG(ngpu, in_channels=nz+nconC+ncatC)
-netG.apply(LJY_utils.weights_init)
-if options.netG != '':
-    netG.load_state_dict(torch.load(options.netG))
-print(netG)
-
-# Discriminator ========================================================================================================
-netD = model._netD(ngpu)
-netD.apply(LJY_utils.weights_init)
-if options.netD != '':
-    netD.load_state_dict(torch.load(options.netD))
-print(netD)
-
-# Auxiliary distribution ===============================================================================================
-netQ = model._netQ(ngpu, ncatC=ncatC, nconC=nconC)
-netQ.apply(LJY_utils.weights_init)
-if options.netQ != '':
-    netQ.load_state_dict(torch.load(options.netQ))
-print(netQ)
-
+model_AE = model.AE(ngpu, num_in_channels=227*227)
+model_AE.apply(LJY_utils.weights_init)
+print(model_AE)
 
 #=======================================================================================================================
 # Training
 #=======================================================================================================================
 
 # criterion set
-criterion_D = nn.BCELoss()
-criterion_G = nn.BCELoss()
-criterion_cat = nn.BCELoss()
-criterion_con = nn.MSELoss()
+criterion = nn.MSELoss()
 
-# setup optimizer   ====================================================================================================
-Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
-optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerG = optim.Adam(netG.parameters(), betas=(0.5, 0.999), lr=1e-3)
-optimizerQ = optim.Adam(netQ.parameters(), betas=(0.5, 0.999), lr=2e-4)
+optimizerD = optim.Adam(model_AE.parameters(), betas=(0.5, 0.999), lr=2e-4)
 
 
 # container generate
