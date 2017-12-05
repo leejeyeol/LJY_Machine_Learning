@@ -9,7 +9,8 @@ import os
 
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels"
 superpixel_image_list = glob(superpixel_root_path+"/*/")
-feature_save_list = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features"
+feature_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features"
+LJY_utils.make_dir(feature_save_path)
 
 
 
@@ -53,7 +54,7 @@ for i, superpixel_image in enumerate(superpixel_image_list):
         with open(superpixel, "rb") as fp:
             data = pickle.load(fp)
         features = [data[2]/normal_hist, data[3]/normal_hog, data[4]/normal_lm, data[5]/normal_lbp]
-        np.save(os.path.join(feature_save_list, "%04d_%04d_features" % (i, j)), features)
+        np.save(os.path.join(feature_save_path, "%04d_%04d_features" % (i, j)), features)
 
 
         print("%04d_%04d_features" % (i, j))

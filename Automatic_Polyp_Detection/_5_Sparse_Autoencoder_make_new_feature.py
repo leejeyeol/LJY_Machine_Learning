@@ -25,10 +25,10 @@ import dataset_featureset_4 as datasets
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features', help='path to dataset')
-parser.add_argument('--net_hist', default='', help="path of networks.(to continue training)")
-parser.add_argument('--net_LM', default='', help="path of networks.(to continue training)")
-parser.add_argument('--net_LBP', default='', help="path of networks.(to continue training)")
-parser.add_argument('--net_HOG', default='', help="path of networks.(to continue training)")
+parser.add_argument('--net_hist', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_hist_epoch_4260.pth', help="path of networks.(to continue training)")
+parser.add_argument('--net_LM', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_LM_epoch_4260.pth', help="path of networks.(to continue training)")
+parser.add_argument('--net_LBP', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_LBP_epoch_4260.pth', help="path of networks.(to continue training)")
+parser.add_argument('--net_HOG', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_HOG_epoch_4260.pth', help="path of networks.(to continue training)")
 parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -206,11 +206,15 @@ for epoch in range(options.iteration):
         _, h_HOG = net_HOG(input_HOG)
 
 
+        print(feature_path)
+
         # todo extract superpixel number
         superpixel_path = superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])][int(os.path.basename(feature_path[0]).split('_')[1])]
+
         _superpixel = SUPERPIXEL.superpixel(superpixel_path)
-        _superpixel.set_SAE_feature(h_hist.data.tolist()[0], h_HOG.data.tolist()[0], h_LM.data.tolist()[0], h_LBP.data.tolist()[0])
-        _superpixel.save_superpixel()
+        if not _superpixel.is_SAE_feature:
+            _superpixel.set_SAE_feature(h_hist.data.tolist()[0], h_HOG.data.tolist()[0], h_LM.data.tolist()[0], h_LBP.data.tolist()[0])
+            _superpixel.save_superpixel()
         #visualize
         print('[%d/%d][%d/%d]'
               % (epoch, options.iteration, i, len(dataloader)))
