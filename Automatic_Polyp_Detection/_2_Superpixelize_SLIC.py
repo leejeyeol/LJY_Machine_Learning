@@ -21,7 +21,6 @@ class superpixel:
             # load saved superpixels
             #  _superpixel = superpixel(superpixel_path)
 
-            print(save_path)
             self.load_superpixel(save_path)
 
         else:
@@ -139,46 +138,46 @@ class superpixel:
 
 
 
-'''
+turn = False
+if turn:
 
-root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
-image_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Remove_Boundary"
-superpixel_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels/"
-superpixel_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels/000001/1_000000.txt"
+    root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
+    image_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Remove_Boundary"
+    superpixel_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels/"
+    superpixel_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels/000001/1_000000.txt"
 
-image_path_list = LJY_utils.get_file_paths(image_root_path, "/*.", ['png', 'PNG'])
-print("[make superpixels!]")
+    image_path_list = LJY_utils.get_file_paths(image_root_path, "/*.", ['png', 'PNG'])
+    print("[make superpixels!]")
 
-for cnt, image_path in enumerate(image_path_list):
-    print("[%d/%d]" % (cnt, len(image_path_list)))
-    image = cv2.imread(image_path)
-    image_number = int(LJY_utils.extract_filename_from_path(image_path))
+    for cnt, image_path in enumerate(image_path_list):
+        print("[%d/%d]" % (cnt, len(image_path_list)))
+        image = cv2.imread(image_path)
+        image_number = int(LJY_utils.extract_filename_from_path(image_path))
 
-    grayimage = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    boundary_mask = grayimage > 30
-
-
-    for superpixel_level in range(1, 6):
-        superpixel_index = 0
-        #1~5 level segments...
-        segments = slic(image, n_segments=50*superpixel_level, compactness=50, convert2lab=True)
-        for i in range(np.min(segments), np.max(segments)+1):
-            # if image belongs to a segment and is not a boundary, the mask of the corresponding index is true.
-            superpixel_mask = (segments[:] == i)
-            # superpixel && boundary.
-            intergrated_mask = np.logical_and(boundary_mask, superpixel_mask)
-            # [weight, height] => [weight, height, channel]. for calculate with 3channel image.
-            intergrated_mask = intergrated_mask[:, :, np.newaxis]
+        grayimage = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        boundary_mask = grayimage > 30
 
 
-            # check there is no masked image in this level.
-            if intergrated_mask.any():
+        for superpixel_level in range(1, 6):
+            superpixel_index = 0
+            #1~5 level segments...
+            segments = slic(image, n_segments=50*superpixel_level, compactness=50, convert2lab=True)
+            for i in range(np.min(segments), np.max(segments)+1):
+                # if image belongs to a segment and is not a boundary, the mask of the corresponding index is true.
+                superpixel_mask = (segments[:] == i)
+                # superpixel && boundary.
+                intergrated_mask = np.logical_and(boundary_mask, superpixel_mask)
+                # [weight, height] => [weight, height, channel]. for calculate with 3channel image.
+                intergrated_mask = intergrated_mask[:, :, np.newaxis]
 
-                _superpixel = superpixel(superpixel_save_path, intergrated_mask, superpixel_index, image, image_number, superpixel_level, LM_filter_bank)
-                _superpixel.save_superpixel()
-                #print(superpixel_index)
-                superpixel_index = superpixel_index + 1
-            #print(i)
+
+                # check there is no masked image in this level.
+                if intergrated_mask.any():
+
+                    _superpixel = superpixel(superpixel_save_path, intergrated_mask, superpixel_index, image, image_number, superpixel_level, LM_filter_bank)
+                    _superpixel.save_superpixel()
+                    #print(superpixel_index)
+                    superpixel_index = superpixel_index + 1
+                #print(i)
 
 
-'''

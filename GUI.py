@@ -16,6 +16,8 @@ class Application(Frame):
         self.filediag["command"] = self.callback
         self.filediag.pack(side="top")
 
+        self.test = Text(self)
+        self.test.pack(side="left")
 
         self.quit = Button(self, text="QUIT", fg="red",
                               command=root.destroy)
@@ -25,8 +27,11 @@ class Application(Frame):
         name = askopenfilename()
         print(name)
 
+
 root = Tk()
 app = Application(master=root)
 app.master.title("Beta")
 app.master.maxsize(1000, 400)
+
+
 app.mainloop()
