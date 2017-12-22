@@ -96,6 +96,7 @@ nz = int(options.nz)
 #=======================================================================================================================
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels"
 superpixel_image_list = glob.glob(superpixel_root_path+"/*/")
+superpixel_image_list.sort()
 
 superpixel_path_list=[]
 
@@ -209,8 +210,8 @@ for epoch in range(options.iteration):
         print(feature_path)
 
         # todo extract superpixel number
+        print("[%d][%d][%d]"%(int(os.path.basename(feature_path[0]).split('_')[0]), int(os.path.basename(feature_path[0]).split('_')[1]), len(superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])])))
         superpixel_path = superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])][int(os.path.basename(feature_path[0]).split('_')[1])]
-
         _superpixel = SUPERPIXEL.superpixel(superpixel_path)
         if not _superpixel.is_SAE_feature:
             _superpixel.set_SAE_feature(h_hist.data.tolist()[0], h_HOG.data.tolist()[0], h_LM.data.tolist()[0], h_LBP.data.tolist()[0])

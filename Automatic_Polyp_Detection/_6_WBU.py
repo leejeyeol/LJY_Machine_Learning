@@ -8,6 +8,7 @@
 # add two saliency
 # save saliency value in superpixel class and save it.
 
+# 56 hours
 from glob import glob
 import LJY_utils
 import pickle
@@ -22,6 +23,7 @@ import LJY_visualize_tools
 original_image_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Remove_Boundary"
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels"
 superpixel_image_list = glob(superpixel_root_path+"/*/")
+superpixel_image_list.sort()
 level_of_saliency = 5
 
 

@@ -150,7 +150,8 @@ if turn:
     print("[make superpixels!]")
 
     for cnt, image_path in enumerate(image_path_list):
-        print("[%d/%d]" % (cnt, len(image_path_list)))
+
+        print("[%d/%d] Superpixelize_SLIC" % (cnt, len(image_path_list)))
         image = cv2.imread(image_path)
         image_number = int(LJY_utils.extract_filename_from_path(image_path))
 
