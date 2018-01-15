@@ -1,5 +1,6 @@
 # load features and test. extract hidden representation
 # save hidden representations to superpixel structure.
+# 3 hours
 
 import argparse
 import os
@@ -12,7 +13,7 @@ import glob
 import pickle
 # import custom package
 
-import _2_Superpixelize_SLIC as SUPERPIXEL
+from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 import LJY_utils
 import Sparse_Autoencoder_model as model
 import dataset_featureset_4 as datasets
@@ -24,7 +25,7 @@ import dataset_featureset_4 as datasets
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features', help='path to dataset')
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features_copy', help='path to dataset')
 parser.add_argument('--net_hist', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_hist_epoch_4260.pth', help="path of networks.(to continue training)")
 parser.add_argument('--net_LM', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_LM_epoch_4260.pth', help="path of networks.(to continue training)")
 parser.add_argument('--net_LBP', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/trained_networks/net_LBP_epoch_4260.pth', help="path of networks.(to continue training)")
@@ -170,57 +171,59 @@ input_LBP = Variable(input_LBP)
 input_HOG = Variable(input_HOG)
 
 
-
+error_case = []
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
     for i, (data_hist, data_LM, data_LBP, data_HOG, feature_path) in enumerate(dataloader, 0):
-        ############################
-        # (1) Update D network
-        ###########################
-        # train with real data  ========================================================================================
 
-        real_cpu_hist = data_hist
-        batch_size_hist = real_cpu_hist.size(0)
-        input_hist.data.resize_(real_cpu_hist.size()).copy_(real_cpu_hist)
-        data_hist = Variable(data_hist).cuda()
+        if data_hist.shape[1] == 610 and data_LM.shape[1] == 255 and data_LBP.shape[1] == 96 and data_HOG.shape[1] == 255 :
+            ############################
+            # (1) Update D network
+            ###########################
+            # train with real data  ========================================================================================
+            real_cpu_hist = data_hist
+            batch_size_hist = real_cpu_hist.size(0)
+            input_hist.data.resize_(real_cpu_hist.size()).copy_(real_cpu_hist)
+            data_hist = Variable(data_hist).cuda()
 
-        real_cpu_LM = data_LM
-        batch_size_LM = real_cpu_LM.size(0)
-        input_LM.data.resize_(real_cpu_LM.size()).copy_(real_cpu_LM)
-        data_LM = Variable(data_LM).cuda()
+            real_cpu_LM = data_LM
+            batch_size_LM = real_cpu_LM.size(0)
+            input_LM.data.resize_(real_cpu_LM.size()).copy_(real_cpu_LM)
+            data_LM = Variable(data_LM).cuda()
 
-        real_cpu_LBP = data_LBP
-        batch_size_LBP = real_cpu_LBP.size(0)
-        input_LBP.data.resize_(real_cpu_LBP.size()).copy_(real_cpu_LBP)
-        data_LBP = Variable(data_LBP).cuda()
-
-
-        real_cpu_HOG = data_HOG
-        batch_size_HOG = real_cpu_HOG.size(0)
-        input_HOG.data.resize_(real_cpu_HOG.size()).copy_(real_cpu_HOG)
-        data_HOG = Variable(data_HOG).cuda()
-
-        _, h_hist = net_hist(input_hist)
-        _, h_LM = net_LM(input_LM)
-        _, h_LBP = net_LBP(input_LBP)
-        _, h_HOG = net_HOG(input_HOG)
+            real_cpu_LBP = data_LBP
+            batch_size_LBP = real_cpu_LBP.size(0)
+            input_LBP.data.resize_(real_cpu_LBP.size()).copy_(real_cpu_LBP)
+            data_LBP = Variable(data_LBP).cuda()
 
 
-        print(feature_path)
+            real_cpu_HOG = data_HOG
+            batch_size_HOG = real_cpu_HOG.size(0)
+            input_HOG.data.resize_(real_cpu_HOG.size()).copy_(real_cpu_HOG)
+            data_HOG = Variable(data_HOG).cuda()
 
-        # todo extract superpixel number
-        print("[%d][%d][%d]"%(int(os.path.basename(feature_path[0]).split('_')[0]), int(os.path.basename(feature_path[0]).split('_')[1]), len(superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])])))
-        superpixel_path = superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])][int(os.path.basename(feature_path[0]).split('_')[1])]
-        _superpixel = SUPERPIXEL.superpixel(superpixel_path)
-        if not _superpixel.is_SAE_feature:
-            _superpixel.set_SAE_feature(h_hist.data.tolist()[0], h_HOG.data.tolist()[0], h_LM.data.tolist()[0], h_LBP.data.tolist()[0])
-            _superpixel.save_superpixel()
-        #visualize
-        print('[%d/%d][%d/%d]'
-              % (epoch, options.iteration, i, len(dataloader)))
+            _, h_hist = net_hist(input_hist)
+            _, h_LM = net_LM(input_LM)
+            _, h_LBP = net_LBP(input_LBP)
+            _, h_HOG = net_HOG(input_HOG)
 
 
+            print(feature_path)
+
+            # todo extract superpixel number
+            print("[%d][%d][%d]"%(int(os.path.basename(feature_path[0]).split('_')[0]), int(os.path.basename(feature_path[0]).split('_')[1]), len(superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])])))
+            superpixel_path = superpixel_path_list[int(os.path.basename(feature_path[0]).split('_')[0])][int(os.path.basename(feature_path[0]).split('_')[1])]
+            _superpixel = SUPERPIXEL.superpixel(superpixel_path)
+            if not _superpixel.is_SAE_feature:
+                _superpixel.set_SAE_feature(h_hist.data.tolist()[0], h_HOG.data.tolist()[0], h_LM.data.tolist()[0], h_LBP.data.tolist()[0])
+                _superpixel.save_superpixel()
+            #visualize
+            print('[%d/%d][%d/%d]'
+                  % (epoch, options.iteration, i, len(dataloader)))
+        else:
+            error_case.append(i)
+print(error_case)
 
 
 

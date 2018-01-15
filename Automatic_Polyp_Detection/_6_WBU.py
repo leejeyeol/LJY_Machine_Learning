@@ -16,7 +16,7 @@ import numpy as np
 import cv2
 from scipy.spatial import distance
 import os
-import Automatic_Polyp_Detection._2_Superpixelize_SLIC as SUPERPIXEL
+from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 
 import LJY_visualize_tools
 
@@ -69,7 +69,8 @@ for i, superpixel_image in enumerate(superpixel_image_list):
             superpixel_per_level_list[superpixel_level][anchor].append(OB_saliency_value)
 
             CB_total_saliency_per_level_list[superpixel_level] = CB_total_saliency_per_level_list[superpixel_level] + CB_saliency_value
-            print("[%d/%d] saliency calculate" % (anchor, len(superpixel_per_level_list[superpixel_level])))
+            print("[%d/%d][%d/%d] calculate saliency" % (i, len(superpixel_image_list), anchor, len(superpixel_per_level_list[superpixel_level])))
+            #
 
     for superpixel_level in range(0, level_of_saliency):
         mean_saliency_per_level_list[superpixel_level] = 0
@@ -81,7 +82,6 @@ for i, superpixel_image in enumerate(superpixel_image_list):
             superpixel = superpixel_per_level[0]
 
             _superpixel = SUPERPIXEL.superpixel(superpixel)
-
 
             mask = _superpixel.mask
             CB_saliency_value = superpixel_per_level[6] / CB_total_saliency_per_level_list[superpixel_level]

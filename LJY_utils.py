@@ -69,8 +69,6 @@ def extract_filename_from_path(path):
     name = path.split('/')[-1].split('.')[0]
     return name
 
-
-
 def integer_histogram(data):
     # data == array
     unique_elements = np.unique(data)
@@ -82,39 +80,24 @@ def integer_histogram(data,min,max):
     return histogram
 
 def three_channel_image_interger_histogram(data):
-    unique_elements_0 = np.unique(data[:, :, 0])
-    unique_elements_1 = np.unique(data[:, :, 1])
-    unique_elements_2 = np.unique(data[:, :, 2])
+    unique_elements_0 = np.unique(data[:, 0])
+    unique_elements_1 = np.unique(data[:, 1])
+    unique_elements_2 = np.unique(data[:, 2])
     total_min = np.min([unique_elements_0.min(), unique_elements_1.min(), unique_elements_2.min()])
     total_max = np.max([unique_elements_0.max(), unique_elements_1.max(), unique_elements_2.max()])
-    histogram_0 = np.histogram(data[:, :, 0], [x for x in range(total_min, total_max + 1)])
-    histogram_1 = np.histogram(data[:, :, 1], [x for x in range(total_min, total_max + 1)])
-    histogram_2 = np.histogram(data[:, :, 2], [x for x in range(total_min, total_max + 1)])
+    histogram_0 = np.histogram(data[:, 0], [x for x in range(total_min, total_max + 1)])
+    histogram_1 = np.histogram(data[:, 1], [x for x in range(total_min, total_max + 1)])
+    histogram_2 = np.histogram(data[:, 2], [x for x in range(total_min, total_max + 1)])
     histogram = [histogram_0[0], histogram_1[0], histogram_2[0]]
 
     return histogram
 
-def three_channel_superpixel_interger_histogram(data, mask):
-    unique_elements_0 = np.unique(data[:, :, 0])
-    unique_elements_1 = np.unique(data[:, :, 1])
-    unique_elements_2 = np.unique(data[:, :, 2])
-    total_min = np.min([unique_elements_0.min(), unique_elements_1.min(), unique_elements_2.min()])
-    total_max = np.max([unique_elements_0.max(), unique_elements_1.max(), unique_elements_2.max()])
+def three_channel_superpixel_interger_histogram_LAB(data):
 
     # mask =[weight, height, channel]
-    histogram_0 = np.histogram(data[:, :, 0][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
-    histogram_1 = np.histogram(data[:, :, 1][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
-    histogram_2 = np.histogram(data[:, :, 2][mask[:, :, 0]], [x for x in range(total_min, total_max + 1)])
-    histogram = np.append(histogram_0[0], [histogram_1[0], histogram_2[0]])
-
-    return histogram
-
-def three_channel_superpixel_interger_histogram_LAB(data, mask):
-
-    # mask =[weight, height, channel]
-    histogram_0 = np.histogram(data[:, :, 0][mask[:, :, 0]], [x for x in range(0, 100 + 1)])
-    histogram_1 = np.histogram(data[:, :, 1][mask[:, :, 0]], [x for x in range(-128, 127 + 1)])
-    histogram_2 = np.histogram(data[:, :, 2][mask[:, :, 0]], [x for x in range(-128, 127 + 1)])
+    histogram_0 = np.histogram(data[:, 0], [x for x in range(0, 100 + 1)])
+    histogram_1 = np.histogram(data[:, 1], [x for x in range(-128, 127 + 1)])
+    histogram_2 = np.histogram(data[:, 2], [x for x in range(-128, 127 + 1)])
     histogram = np.append(histogram_0[0], [histogram_1[0], histogram_2[0]])
 
     return histogram
@@ -125,3 +108,12 @@ def copy_2darray_into_3rd_dimension(array):
 
 def HWC_to_CHW_3d(array):
     return np.transpose(array, (2, 0, 1))
+
+def time_visualizer(start_time, current_time):
+    tm = current_time-start_time
+    h = int(tm)/360
+    h_ = int(tm)%360
+    m = int(h_)/60
+    m_ = int(h_)%60
+    s = int(m_)
+    return tm, "%d:%02d:%02d" % (h, m, s)

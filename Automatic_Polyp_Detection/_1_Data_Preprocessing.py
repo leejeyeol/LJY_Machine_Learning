@@ -6,7 +6,7 @@ import numpy as np
 
 
 folder_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
-original_image_path = os.path.join(folder_path, "Original")
+original_image_path = os.path.join(folder_path, "Remove_Boundary")
 
 #=======================================================================================================================
 #   Functions

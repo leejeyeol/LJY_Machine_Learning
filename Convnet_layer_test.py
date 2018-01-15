@@ -8,13 +8,19 @@ in_channel = 3
 width = 113
 length = 113
 
-# layers parameters
+
+out_channel = [32, 64, 128, 3]
+kernel_size = [5, 5, 3, 3]
+stride = [1, 1, 1, 1]
+padding = [2, 2, 1, 1]
+layers = []
+'''
 out_channel = [32, 64, 128, 256, 256, 200]
 kernel_size = [5, 5, 5, 5, 5, 2]
 stride = [2, 2, 2, 2, 2, 1]
 padding = [1, 1, 1, 1, 1, 0]
 layers = []
-
+'''
 
 test_input = Variable(torch.FloatTensor(batch_size,in_channel,width,length))
 print("test input")
@@ -31,7 +37,7 @@ for j in range(len(layers)):
     test_input = result
 
 print("===============")
-
+'''
 # layers parameters
 out_channel = [256, 256, 128, 64, 32, 1]
 kernel_size = [2, 6, 5, 5, 6, 5]
@@ -48,3 +54,4 @@ for j in range(len(layers)):
     print(result.size())
     test_input = result
 
+'''

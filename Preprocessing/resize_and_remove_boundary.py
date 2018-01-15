@@ -6,8 +6,8 @@ import numpy as np
 
 
 folder_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
-original_image_path = os.path.join(folder_path, "Original")
-sample_size = (224,224)
+original_image_path = os.path.join(folder_path, "Reflection Removed")
+sample_size = (224, 224)
 
 
 #=======================================================================================================================

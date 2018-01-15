@@ -37,3 +37,28 @@ class featureset_4(torch.utils.data.Dataset):
 
         # todo data normalized
         return hist_feature, LM_feature, LBP_feature, HOG_feature, self.file_paths[item]
+
+
+class featureset_4_online(torch.utils.data.Dataset):
+    def __init__(self, superpixel):
+        super().__init__()
+        self.superpixel = superpixel
+
+    def __len__(self):
+        return len(self.superpixel)
+
+    def __getitem__(self, item):
+        sp = self.superpixel[item]
+
+        hist_feature = sp.color_hist_feature.astype(float)
+        HOG_feature= sp.HOG_feature.astype(float)
+        LM_feature = sp.LM_feature.astype(float)
+        LBP_feature = sp.LBP_feature.astype(float)
+
+        hist_feature = torch.FloatTensor(hist_feature)
+        LM_feature = torch.FloatTensor(LM_feature)
+        LBP_feature = torch.FloatTensor(LBP_feature)
+        HOG_feature = torch.FloatTensor(HOG_feature)
+
+        # todo data normalized
+        return hist_feature, LM_feature, LBP_feature, HOG_feature, sp.index

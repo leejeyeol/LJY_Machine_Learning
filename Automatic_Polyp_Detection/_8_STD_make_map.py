@@ -1,4 +1,4 @@
-import Automatic_Polyp_Detection._2_Superpixelize_SLIC as SUPERPIXEL
+from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 from sklearn.svm import SVR
 import os
 import LJY_utils
