@@ -50,11 +50,18 @@ is_train = True
 # for calculate LM feature...
 LM_filter_bank = LM_Filter.makeLMfilters()
 np.random.seed(72170300)
+'''
 root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
 image_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Remove_Boundary"
 superpixel_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels/"
 feature_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/features"
 saliency_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/saliency_map"
+'''
+root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames"
+image_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames/normal_/sampled_normal"
+superpixel_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames/normal_/superpixels/"
+feature_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames/normal_/features"
+saliency_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames/normal_/saliency_map"
 
 LJY_utils.make_dir(saliency_save_path)
 LJY_utils.make_dir(feature_save_path)

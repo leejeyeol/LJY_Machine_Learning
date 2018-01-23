@@ -5,8 +5,8 @@ import LJY_visualize_tools
 import numpy as np
 
 
-folder_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
-original_image_path = os.path.join(folder_path, "Remove_Boundary")
+folder_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/frames"
+original_image_path = os.path.join(folder_path, "anomaly")
 
 #=======================================================================================================================
 #   Functions
@@ -59,7 +59,8 @@ def check_8_neighbhors(x,y,specular_reflection, original_image):
     tmp_original_image = original_image
     if (x-2) < 0 or (y-2) < 0 or (x+2) > tmp_specular_reflection.shape[0] or (y+2) > tmp_specular_reflection.shape[1]:
         # detect abnormally case
-        print("Specular Reflection of Corner is detected.")
+        pass
+        #print("Specular Reflection of Corner is detected.")
     else:
         for i in range(-1, 2):
             for j in range(-1, 2):
