@@ -1,23 +1,23 @@
-import LM_Filter
-from skimage.feature import hog
-from skimage.feature import local_binary_pattern
-import cv2
-from skimage.segmentation import slic
-import numpy as np
-from Automatic_Polyp_Detection import superpixel, mask_converter
 import argparse
 import os
 import random
 import time
-from scipy.spatial import distance
+
+import Sparse_Autoencoder_model as model
+import cv2
+import dataset_featureset_4 as datasets
+import numpy as np
 import torch.backends.cudnn as cudnn
 import torch.utils.data
+from scipy.spatial import distance
+from skimage.feature import hog
+from skimage.feature import local_binary_pattern
+from skimage.segmentation import slic
 from torch.autograd import Variable
 
 import LJY_utils
-import LJY_visualize_tools
-import Sparse_Autoencoder_model as model
-import dataset_featureset_4 as datasets
+import LM_Filter
+from legacy.Automatic_Polyp_Detection import superpixel, mask_converter
 
 
 def MKB(weights, F, x):

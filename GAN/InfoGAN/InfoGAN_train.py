@@ -82,7 +82,6 @@ if torch.cuda.is_available() and not options.cuda:
 #=======================================================================================================================
 
 # MNIST call and load   ================================================================================================
-
 dataloader = torch.utils.data.DataLoader(
     dset.MNIST('../data', train=True, download=True,
                    transform=transforms.Compose([
@@ -90,7 +89,6 @@ dataloader = torch.utils.data.DataLoader(
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-
 # normalize to -1~1
 ngpu = int(options.ngpu)
 nz = int(options.nz)
@@ -103,8 +101,6 @@ ncatC = 10
 #=======================================================================================================================
 # Models
 #=======================================================================================================================
-
-
 
 # Generator ============================================================================================================
 netG = model._netG(ngpu, in_channels=nz+nconC+ncatC)
@@ -193,7 +189,7 @@ fixed_noise = Variable(fixed_noise)
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, data in enumerate(dataloader, 0):
+    for i, (data,target) in enumerate(dataloader, 0):
         ############################
         # (1) Update D network
         ###########################

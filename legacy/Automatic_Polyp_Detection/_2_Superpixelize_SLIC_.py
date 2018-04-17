@@ -1,10 +1,13 @@
-import LM_Filter
+import os
+
 import cv2
 import numpy as np
 from skimage.segmentation import slic
+
 import LJY_utils
-import os
-from Automatic_Polyp_Detection import superpixel, mask_converter
+import LM_Filter
+from legacy.Automatic_Polyp_Detection import superpixel, mask_converter
+
 
 def min_max_refresh(data, minmax):
     if np.max(data)>minmax[1]:

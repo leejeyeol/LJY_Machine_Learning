@@ -3,13 +3,14 @@
 # selected superpixels are listed to samples.
 # all samples's features are used to MKBoosting.
 # train MKB. and make strong classifier
-from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
-from sklearn.svm import SVR
 import os
-import LJY_utils
-import numpy as np
-from glob import glob
 import random
+from glob import glob
+
+import numpy as np
+from sklearn.svm import SVR
+
+import LJY_utils
 
 result_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB"
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels"
@@ -114,14 +115,14 @@ def make_training_set(root_path):
     label_set = []
 
     for k, image_path in enumerate(pos_image_list):
-        _superpixel = SUPERPIXEL.superpixel(image_path)
+        _superpixel = superpixel.superpixel(image_path)
         training_set.append(sum([_superpixel.color_hist_feature, _superpixel.HOG_feature, _superpixel.LBP_feature,
                              _superpixel.LM_feature], []))
         label_set.append(1)
         print("[%d/%d] positive set making ..." % ((k + 1), len(pos_image_list)))
 
     for k, image_path in enumerate(neg_image_list):
-        _superpixel = SUPERPIXEL.superpixel(image_path)
+        _superpixel = superpixel.superpixel(image_path)
         training_set.append(sum([_superpixel.color_hist_feature, _superpixel.HOG_feature, _superpixel.LBP_feature,
                                  _superpixel.LM_feature], []))
         label_set.append(-1)

@@ -1,33 +1,30 @@
 import argparse
 import os
 import random
-import torch
-import torch.nn as nn
-import torch.nn.init
-import torch.nn.parallel
+
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
+import torch.optim as optim
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 from torch.autograd import Variable
-import torch.optim as optim
+import GAN.SandwichGAN.SandwichGAN_model as model
+import GAN.SandwichGAN.SandwichGAN_dataloader as dset
 # import custom package
 import LJY_utils
-import GAN.InfoGAN_model as model
-
-
 
 #=======================================================================================================================
 # Options
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MNIST', help='what is dataset?')
-parser.add_argument('--dataroot', default='/mnt/fastdataset/Datasets', help='path to dataset')
+parser.add_argument('--dataset', default='HMDB51', help='what is dataset?')
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51/middle_block', help='path to dataset')
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
-parser.add_argument('--outf', default='./InfoGAN', help="folder to output images and model checkpoints")
+parser.add_argument('--outf', default='./output(for_test)', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
@@ -55,7 +52,7 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 options = parser.parse_args()
 print(options)
 
-
+IsSave = False
 
 # save directory make   ================================================================================================
 try:
@@ -86,27 +83,21 @@ if torch.cuda.is_available() and not options.cuda:
 
 # MNIST call and load   ================================================================================================
 dataloader = torch.utils.data.DataLoader(
-    dset.MNIST('../data', train=True, download=True,
-                   transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.5,), (0.5,))
-                   ])),
-    batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    dset.SandwichGAN_Dataloader(options.dataroot,centered=True),
+    batch_size=options.batchSize, shuffle=True, num_workers=options.workers, drop_last=False)
 # normalize to -1~1
 ngpu = int(options.ngpu)
 nz = int(options.nz)
 ngf = int(options.ngf)
 ndf = int(options.ndf)
-nc = int(options.nc)
-nconC = 2
-ncatC = 10
+
 
 #=======================================================================================================================
 # Models
 #=======================================================================================================================
 
 # Generator ============================================================================================================
-netG = model._netG(ngpu, in_channels=nz+nconC+ncatC)
+netG = model._netG(ngpu)
 netG.apply(LJY_utils.weights_init)
 if options.netG != '':
     netG.load_state_dict(torch.load(options.netG))
@@ -119,123 +110,95 @@ if options.netD != '':
     netD.load_state_dict(torch.load(options.netD))
 print(netD)
 
-# Auxiliary distribution ===============================================================================================
-netQ = model._netQ(ngpu, ncatC=ncatC, nconC=nconC)
-netQ.apply(LJY_utils.weights_init)
-if options.netQ != '':
-    netQ.load_state_dict(torch.load(options.netQ))
-print(netQ)
-
 
 #=======================================================================================================================
 # Training
 #=======================================================================================================================
 
 # criterion set
+
 criterion_D = nn.BCELoss()
 criterion_G = nn.BCELoss()
-criterion_cat = nn.BCELoss()
-criterion_con = nn.MSELoss()
 
 # setup optimizer   ====================================================================================================
-Q_Influence = 1.0
+
+#Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
-optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerG = optim.Adam(netG.parameters(), betas=(0.5, 0.999), lr=1e-3)
-optimizerQ = optim.Adam(netQ.parameters(), betas=(0.5, 0.999), lr=2e-4)
+#optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
+optimizerD = optim.SGD(netD.parameters(),lr = 0.0002, momentum=0.9)
+#optimizerG = optim.SGD(netD.parameters(),lr = 0.0002, momentum=0.9)
+optimizerG = optim.Adam(netG.parameters(), betas=(0.5, 0.999), lr=0.02)
 
 
 # container generate
 input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
-final_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1)
-noise = torch.FloatTensor(options.batchSize, nz, 1, 1)
-
-noise_c1 = torch.FloatTensor(options.batchSize, 1, 1, 1)
-noise_c2 = torch.FloatTensor(options.batchSize, 1, 1, 1)
-onehot_c = torch.FloatTensor(options.batchSize, 10, 1, 1)
-
-fixed_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1) # used for visualize
-
-label = torch.FloatTensor(options.batchSize)
+bread = torch.FloatTensor(options.batchSize, 6, options.imageSize, options.imageSize)
+sandwich = torch.FloatTensor(options.batchSize, 9, options.imageSize, options.imageSize)
+label = torch.FloatTensor(options.batchSize,1,1,1)
 real_label = 1
 fake_label = 0
 
 if options.cuda:
     netD.cuda()
     netG.cuda()
-    netQ.cuda()
     criterion_D.cuda()
     criterion_G.cuda()
-    criterion_cat.cuda()
-    criterion_con.cuda()
     input, label = input.cuda(), label.cuda()
-    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
-                                                                    fixed_noise.cuda(), noise_c1.cuda(),\
-                                                                    noise_c2.cuda(), onehot_c.cuda()
-
+    bread, sandwich = bread.cuda(), sandwich.cuda()
 
 
 # make to variables ====================================================================================================
 input = Variable(input)
 label = Variable(label)
-
-final_noise = Variable(final_noise)
-
-noise = Variable(noise)
-noise_c1 = Variable(noise_c1)
-noise_c2 = Variable(noise_c2)
-onehot_c = Variable(onehot_c)
-fixed_noise = Variable(fixed_noise)
-
+bread = Variable(bread)
+sandwich = Variable(sandwich)
 
 
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, (data,target) in enumerate(dataloader, 0):
+    for i, (pre_frame, real_mid_frame, nxt_frame,_) in enumerate(dataloader, 0):
         ############################
         # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
+        pre_frame = pre_frame.cuda()
+        real_mid_frame = real_mid_frame.cuda()
+        nxt_frame = nxt_frame.cuda()
+
         optimizerD.zero_grad()
-        optimizerQ.zero_grad()
         optimizerG.zero_grad()
 
-        real_cpu, _ = data
-        batch_size = real_cpu.size(0)
-        input.data.resize_(real_cpu.size()).copy_(real_cpu)
-        label.data.resize_(batch_size).fill_(real_label)
 
-        outputD, _ = netD(input)
+        batch_size = pre_frame.size(0)
+        input.data.resize_(pre_frame.size()).copy_(pre_frame)
+        label.data.fill_(real_label)
+
+        pre_and_nxt = torch.cat((pre_frame, nxt_frame), 1)
+        bread.data = pre_and_nxt.cuda()
+        fake_mid_frame = netG(bread)
+
+        real_sandwich = torch.cat((pre_frame, real_mid_frame, nxt_frame), 1)
+        fake_sandwich = torch.cat((pre_frame, fake_mid_frame.data, nxt_frame), 1)
+
+        sandwich.data = real_sandwich
+        outputD = netD(sandwich)
+        if outputD.data.max() <0 or outputD.data.min()>1:
+            print(1)
+        print(outputD.data.max())
+        print(outputD.data.min())
         errD_real = criterion_D(outputD, label)
         errD_real.backward()
 
-        D_x = outputD.data.mean()   # for visualize
+        vis_D_x = outputD.data.mean()   # for visualize
 
-        # generate noise    ============================================================================================
-        noise.data.resize_(batch_size, nz, 1, 1)
-        noise.data.normal_(0, 1)
-        noise_c1.data.resize_(batch_size, 1, 1, 1)
-        nn.init.uniform(noise_c1, -1, 1)
-        noise_c2.data.resize_(batch_size, 1, 1, 1)
-        nn.init.uniform(noise_c2, -1, 1)
-
-        onehot_c.data = LJY_utils.one_hot((batch_size, 10), torch.LongTensor([random.randrange(0, 10) for i in
-                                                                              range(batch_size)]).view(-1, 1)).cuda()
-
-        onehot_c.data = onehot_c.detach().data.resize_(batch_size, 10, 1, 1).float()
-
-        final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
-
-        #train with fake data   ========================================================================================
-        fake = netG(final_noise)
         label.data.fill_(fake_label)
-
-        outputD, _ = netD(fake.detach())
+        sandwich.data = fake_sandwich
+        outputD = netD(sandwich.detach())
         errD_fake = criterion_D(outputD, label)
         errD_fake.backward()
 
-        D_G_z1 = outputD.data.mean()
+        vis_D_G_z1 = outputD.data.mean()
 
         errD = errD_real + errD_fake
         optimizerD.step()
@@ -244,44 +207,33 @@ for epoch in range(options.iteration):
         # (2) Update G network and Q network
         ###########################
         optimizerG.zero_grad()
-        label.data.fill_(real_label)  # fake labels are real for generator cost
-        outputD, midQ = netD(fake)
+        label.data.fill_(real_label)
+
+        # fake labels are real for generator cost
+        sandwich.data = fake_sandwich
+        outputD = netD(sandwich)
+
         errG = criterion_G(outputD, label)
-        errG.backward(retain_variables=True)
-
-        c_cat, c_cont = netQ(midQ)
-        errQ_cat = criterion_cat(c_cat, onehot_c)
-        errQ_con = criterion_con(c_cont, torch.cat((noise_c1, noise_c2), 1))
-
-        hook = errQ_cat.register_hook(lambda grad: grad * Q_Influence)
-        errQ_cat.backward(retain_variables=True)
-
-        hook = errQ_cat.register_hook(lambda grad: grad * Q_Influence)
-        errQ_con.backward()
-
-        D_G_z2 = outputD.data.mean()
-        optimizerQ.step()
+        errG.backward(retain_graph=True)
+        vis_D_G_z2 = outputD.data.mean()
         optimizerG.step()
 
         #visualize
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f Loss_Q_cat: %.4f Loss_Q_con: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
+        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f   D(x): %.4f(to 1) D(G(z)): %.4f(to 0) | %.4f(fake=real?)'
               % (epoch, options.iteration, i, len(dataloader),
-                 errD.data[0], errG.data[0], errQ_cat.data[0], errQ_con.data[0], D_x, D_G_z1, D_G_z2))
+                 errD.data[0], errG.data[0], vis_D_x, vis_D_G_z1, vis_D_G_z2))
 
-        if i == len(dataloader)-1:
-            vutils.save_image(real_cpu,
-                    '%s/real_samples.png' % options.outf,
+        #if i == len(dataloader)-1:
+        if True:
+            testImage = torch.cat((pre_frame[0],real_mid_frame[0],fake_mid_frame.data[0],nxt_frame[0]),2)
+            vutils.save_image(testImage,
+                    '%s/%d_test_samples.png' % (options.outf,i),
                     normalize=True)
-            fake = netG(fixed_noise)
-            vutils.save_image(fake.data,
-                    '%s/fake_samples_epoch_%03d.png' % (options.outf, epoch),
-                    normalize=True)
-
 
     # do checkpointing
-    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (options.outf, epoch))
-    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (options.outf, epoch))
-    torch.save(netQ.state_dict(), '%s/netQ_epoch_%d.pth' % (options.outf, epoch))
+    if IsSave == True:
+        torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (options.outf, epoch))
 
 
 

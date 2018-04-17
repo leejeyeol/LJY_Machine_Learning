@@ -8,17 +8,16 @@
 # add two saliency
 # save saliency value in superpixel class and save it.
 
+import os
+import pickle
 # 56 hours
 from glob import glob
-import LJY_utils
-import pickle
-import numpy as np
-import cv2
-from scipy.spatial import distance
-import os
-from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 
-import LJY_visualize_tools
+import cv2
+import numpy as np
+from scipy.spatial import distance
+
+import LJY_utils
 
 original_image_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Remove_Boundary"
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/superpixels"
@@ -81,7 +80,7 @@ for i, superpixel_image in enumerate(superpixel_image_list):
         for superpixel_per_level in superpixel_per_level_list[superpixel_level]:
             superpixel = superpixel_per_level[0]
 
-            _superpixel = SUPERPIXEL.superpixel(superpixel)
+            _superpixel = superpixel.superpixel(superpixel)
 
             mask = _superpixel.mask
             CB_saliency_value = superpixel_per_level[6] / CB_total_saliency_per_level_list[superpixel_level]

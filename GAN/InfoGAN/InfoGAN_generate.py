@@ -1,19 +1,16 @@
 import argparse
 import os
 import random
-import torch
-import torch.nn as nn
-import torch.nn.init
+
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.utils.data
 import torchvision.utils as vutils
 from torch.autograd import Variable
 
+import GAN.InfoGAN.InfoGAN_model as model
 # import custom package
 import LJY_utils
-import GAN.InfoGAN_model as model
-
-
 
 #=======================================================================================================================
 # Options

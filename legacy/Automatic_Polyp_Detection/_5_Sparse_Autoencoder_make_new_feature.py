@@ -3,20 +3,20 @@
 # 3 hours
 
 import argparse
+import glob
 import os
 import random
-import torch.nn as nn
+
+import Sparse_Autoencoder_model as model
+import dataset_featureset_4 as datasets
 import torch.backends.cudnn as cudnn
 import torch.utils.data
 from torch.autograd import Variable
-import glob
-import pickle
-# import custom package
 
-from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 import LJY_utils
-import Sparse_Autoencoder_model as model
-import dataset_featureset_4 as datasets
+from legacy.Automatic_Polyp_Detection import superpixel as SUPERPIXEL
+
+# import custom package
 
 
 

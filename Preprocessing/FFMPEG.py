@@ -15,7 +15,7 @@ def make_dir(path):
 # video --> frames =====================================================================================================
 print('Extract images...')
 #back young ju (01104575) 19 Jun 13_1
-filename = "full-KyungHee-Oh.mpg"
+filename = "Lee_Sungmu.mpg"
 folder_path ="/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope"
 
 # output directory
@@ -29,7 +29,7 @@ command = [FFMPEG_BIN,
            '-i', os.path.join(folder_path, filename),
            '-s', str(target_rows) + 'x' + str(target_cols),  # [rows x cols]
            '-pix_fmt', 'rgb24',
-            '-vf', 'fps=5',
+            '-vf', 'fps=30',
            os.path.join(output_dir, 'frame_%07d.png')]
 sp.call(command)  # call command
 print("Extraction is done")

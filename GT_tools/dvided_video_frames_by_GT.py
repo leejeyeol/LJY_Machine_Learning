@@ -3,8 +3,8 @@ import glob
 import numpy as np
 import LJY_utils
 
-frame_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/full-JuneHong-Kim"
-GT_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/full-JuneHong-Kim_30320_31504_GT.npy"
+frame_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/Lee_Sungmu"
+GT_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/endoscope/Lee_Sungmu_26526_30029_GT.npy"
 save_anomaly_path = os.path.join(frame_path, "anomaly")
 save_normal_path = os.path.join(frame_path, "normal")
 LJY_utils.make_dir(save_anomaly_path)

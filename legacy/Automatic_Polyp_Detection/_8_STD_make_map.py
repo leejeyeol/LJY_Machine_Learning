@@ -1,10 +1,10 @@
-from Automatic_Polyp_Detection import superpixel as SUPERPIXEL
-from sklearn.svm import SVR
-import os
-import LJY_utils
-import numpy as np
-from glob import glob
 import gc
+import os
+from glob import glob
+
+import numpy as np
+
+import LJY_utils
 
 result_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/CVC-ClinicDB/Results"
 superpixel_root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/superpixels"
@@ -48,7 +48,7 @@ for i, superpixel_image in enumerate(image_list):
     for superpixel_level in range(0, level_of_superpixels):
         for superpixel_per_level in superpixel_per_level_list[superpixel_level]:
             superpixel = superpixel_per_level
-            _superpixel = SUPERPIXEL.superpixel(superpixel)
+            _superpixel = superpixel.superpixel(superpixel)
 
             result = MKB(weights, clfs, sum([_superpixel.color_hist_feature,_superpixel.HOG_feature,_superpixel.LBP_feature,_superpixel.LM_feature],[]))
 
