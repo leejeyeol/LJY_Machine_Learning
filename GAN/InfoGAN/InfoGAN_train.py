@@ -189,7 +189,7 @@ fixed_noise = Variable(fixed_noise)
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, (data,target) in enumerate(dataloader, 0):
+    for i, (data, target) in enumerate(dataloader, 0):
         ############################
         # (1) Update D network
         ###########################
