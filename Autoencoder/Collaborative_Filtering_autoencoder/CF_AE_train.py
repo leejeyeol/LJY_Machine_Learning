@@ -36,7 +36,7 @@ parser.add_argument('--iteration', type=int, default=1000, help='number of epoch
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 

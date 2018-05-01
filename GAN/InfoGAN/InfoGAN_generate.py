@@ -30,7 +30,7 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
 parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
@@ -199,7 +199,7 @@ onehot_c.data.resize_(batchSize, 10, 1, 1)
 final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
 fake = netG(final_noise)
 
-#visualize generation of InfoGAN
+#visualize generation of pretrained_model
 vutils.save_image(fake.data,
         '%s/generate_samples.png' % (options.outf),
         normalize=False)

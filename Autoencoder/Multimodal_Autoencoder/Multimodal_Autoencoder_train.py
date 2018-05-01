@@ -6,40 +6,38 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
+
 import torchvision.utils as vutils
 from torch.autograd import Variable
 
-import GAN.InfoGAN.InfoGAN_model as model
+import Autoencoder.Multimodal_Autoencoder.Multimodal_Autoencoder_model as model
+import Autoencoder.Multimodal_Autoencoder.Multimodal_Autoencoder_dataloader as dset
+
 # import custom package
 import LJY_utils
+import LJY_visualize_tools
 
 #=======================================================================================================================
 # Options
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MNIST', help='what is dataset?')
-parser.add_argument('--dataroot', default='/mnt/fastdataset/Datasets', help='path to dataset')
-parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
-parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
-parser.add_argument('--outf', default='./InfoGAN', help="folder to output images and model checkpoints")
+parser.add_argument('--dataset', default='KITTI', help='what is dataset?')
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/train', help='path to dataset')
+parser.add_argument('--net', default='', help="path of Generator networks.(to continue training)")
+parser.add_argument('--outf', default='./pretrained_model', help="folder to output images and model checkpoints")
+
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
 
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
-parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
-parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
-parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
+parser.add_argument('--imageSize', type=int, default=[60, 18], help='the height / width of the input image to network')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
@@ -47,11 +45,9 @@ parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 parser.add_argument('--seed', type=int, help='manual seed')
 
 # custom options
-parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution networks.(to continue training)")
 
 options = parser.parse_args()
 print(options)
-
 
 
 # save directory make   ================================================================================================
@@ -84,191 +80,176 @@ if torch.cuda.is_available() and not options.cuda:
 # MNIST call and load   ================================================================================================
 
 dataloader = torch.utils.data.DataLoader(
-    dset.MNIST('../data', train=True, download=True,
-                   transform=transforms.Compose([
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.5,), (0.5,))
-                   ])),
+    dset.MMAE_Dataloader(options.dataroot),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
 
 # normalize to -1~1
 ngpu = int(options.ngpu)
-nz = int(options.nz)
-ngf = int(options.ngf)
-ndf = int(options.ndf)
-nc = int(options.nc)
-nconC = 2
-ncatC = 10
+
 
 #=======================================================================================================================
 # Models
 #=======================================================================================================================
+encoder_R = model.encoder()
+encoder_R.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_R.load_state_dict(torch.load(options.netG))
+print(encoder_R)
 
+encoder_G = model.encoder()
+encoder_G.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_G.load_state_dict(torch.load(options.netG))
+print(encoder_G)
 
+encoder_B = model.encoder()
+encoder_B.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_B.load_state_dict(torch.load(options.netG))
+print(encoder_B)
 
-# Generator ============================================================================================================
-netG = model._netG(ngpu, in_channels=nz+nconC+ncatC)
-netG.apply(LJY_utils.weights_init)
-if options.netG != '':
-    netG.load_state_dict(torch.load(options.netG))
-print(netG)
+encoder_D = model.encoder()
+encoder_D.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_D.load_state_dict(torch.load(options.netG))
+print(encoder_D)
 
-# Discriminator ========================================================================================================
-netD = model._netD(ngpu)
-netD.apply(LJY_utils.weights_init)
-if options.netD != '':
-    netD.load_state_dict(torch.load(options.netD))
-print(netD)
+decoder_R = model.decoder()
+decoder_R.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_R.load_state_dict(torch.load(options.netD))
+print(decoder_R)
 
-# Auxiliary distribution ===============================================================================================
-netQ = model._netQ(ngpu, ncatC=ncatC, nconC=nconC)
-netQ.apply(LJY_utils.weights_init)
-if options.netQ != '':
-    netQ.load_state_dict(torch.load(options.netQ))
-print(netQ)
+decoder_G = model.decoder()
+decoder_G.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_G.load_state_dict(torch.load(options.netD))
+print(decoder_G)
 
+decoder_B = model.decoder()
+decoder_B.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_B.load_state_dict(torch.load(options.netD))
+print(decoder_B)
 
+decoder_D = model.decoder("d")
+decoder_D.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_D.load_state_dict(torch.load(options.netD))
+print(decoder_D)
 #=======================================================================================================================
 # Training
 #=======================================================================================================================
 
 # criterion set
-criterion_D = nn.BCELoss()
-criterion_G = nn.BCELoss()
-criterion_cat = nn.BCELoss()
-criterion_con = nn.MSELoss()
+class RMSEloss(nn.Module):
+    def forward(self, input, targets, size_avarage=False):
+        #return torch.sqrt(torch.mean((input - targets).pow(2))/targets.size()[1])
+        return torch.sqrt(torch.mean((input - targets).pow(2)))
+
+criterion = RMSEloss()
+
+
 
 # setup optimizer   ====================================================================================================
-Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
-optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerG = optim.Adam(netG.parameters(), betas=(0.5, 0.999), lr=1e-3)
-optimizerQ = optim.Adam(netQ.parameters(), betas=(0.5, 0.999), lr=2e-4)
-
+optimizer = optim.Adam(list(encoder_R.parameters()) + list(decoder_R.parameters())+
+                       list(encoder_G.parameters()) + list(decoder_G.parameters())+
+                       list(encoder_B.parameters()) + list(decoder_B.parameters())+
+                       list(encoder_D.parameters()) + list(decoder_D.parameters()), betas=(0.5, 0.999), lr=1e-2)
 
 # container generate
-input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
-final_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1)
-noise = torch.FloatTensor(options.batchSize, nz, 1, 1)
+input_R = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
+input_G = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
+input_B = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
+input_D = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
 
-noise_c1 = torch.FloatTensor(options.batchSize, 1, 1, 1)
-noise_c2 = torch.FloatTensor(options.batchSize, 1, 1, 1)
-onehot_c = torch.FloatTensor(options.batchSize, 10, 1, 1)
 
-fixed_noise = torch.FloatTensor(options.batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1) # used for visualize
 
-label = torch.FloatTensor(options.batchSize)
-real_label = 1
-fake_label = 0
+
 
 if options.cuda:
-    netD.cuda()
-    netG.cuda()
-    netQ.cuda()
-    criterion_D.cuda()
-    criterion_G.cuda()
-    criterion_cat.cuda()
-    criterion_con.cuda()
-    input, label = input.cuda(), label.cuda()
-    final_noise, noise, fixed_noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
-                                                                    fixed_noise.cuda(), noise_c1.cuda(),\
-                                                                    noise_c2.cuda(), onehot_c.cuda()
-
+    encoder_R.cuda()
+    decoder_R.cuda()
+    encoder_G.cuda()
+    decoder_G.cuda()
+    encoder_B.cuda()
+    decoder_B.cuda()
+    encoder_D.cuda()
+    decoder_D.cuda()
+    criterion.cuda()
+    input_R = input_R.cuda()
+    input_G = input_G.cuda()
+    input_B = input_B.cuda()
+    input_D = input_D.cuda()
+   
 
 
 # make to variables ====================================================================================================
-input = Variable(input)
-label = Variable(label)
+input_R = Variable(input_R)
+input_G = Variable(input_G)
+input_B = Variable(input_B)
+input_D = Variable(input_D)
 
-final_noise = Variable(final_noise)
-
-noise = Variable(noise)
-noise_c1 = Variable(noise_c1)
-noise_c2 = Variable(noise_c2)
-onehot_c = Variable(onehot_c)
-fixed_noise = Variable(fixed_noise)
-
-
+win_dict = LJY_visualize_tools.win_dict()
 
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, data in enumerate(dataloader, 0):
+    for i, (R, G, B, D) in enumerate(dataloader, 0):
         ############################
         # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
-        optimizerD.zero_grad()
-        optimizerQ.zero_grad()
-        optimizerG.zero_grad()
+        optimizer.zero_grad()
 
-        real_cpu, _ = data
-        batch_size = real_cpu.size(0)
-        input.data.resize_(real_cpu.size()).copy_(real_cpu)
-        label.data.resize_(batch_size).fill_(real_label)
+        batch_size = R.size(0)
+        input_R.data.resize_(R.size()).copy_(R)
+        input_G.data.resize_(G.size()).copy_(G)
+        input_B.data.resize_(B.size()).copy_(B)
+        input_D.data.resize_(D.size()).copy_(D)
 
-        outputD, _ = netD(input)
-        errD_real = criterion_D(outputD, label)
-        errD_real.backward()
+        z_R = encoder_R(input_R)
+        z_G = encoder_G(input_G)
+        z_B = encoder_B(input_B)
+        z_D = encoder_D(input_D)
 
-        D_x = outputD.data.mean()   # for visualize
+        z = torch.cat((z_R, z_G, z_B, z_D), 1)
 
-        # generate noise    ============================================================================================
-        noise.data.resize_(batch_size, nz, 1, 1)
-        noise.data.normal_(0, 1)
-        noise_c1.data.resize_(batch_size, 1, 1, 1)
-        nn.init.uniform(noise_c1, -1, 1)
-        noise_c2.data.resize_(batch_size, 1, 1, 1)
-        nn.init.uniform(noise_c2, -1, 1)
+        output_R = decoder_R(z)
+        output_G = decoder_G(z)
+        output_B = decoder_B(z)
+        output_D = decoder_D(z)
 
-        onehot_c.data = LJY_utils.one_hot((batch_size, 10), torch.LongTensor([random.randrange(0, 10) for i in
-                                                                              range(batch_size)]).view(-1, 1)).cuda()
+        err_R = criterion(output_R, input_R)
+        err_R.backward(retain_graph=True)
 
-        onehot_c.data = onehot_c.detach().data.resize_(batch_size, 10, 1, 1).float()
+        err_G = criterion(output_G, input_G)
+        err_G.backward(retain_graph=True)
 
-        final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
+        err_B = criterion(output_B, input_B)
+        err_B.backward(retain_graph=True)
 
-        #train with fake data   ========================================================================================
-        fake = netG(final_noise)
-        label.data.fill_(fake_label)
+        err_D = criterion(output_D, input_D)
+        err_D.backward(retain_graph=True)
 
-        outputD, _ = netD(fake.detach())
-        errD_fake = criterion_D(outputD, label)
-        errD_fake.backward()
-
-        D_G_z1 = outputD.data.mean()
-
-        errD = errD_real + errD_fake
-        optimizerD.step()
-
-        ############################
-        # (2) Update G network and Q network
-        ###########################
-        optimizerG.zero_grad()
-        label.data.fill_(real_label)  # fake labels are real for generator cost
-        outputD, midQ = netD(fake)
-        errG = criterion_G(outputD, label)
-        errG.backward(retain_variables=True)
-
-        c_cat, c_cont = netQ(midQ)
-        errQ_cat = criterion_cat(c_cat, onehot_c)
-        errQ_con = criterion_con(c_cont, torch.cat((noise_c1, noise_c2), 1))
-
-        hook = errQ_cat.register_hook(lambda grad: grad * Q_Influence)
-        errQ_cat.backward(retain_variables=True)
-
-        hook = errQ_cat.register_hook(lambda grad: grad * Q_Influence)
-        errQ_con.backward()
-
-        D_G_z2 = outputD.data.mean()
-        optimizerQ.step()
-        optimizerG.step()
+        optimizer.step()
 
         #visualize
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f Loss_Q_cat: %.4f Loss_Q_con: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
+        print('[%d/%d][%d/%d] Loss_R: %f Loss_G: %f Loss_B: %f Loss_D: %f '
               % (epoch, options.iteration, i, len(dataloader),
-                 errD.data[0], errG.data[0], errQ_cat.data[0], errQ_con.data[0], D_x, D_G_z1, D_G_z2))
+                 err_R.data[0], err_G.data[0], err_B.data[0], err_D.data[0]))
 
+
+
+        if options.display:
+            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict,
+                                                            [torch.cat((R[0],G[0],B[0]),0).view(3,18,60),
+                                                             torch.cat((output_R[0],output_G[0],output_B[0]),0).view(3,18,60).data,
+                                                             D[0].view(18, 60),
+                                                             output_D[0].view(18, 60).data],
+                                                             ["RGB","RGB_recon","D","D_recon"])
+        '''
         if i == len(dataloader)-1:
             vutils.save_image(real_cpu,
                     '%s/real_samples.png' % options.outf,
@@ -277,12 +258,16 @@ for epoch in range(options.iteration):
             vutils.save_image(fake.data,
                     '%s/fake_samples_epoch_%03d.png' % (options.outf, epoch),
                     normalize=True)
-
-
-    # do checkpointing
-    torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (options.outf, epoch))
-    torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (options.outf, epoch))
-    torch.save(netQ.state_dict(), '%s/netQ_epoch_%d.pth' % (options.outf, epoch))
+        '''
+    if epoch % 100 == 0:
+        torch.save(encoder_R.state_dict(), '%s/encoder_R_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(encoder_G.state_dict(), '%s/encoder_G_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(encoder_B.state_dict(), '%s/encoder_B_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(encoder_D.state_dict(), '%s/encoder_D_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(decoder_R.state_dict(), '%s/decoder_R_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(decoder_G.state_dict(), '%s/decoder_G_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(decoder_B.state_dict(), '%s/decoder_B_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(decoder_D.state_dict(), '%s/decoder_D_epoch_%d.pth' % (options.outf, epoch))
 
 
 

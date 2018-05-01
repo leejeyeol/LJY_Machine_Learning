@@ -24,7 +24,7 @@ parser.add_argument('--dataset', default='MNIST', help='what is dataset?')
 parser.add_argument('--dataroot', default='/mnt/fastdataset/Datasets', help='path to dataset')
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
-parser.add_argument('--outf', default='./InfoGAN', help="folder to output images and model checkpoints")
+parser.add_argument('--outf', default='./pretrained_model', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
@@ -35,7 +35,7 @@ parser.add_argument('--iteration', type=int, default=1000, help='number of epoch
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
 parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')

@@ -4,48 +4,55 @@ import random
 
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
+import torch.optim as optim
 import torch.utils.data
+from visdom import Visdom
+
 import torchvision.utils as vutils
+import torchvision
 from torch.autograd import Variable
 
-import GAN.InfoGAN.InfoGAN_model as model
+import Autoencoder.Multimodal_Autoencoder.Multimodal_Autoencoder_model as model
+import Autoencoder.Multimodal_Autoencoder.Multimodal_Autoencoder_dataloader as dset
+
 # import custom package
 import LJY_utils
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Options
-#=======================================================================================================================
+# =======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MNIST', help='what is dataset?')
-parser.add_argument('--dataroot', default='/mnt/fastdataset/Datasets', help='path to dataset')
-parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
-parser.add_argument('--outf', default='./InfoGAN_Test', help="folder to output images and model checkpoints")
+parser.add_argument('--dataset', default='KITTI', help='what is dataset?')
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/val',
+                    help='path to dataset')
+parser.add_argument('--net', default='./pretrained_model', help="path of pretrained model")
+parser.add_argument('--pretrained_epoch', default=100, help="epoch of pretrained model")
+
+parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/KITTI/RGB', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
+parser.add_argument('--iteration', type=int, default=1, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
-parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
-parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
+parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
+parser.add_argument('--imageSize', type=int, default=[60, 18], help='the height / width of the input image to network')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
-
 
 parser.add_argument('--seed', type=int, help='manual seed')
 
 # custom options
-parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution networks.(to continue training)")
 
 options = parser.parse_args()
 print(options)
 
+if options.display:
+    vis = Visdom()
 
 # save directory make   ================================================================================================
 try:
@@ -69,142 +76,144 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-
-#=======================================================================================================================
+# =======================================================================================================================
 # Data and Parameters
-#=======================================================================================================================
-batchSize = options.batchSize
+# =======================================================================================================================
+
+# MNIST call and load   ================================================================================================
+
+dataloader = torch.utils.data.DataLoader(
+    dset.MMAE_Dataloader(options.dataroot),
+    batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
+# normalize to -1~1
 ngpu = int(options.ngpu)
-nz = int(options.nz)
-ngf = int(options.ngf)
-nc = int(options.nc)
-nconC = 2
-ncatC = 10
 
-#=======================================================================================================================
+# =======================================================================================================================
 # Models
-#=======================================================================================================================
+# =======================================================================================================================
+encoder_R = model.encoder()
+encoder_R.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_R.load_state_dict(torch.load(os.path.join(options.net, "encoder_R_epoch_%d.pth"%options.pretrained_epoch)))
+print(encoder_R)
 
-# Generator ============================================================================================================
-netG = model._netG(ngpu, in_channels=nz+nconC+ncatC)
-netG.apply(LJY_utils.weights_init)
-if options.netG != '':
-    netG.load_state_dict(torch.load(options.netG))
-print(netG)
+encoder_G = model.encoder()
+encoder_G.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_G.load_state_dict(torch.load(os.path.join(options.net, "encoder_G_epoch_%d.pth"%options.pretrained_epoch)))
+print(encoder_G)
 
-#=======================================================================================================================
-# generating
-#=======================================================================================================================
+encoder_B = model.encoder()
+encoder_B.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_B.load_state_dict(torch.load(os.path.join(options.net, "encoder_B_epoch_%d.pth"%options.pretrained_epoch)))
+print(encoder_B)
 
-# container generate
-input = torch.FloatTensor(batchSize, 3, options.imageSize, options.imageSize)
-final_noise = torch.FloatTensor(batchSize, nz+nconC+ncatC, 1, 1)
-noise = torch.FloatTensor(batchSize, nz, 1, 1)
+encoder_D = model.encoder()
+encoder_D.apply(LJY_utils.weights_init)
+if options.net != '':
+    encoder_D.load_state_dict(torch.load(os.path.join(options.net, "encoder_D_epoch_%d.pth"%options.pretrained_epoch)))
+print(encoder_D)
 
-noise_c1 = torch.FloatTensor(batchSize, 1, 1, 1)
-noise_c2 = torch.FloatTensor(batchSize, 1, 1, 1)
-onehot_c = torch.FloatTensor(batchSize, 10)
+decoder_R = model.decoder()
+decoder_R.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_R.load_state_dict(torch.load(os.path.join(options.net, "decoder_R_epoch_%d.pth"%options.pretrained_epoch)))
+print(decoder_R)
 
-# for check   ==========================================================================================================
-fixed_noise = torch.FloatTensor(batchSize, nz+nconC+ncatC, 1, 1).normal_(0, 1)
+decoder_G = model.decoder()
+decoder_G.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_G.load_state_dict(torch.load(os.path.join(options.net, "decoder_G_epoch_%d.pth"%options.pretrained_epoch)))
+print(decoder_G)
 
-label = torch.FloatTensor(batchSize)
+decoder_B = model.decoder()
+decoder_B.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_B.load_state_dict(torch.load(os.path.join(options.net, "decoder_B_epoch_%d.pth"%options.pretrained_epoch)))
+print(decoder_B)
+
+decoder_D = model.decoder()
+decoder_D.apply(LJY_utils.weights_init)
+if options.net != '':
+    decoder_D.load_state_dict(torch.load(os.path.join(options.net, "decoder_D_epoch_%d.pth"%options.pretrained_epoch)))
+print(decoder_D)
+
+
+# =======================================================================================================================
+# Training
+# =======================================================================================================================
+input_R = torch.FloatTensor(options.batchSize, 1, options.imageSize[0] * options.imageSize[1])
+input_G = torch.FloatTensor(options.batchSize, 1, options.imageSize[0] * options.imageSize[1])
+input_B = torch.FloatTensor(options.batchSize, 1, options.imageSize[0] * options.imageSize[1])
+input_D = torch.FloatTensor(options.batchSize, 1, options.imageSize[0] * options.imageSize[1])
 
 if options.cuda:
-    netG.cuda()
-    input, label = input.cuda(), label.cuda()
-    final_noise, noise, noise_c1, noise_c2, onehot_c = final_noise.cuda(), noise.cuda(), \
-                                                                    noise_c1.cuda(),\
-                                                                    noise_c2.cuda(), onehot_c.cuda()
+    encoder_R.cuda()
+    decoder_R.cuda()
+    encoder_G.cuda()
+    decoder_G.cuda()
+    encoder_B.cuda()
+    decoder_B.cuda()
+    encoder_D.cuda()
+    decoder_D.cuda()
+    input_R = input_R.cuda()
+    input_G = input_G.cuda()
+    input_B = input_B.cuda()
+    input_D = input_D.cuda()
 
 # make to variables ====================================================================================================
-input = Variable(input)
-final_noise = Variable(final_noise)
-
-noise = Variable(noise)
-noise_c1 = Variable(noise_c1)
-noise_c2 = Variable(noise_c2)
-onehot_c = Variable(onehot_c)
+input_R = Variable(input_R)
+input_G = Variable(input_G)
+input_B = Variable(input_B)
+input_D = Variable(input_D)
 
 # training start
-print("Generating Start!")
+print("Training Start!")
+for epoch in range(options.iteration):
+    for i, (R, G, B, D) in enumerate(dataloader, 0):
+        ############################
+        # (1) Update D network
+        ###########################
+        # train with real data  ========================================================================================
 
 
-# train with real data  ========================================================================================
-# generate noise    ============================================================================================
+        batch_size = R.size(0)
+        input_R.data.resize_(R.size()).copy_(R)
+        input_G.data.resize_(G.size()).copy_(G)
+        input_B.data.resize_(B.size()).copy_(B)
+        input_D.data.resize_(D.size()).copy_(D)
 
-# select variation
-c1 = True # true : c1 and ccat     false : ccat
-c2 = False # true : c2 and ccat      false : ccat
+        z_R = encoder_R(input_R)
+        z_G = encoder_G(input_G)
+        z_B = encoder_B(input_B)
+        z_D = encoder_D(input_D)
 
+        z = torch.cat((z_R, z_G, z_B, z_D), 1)
 
-# make random noise
-noise.data.resize_(batchSize, nz, 1, 1)
-noise.data.normal_(0, 1)
-#nn.init.uniform(noise, 0.5, 0.5)
-
-
-if c1:
-    noise_c1.data.resize_(batchSize, 1, 1, 1)
-    nn.init.uniform(noise_c1, -1, 1)
-else:
-    noise_c1.data = torch.FloatTensor((-1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                       ))
-    noise_c1.data.resize_(batchSize, 1, 1, 1)
-    noise_c1=noise_c1.cuda()
-
-
-if c2:
-    noise_c2.data.resize_(batchSize, 1, 1, 1)
-    nn.init.uniform(noise_c2, -1, 1)
-else:
-    noise_c2.data = torch.FloatTensor((-1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                        -1,-0.75,-0.5,-0.25,0.25,0.5,0.75,1,
-                                       ))
-    noise_c2.data.resize_(batchSize, 1, 1, 1)
-    noise_c2=noise_c2.cuda()
-
-# visualize c_cat
-onehot_c.data = LJY_utils.one_hot((batchSize, 10), torch.LongTensor([0, 0, 0, 0, 0, 0, 0, 0,
-                                                                     1, 1, 1, 1, 1, 1, 1, 1,
-                                                                     2, 2, 2, 2, 2, 2, 2, 2,
-                                                                     3, 3, 3, 3, 3, 3, 3, 3,
-                                                                     4, 4, 4, 4, 4, 4, 4, 4,
-                                                                     5, 5, 5, 5, 5, 5, 5, 5,
-                                                                     6, 6, 6, 6, 6, 6, 6, 6,
-                                                                     7, 7, 7, 7, 7, 7, 7, 7,
-                                                                     8, 8, 8, 8, 8, 8, 8, 8,
-                                                                     9, 9, 9, 9, 9, 9, 9, 9]).view(-1,1)).cuda()
-
-onehot_c = onehot_c.float()
-onehot_c.data.resize_(batchSize, 10, 1, 1)
-
-final_noise = torch.cat((noise, noise_c1, noise_c2, onehot_c), 1)
-fake = netG(final_noise)
-
-#visualize generation of InfoGAN
-vutils.save_image(fake.data,
-        '%s/generate_samples.png' % (options.outf),
-        normalize=False)
+        output_R = decoder_R(z)
+        output_G = decoder_G(z)
+        output_B = decoder_B(z)
+        output_D = decoder_D(z)
 
 
 
-# Je Yeol. Lee \[T]/
-# Jolly Co-operation
+        # visualize
+        print('[%d/%d][%d/%d]'
+              % (epoch, options.iteration, i, len(dataloader)))
+
+
+        if os.path.basename(options.outf) == "RGB":
+            vutils.save_image(torch.cat((R,G,B),0).view(3,18,60), '%s/real_samples_%04d.png' % (options.outf, i))
+            vutils.save_image(torch.cat((output_R,output_G,output_B),0).view(3,18,60).data, '%s/reconstruction_%04d.png' % (options.outf, i))
+        if os.path.basename(options.outf) == "Depth":
+            vutils.save_image(D.view(18, 60), '%s/real_samples_%04d.png' % (options.outf, i), normalize=True)
+            vutils.save_image(output_D.view(18, 60).data,'%s/reconstruction_%04d.png' % (options.outf, i), normalize=True)
+
+        print("debug")
+
+
+
+        # Je Yeol. Lee \[T]/
+        # Jolly Co-operation

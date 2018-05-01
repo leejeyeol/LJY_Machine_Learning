@@ -14,6 +14,7 @@ import GAN.SandwichGAN.SandwichGAN_model as model
 import GAN.SandwichGAN.SandwichGAN_dataloader as dset
 # import custom package
 import LJY_utils
+import LJY_visualize_tools
 
 #=======================================================================================================================
 # Options
@@ -35,7 +36,7 @@ parser.add_argument('--iteration', type=int, default=1000, help='number of epoch
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
-parser.add_argument('--model', type=str, default='InfoGAN', help='Model name')
+parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
 parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
@@ -70,6 +71,8 @@ torch.manual_seed(options.seed)
 # cuda set  ============================================================================================================
 if options.cuda:
     torch.cuda.manual_seed(options.seed)
+if torch.cuda.is_available():
+    torch.set_default_tensor_type('torch.cuda.FloatTensor')
 
 torch.backends.cudnn.benchmark = True
 cudnn.benchmark = True
@@ -103,6 +106,18 @@ if options.netG != '':
     netG.load_state_dict(torch.load(options.netG))
 print(netG)
 
+netG_pre = model._encoder(ngpu)
+netG_pre.apply(LJY_utils.weights_init)
+if options.netG != '':
+    netG_pre.load_state_dict(torch.load(options.netG))
+print(netG_pre)
+
+netG_nxt = model._encoder(ngpu)
+netG_nxt.apply(LJY_utils.weights_init)
+if options.netG != '':
+    netG_nxt.load_state_dict(torch.load(options.netG))
+print(netG_nxt)
+
 # Discriminator ========================================================================================================
 netD = model._netD(ngpu)
 netD.apply(LJY_utils.weights_init)
@@ -124,111 +139,133 @@ criterion_G = nn.BCELoss()
 
 #Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
-#optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerD = optim.SGD(netD.parameters(),lr = 0.0002, momentum=0.9)
+optimizerD = optim.Adam(netD.parameters(), betas=(0.5, 0.999), lr=2e-4)
+#optimizerD = optim.SGD(netD.parameters(), lr=0.0002, momentum=0.9)
+#optimizerD = optim.RMSprop(netD.parameters(), lr=5e-5)
 #optimizerG = optim.SGD(netD.parameters(),lr = 0.0002, momentum=0.9)
-optimizerG = optim.Adam(netG.parameters(), betas=(0.5, 0.999), lr=0.02)
+optimizerG = optim.Adam(list(netG_pre.parameters())+list(netG_nxt.parameters())+list(netG_pre.parameters()), betas=(0.5, 0.999), lr=0.02)
+#optimizerG = optim.RMSprop(netG.parameters(), lr=5e-5)
+
 
 
 # container generate
 input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
-bread = torch.FloatTensor(options.batchSize, 6, options.imageSize, options.imageSize)
-sandwich = torch.FloatTensor(options.batchSize, 9, options.imageSize, options.imageSize)
+bread_pre = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
+bread_nxt = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
 label = torch.FloatTensor(options.batchSize,1,1,1)
 real_label = 1
 fake_label = 0
+one = torch.FloatTensor([1])
+mone = one * -1
+
 
 if options.cuda:
     netD.cuda()
-    netG.cuda()
+    netG_pre.cuda()
+    netG_nxt.cuda()
     criterion_D.cuda()
     criterion_G.cuda()
     input, label = input.cuda(), label.cuda()
-    bread, sandwich = bread.cuda(), sandwich.cuda()
+    bread_pre, bread_nxt = bread_pre.cuda(), bread_nxt.cuda()
+    one, mone = one.cuda(), mone.cuda()
 
 
 # make to variables ====================================================================================================
 input = Variable(input)
 label = Variable(label)
-bread = Variable(bread)
-sandwich = Variable(sandwich)
 
+bread_pre = Variable(bread_pre)
+bread_nxt = Variable(bread_nxt)
 
+win_dict = LJY_visualize_tools.win_dict()
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, (pre_frame, real_mid_frame, nxt_frame,_) in enumerate(dataloader, 0):
-        ############################
-        # (1) Update D network
-        ###########################
-        # train with real data  ========================================================================================
-        pre_frame = pre_frame.cuda()
-        real_mid_frame = real_mid_frame.cuda()
-        nxt_frame = nxt_frame.cuda()
+    for i, (pre_frame, real_mid_frame, nxt_frame, _) in enumerate(dataloader, 0):
+        if i % 10 == 0:
+            diter = 100
+        else:
+            diter = 1
+        for _ in range(diter):
+            ############################
+            # (1) Update D network
+            ###########################
+            # train with real data  ========================================================================================
 
-        optimizerD.zero_grad()
+
+
+            pre_frame = pre_frame.cuda()
+            real_mid_frame = real_mid_frame.cuda()
+            nxt_frame = nxt_frame.cuda()
+
+            optimizerD.zero_grad()
+            optimizerG.zero_grad()
+
+            batch_size = pre_frame.size(0)
+            input.data.resize_(pre_frame.size()).copy_(pre_frame)
+
+            bread_pre.data = pre_frame.cuda()
+            bread_nxt.data = nxt_frame.cuda()
+
+            output_pre = netG_pre(bread_pre)
+            output_nxt = netG_nxt(bread_nxt)
+            pre_and_nxt = torch.cat((output_pre, output_nxt), 1).cuda()
+
+            fake_mid_frame = netG(pre_and_nxt)
+
+            real_sandwich = torch.cat((pre_frame, real_mid_frame, nxt_frame), 1)
+            fake_sandwich = torch.cat((pre_frame, fake_mid_frame.data, nxt_frame), 1)
+
+            real_sandwich = Variable(real_sandwich)
+            outputD = netD(real_sandwich)
+            errD_real = -torch.mean(outputD)
+            vis_D_x = errD_real.data.mean()   # for visualize
+
+            # train with fake data  ========================================================================================
+            fake_sandwich = Variable(fake_sandwich)
+            outputD = netD(fake_sandwich.detach())
+            errD_fake = torch.mean(outputD)
+            vis_D_G_z1 = errD_fake.data.mean()
+
+            errD = errD_real + errD_fake
+            errD.backward()
+            optimizerD.step()
+
+            for p in netD.parameters():
+                p.data.clamp_(-0.01, 0.01)
+
+        ############################
+        # (2) Update G network
+        ###########################
         optimizerG.zero_grad()
 
-
-        batch_size = pre_frame.size(0)
-        input.data.resize_(pre_frame.size()).copy_(pre_frame)
-        label.data.fill_(real_label)
-
-        pre_and_nxt = torch.cat((pre_frame, nxt_frame), 1)
-        bread.data = pre_and_nxt.cuda()
-        fake_mid_frame = netG(bread)
-
-        real_sandwich = torch.cat((pre_frame, real_mid_frame, nxt_frame), 1)
+        pre_and_nxt = torch.cat((output_pre, output_nxt), 1).cuda()
+        fake_mid_frame = netG(pre_and_nxt)
         fake_sandwich = torch.cat((pre_frame, fake_mid_frame.data, nxt_frame), 1)
-
-        sandwich.data = real_sandwich
-        outputD = netD(sandwich)
-        if outputD.data.max() <0 or outputD.data.min()>1:
-            print(1)
-        print(outputD.data.max())
-        print(outputD.data.min())
-        errD_real = criterion_D(outputD, label)
-        errD_real.backward()
-
-        vis_D_x = outputD.data.mean()   # for visualize
-
-        label.data.fill_(fake_label)
-        sandwich.data = fake_sandwich
-        outputD = netD(sandwich.detach())
-        errD_fake = criterion_D(outputD, label)
-        errD_fake.backward()
-
-        vis_D_G_z1 = outputD.data.mean()
-
-        errD = errD_real + errD_fake
-        optimizerD.step()
-
-        ############################
-        # (2) Update G network and Q network
-        ###########################
-        optimizerG.zero_grad()
-        label.data.fill_(real_label)
-
-        # fake labels are real for generator cost
-        sandwich.data = fake_sandwich
-        outputD = netD(sandwich)
-
-        errG = criterion_G(outputD, label)
-        errG.backward(retain_graph=True)
-        vis_D_G_z2 = outputD.data.mean()
+        fake_sandwich = Variable(fake_sandwich)
+        outputG = netD(fake_sandwich)
+        errG = -torch.mean(outputG)
+        #errG = criterion_G(outputG, label)
+        errG.backward(one)
+        vis_D_G_z2 = errG.data.mean()
         optimizerG.step()
+
 
         #visualize
         print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f   D(x): %.4f(to 1) D(G(z)): %.4f(to 0) | %.4f(fake=real?)'
-              % (epoch, options.iteration, i, len(dataloader),
-                 errD.data[0], errG.data[0], vis_D_x, vis_D_G_z1, vis_D_G_z2))
+             % (epoch, options.iteration, i, len(dataloader),
+                errD.data[0], errG.data[0], vis_D_x, vis_D_G_z1, vis_D_G_z2))
 
         #if i == len(dataloader)-1:
         if True:
             testImage = torch.cat((pre_frame[0],real_mid_frame[0],fake_mid_frame.data[0],nxt_frame[0]),2)
+            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Sandwich GAN"])
+
+            '''
             vutils.save_image(testImage,
                     '%s/%d_test_samples.png' % (options.outf,i),
                     normalize=True)
+            '''
 
     # do checkpointing
     if IsSave == True:
