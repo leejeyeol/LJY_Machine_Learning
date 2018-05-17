@@ -9,7 +9,11 @@ class encoder(nn.Module):
         self.encoder = nn.Sequential(
             nn.Linear(1080,1024),
             nn.LeakyReLU(0.2, True),
-            nn.Linear(1024, 24),
+
+            nn.Linear(1024, 512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(512, 24),
             nn.LeakyReLU(0.2, True)
         )
         # init weights
@@ -32,14 +36,22 @@ class decoder(nn.Module):
         self.data_type = data_type
         #2048
         self.decoder_RGB = nn.Sequential(
-            nn.Linear(96, 1024),
+            nn.Linear(96, 512),
             nn.ReLU(),
+
+            nn.Linear(512, 1024),
+            nn.ReLU(),
+
             nn.Linear(1024, 1080),
             nn.Tanh()
         )
         self.decoder_d = nn.Sequential(
-            nn.Linear(96, 1024),
+            nn.Linear(96, 512),
             nn.ReLU(),
+
+            nn.Linear(512, 1024),
+            nn.ReLU(),
+
             nn.Linear(1024, 1080),
         )
 
@@ -70,3 +82,77 @@ def weight_init(module):
     elif classname.find('BatchNorm') != -1:
         module.weight.data.normal_(1.0, 0.02)
         module.bias.data.fill_(0)
+
+'''
+
+class encoder(nn.Module):
+    def __init__(self):
+        super().__init__()
+        #512
+        self.encoder = nn.Sequential(
+            nn.Linear(1080,1024),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(1024, 512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(512, 24),
+            nn.LeakyReLU(0.2, True)
+        )
+        # init weights
+        self.weight_init()
+
+    def encode(self, x):
+        return self.encoder(x)
+
+    def forward(self, x):
+        z = self.encode(x)
+        return z
+
+    def weight_init(self):
+        self.encoder.apply(weight_init)
+
+
+class decoder(nn.Module):
+    def __init__(self, data_type="rgb"):
+        super().__init__()
+        self.data_type = data_type
+        #2048
+        self.decoder_RGB = nn.Sequential(
+            nn.Linear(96, 512),
+            nn.ReLU(),
+
+            nn.Linear(512, 1024),
+            nn.ReLU(),
+
+            nn.Linear(1024, 1080),
+            nn.Tanh()
+        )
+        self.decoder_d = nn.Sequential(
+            nn.Linear(96, 512),
+            nn.ReLU(),
+
+            nn.Linear(512, 1024),
+            nn.ReLU(),
+
+            nn.Linear(1024, 1080),
+        )
+
+        # init weights
+        self.weight_init()
+
+    def decode(self, z):
+        if self.data_type == "rgb":
+            return self.decoder_RGB(z)
+        elif self.data_type == "d":
+            return self.decoder_d(z)
+
+    def forward(self, z):
+        return self.decode(z)
+
+    def weight_init(self):
+        if self.data_type == "rgb":
+            self.decoder_RGB.apply(weight_init)
+        elif self.data_type == "d":
+            self.decoder_d.apply(weight_init)
+'''

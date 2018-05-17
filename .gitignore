@@ -3,3 +3,5 @@ data/*.*
 result/*.*
 *.png
 *.pth
+*-ubyte
+*.pyc

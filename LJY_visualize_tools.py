@@ -42,10 +42,50 @@ def draw_images_to_windict(win_dict, image_list, name_list = None):
     else:
         if name_list is None:
             for i in len(image_list):
-                vis.image(image_list[i], win=win_dict["%d" % i]
-)
+                vis.image(image_list[i], win=win_dict["%d" % i])
         else:
             for i, name in enumerate(name_list):
-                vis.image(image_list[i], win=win_dict[name]
-)
+                vis.image(image_list[i], win=win_dict[name])
+    return win_dict
+
+def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, total_iter):
+    num_of_values = len(value_list)
+    value_list = np.asarray(value_list)
+
+    if type(win_dict) == dict:
+        # first. line plots
+        if legend_list is None :
+            win_dict = vis.line(X=np.column_stack((0 for _ in range(num_of_values))),
+                                Y=np.column_stack((value_list[i] for i in range(num_of_values))),
+                                opts=dict(
+                               title='loss-iteration',
+                               xlabel='iteration',
+                               ylabel='loss',
+                               xtype='linear',
+                               ytype='linear',
+                               makers=False
+                           ))
+        else:
+            win_dict = vis.line(X=np.column_stack((0 for _ in range(num_of_values))),
+                                Y=np.column_stack((value_list[i] for i in range(num_of_values))),
+                                opts=dict(
+                                    legend=legend_list,
+                                    title='loss-iteration',
+                                    xlabel='iteration',
+                                    ylabel='loss',
+                                    xtype='linear',
+                                    ytype='linear',
+                                    makers=False
+                                ))
+
+
+    else:
+        win_dict = vis.line(
+            X=np.column_stack((epoch*total_iter + iteration for _ in range(num_of_values))),
+            Y=np.column_stack((value_list[i] for i in range(num_of_values))),
+            win=win_dict,
+            update='append'
+        )
+
+
     return win_dict

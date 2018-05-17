@@ -1,7 +1,7 @@
 import argparse
 import os
 import random
-
+import numpy as np
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
@@ -141,14 +141,23 @@ print(decoder_D)
 # Training
 #=======================================================================================================================
 
+def noise_mask(shape):
+    mask = torch.Tensor(shape).fill_(0.9)
+    mask = torch.bernoulli(mask)
+    return mask
+
+
 # criterion set
 class RMSEloss(nn.Module):
     def forward(self, input, targets, size_avarage=False):
+
+        mask = (input)!=input.data.min()
+        masked_input = torch.masked_select(input, mask)
+        masked_targets = torch.masked_select(targets, mask)
         #return torch.sqrt(torch.mean((input - targets).pow(2))/targets.size()[1])
-        return torch.sqrt(torch.mean((input - targets).pow(2)))
+        return torch.sqrt(torch.mean((masked_input - masked_targets).pow(2)))
 
 criterion = RMSEloss()
-
 
 
 # setup optimizer   ====================================================================================================
@@ -163,10 +172,6 @@ input_R = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.i
 input_G = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
 input_B = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
 input_D = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
-
-
-
-
 
 if options.cuda:
     encoder_R.cuda()
@@ -191,7 +196,9 @@ input_G = Variable(input_G)
 input_B = Variable(input_B)
 input_D = Variable(input_D)
 
+
 win_dict = LJY_visualize_tools.win_dict()
+line_win_dict = LJY_visualize_tools.win_dict()
 
 # training start
 print("Training Start!")
@@ -209,10 +216,20 @@ for epoch in range(options.iteration):
         input_B.data.resize_(B.size()).copy_(B)
         input_D.data.resize_(D.size()).copy_(D)
 
-        z_R = encoder_R(input_R)
-        z_G = encoder_G(input_G)
-        z_B = encoder_B(input_B)
-        z_D = encoder_D(input_D)
+        input_R_noise = torch.mul(R, noise_mask(R.shape))
+        input_G_noise = torch.mul(G, noise_mask(G.shape))
+        input_B_noise = torch.mul(B, noise_mask(B.shape))
+        input_D_noise = torch.mul(D, noise_mask(D.shape))
+        input_R_noise = Variable(input_R_noise).cuda()
+        input_G_noise = Variable(input_G_noise).cuda()
+        input_B_noise = Variable(input_B_noise).cuda()
+        input_D_noise = Variable(input_D_noise).cuda()
+
+
+        z_R = encoder_R(input_R_noise)
+        z_G = encoder_G(input_G_noise)
+        z_B = encoder_B(input_B_noise)
+        z_D = encoder_D(input_D_noise)
 
         z = torch.cat((z_R, z_G, z_B, z_D), 1)
 

@@ -24,17 +24,18 @@ def make_dir(path):
     return
 
 FFMPEG_BIN = "ffmpeg"
-target_rows = 64
-target_cols = 64
+target_rows = 224
+target_cols = 224
 
+result_folder_name = 'frames224x224'
 
 root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51"
 video_type_list=glob.glob(os.path.join(root_path,'videos/*'))
 for video_type_name in video_type_list:
-    make_dir(os.path.join(os.path.dirname(os.path.dirname(video_type_name)), 'frames', os.path.basename(video_type_name)))
+    make_dir(os.path.join(os.path.dirname(os.path.dirname(video_type_name)), result_folder_name, os.path.basename(video_type_name)))
     video_list = glob.glob(os.path.join(video_type_name, '*'))
     for video in video_list:
-        subroot = os.path.join(root_path, 'frames')
+        subroot = os.path.join(root_path, result_folder_name)
         filename = os.path.basename(video)
         folder_path = os.path.join(subroot, os.path.basename(os.path.dirname(video)), filename.split('.')[0])
         make_dir(folder_path)
