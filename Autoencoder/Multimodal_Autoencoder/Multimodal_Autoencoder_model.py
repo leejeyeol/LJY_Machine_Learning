@@ -7,14 +7,18 @@ class encoder(nn.Module):
         super().__init__()
         #512
         self.encoder = nn.Sequential(
-            nn.Linear(1080,1024),
+            nn.Conv2d(1, 64, (2, 8), 4, 0),
             nn.LeakyReLU(0.2, True),
 
-            nn.Linear(1024, 512),
+            nn.Conv2d(64, 128, (2, 6), 2, 0),
             nn.LeakyReLU(0.2, True),
 
-            nn.Linear(512, 24),
+            nn.Conv2d(128, 256, (2, 4), 1, 0),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(256, 512, (1, 2), 1, 0),
             nn.LeakyReLU(0.2, True)
+
         )
         # init weights
         self.weight_init()
@@ -36,23 +40,32 @@ class decoder(nn.Module):
         self.data_type = data_type
         #2048
         self.decoder_RGB = nn.Sequential(
-            nn.Linear(96, 512),
-            nn.ReLU(),
+            nn.ConvTranspose2d(2048, 256, (1, 2), 2, 0),
+            nn.LeakyReLU(0.2, True),
 
-            nn.Linear(512, 1024),
-            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, (2, 3), 2, 0),
+            nn.LeakyReLU(0.2, True),
 
-            nn.Linear(1024, 1080),
+
+            nn.ConvTranspose2d(128, 64, (2, 3), 3, 0),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(64, 1, (2, 4), 4, 0),
             nn.Tanh()
         )
         self.decoder_d = nn.Sequential(
-            nn.Linear(96, 512),
-            nn.ReLU(),
+            nn.ConvTranspose2d(2048, 256, (1, 2), 2, 0),
+            nn.LeakyReLU(0.2, True),
 
-            nn.Linear(512, 1024),
-            nn.ReLU(),
+            nn.ConvTranspose2d(256, 128, (2, 3), 2, 0),
+            nn.LeakyReLU(0.2, True),
 
-            nn.Linear(1024, 1080),
+            nn.ConvTranspose2d(128, 64, (2, 3), 3, 0),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(64, 1, (2, 4), 4, 0),
+            nn.Tanh()
+
         )
 
         # init weights

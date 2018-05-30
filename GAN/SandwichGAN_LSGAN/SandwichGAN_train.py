@@ -6,6 +6,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
+import torchvision.transforms as transforms
 
 from torch.autograd import Variable
 import GAN.SandwichGAN_LSGAN.SandwichGAN_model as model
@@ -23,6 +24,14 @@ def noise_mask(shape):
     mask = torch.bernoulli(mask)
     return mask
 
+def criterion_reconstruction_perceptual(input,target):
+    feature_input = loss_net(input)
+    feature_target = loss_net(target)
+    loss = 0
+    for i in range(4):
+        loss = loss + criterion_MSE(feature_input[i], feature_target[i])
+
+    return loss/4
 
 #=======================================================================================================================
 # Options
@@ -30,7 +39,7 @@ def noise_mask(shape):
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='HMDB51', help='what is dataset?')
-parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51/middle_block224x224', help='path to dataset')
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51/middle_block', help='path to dataset')
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
 parser.add_argument('--outf', default='./output(for_test)', help="folder to output images and model checkpoints")
@@ -60,6 +69,8 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 
 options = parser.parse_args()
 print(options)
+
+print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!please remake dataset ! no normalize")
 
 IsSave = False
 
@@ -93,8 +104,16 @@ if torch.cuda.is_available() and not options.cuda:
 #=======================================================================================================================
 
 # MNIST call and load   ================================================================================================
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+])
+
+unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+
 dataloader = torch.utils.data.DataLoader(
-    dset.SandwichGAN_Dataloader(options.dataroot,centered=True),
+    dset.SandwichGAN_Dataloader(options.dataroot,transform,centered=True),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers, drop_last=False)
 # normalize to -1~1
 ngpu = int(options.ngpu)
@@ -128,6 +147,7 @@ if options.netD != '':
 print(netD)
 
 loss_net = vgg.VGG16()
+print(loss_net)
 
 
 #=======================================================================================================================
@@ -138,7 +158,7 @@ loss_net = vgg.VGG16()
 
 criterion_D = nn.BCELoss()
 criterion_G = nn.BCELoss()
-criterion_reconstruction = nn.MSELoss()
+criterion_MSE = nn.MSELoss()
 
 # setup optimizer   ====================================================================================================
 
@@ -159,15 +179,15 @@ input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.image
 bread_pre = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
 bread_nxt = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
 label = torch.FloatTensor(options.batchSize,1,1,1)
-real_label = 0
-fake_label = 1
+real_label = 1
+fake_label = 0
 
 if options.cuda:
     netD.cuda()
     encoder.cuda()
     criterion_D.cuda()
     criterion_G.cuda()
-    criterion_reconstruction.cuda()
+    criterion_MSE.cuda()
     input, label = input.cuda(), label.cuda()
     bread_pre, bread_nxt = bread_pre.cuda(), bread_nxt.cuda()
 
@@ -182,7 +202,7 @@ bread_nxt = Variable(bread_nxt)
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
-    for i, (pre_frame, real_mid_frame, nxt_frame, _) in enumerate(dataloader, 0):
+    for i, (pre_frame, real_mid_frame, nxt_frame) in enumerate(dataloader, 0):
 
         ############################
         # (1) Update D network
@@ -205,11 +225,11 @@ for epoch in range(options.iteration):
         bread_pre.data = pre_frame.cuda()
         bread_nxt.data = nxt_frame.cuda()
 
-        output_pre, _= encoder(bread_pre)
-        output_nxt, _ = encoder(bread_nxt)
+        output_pre= encoder(bread_pre)
+        output_nxt = encoder(bread_nxt)
         pre_and_nxt = torch.cat((output_pre, output_nxt), 1).cuda()
 
-        fake_mid_frame, G_feature_map = netG(pre_and_nxt)
+        fake_mid_frame = netG(pre_and_nxt)
         original_fake_mid_frame = fake_mid_frame.clone()
         fake_mid_frame.data= torch.mul(fake_mid_frame.data, noise_mask(fake_mid_frame.data.shape))
 
@@ -229,7 +249,7 @@ for epoch in range(options.iteration):
         outputD = netD(fake_sandwich.detach())
         label.data.fill_(fake_label)
         errD_fake = 0.5 * torch.mean((outputD - label) ** 2)
-        errD_fake.backward(retain_graph=True)
+        errD_fake.backward()
 
         vis_D_G_z1 = outputD.data.mean()
 
@@ -246,9 +266,8 @@ for epoch in range(options.iteration):
         optimizerG_Adam.zero_grad()
         optimizerD_SGD.zero_grad()
 
-        errRecon = criterion_reconstruction(original_fake_mid_frame, original_real_mid_frame)
-        errRecon.backward(retain_graph=True)
-
+        errRecon = criterion_reconstruction_perceptual(original_fake_mid_frame, original_real_mid_frame)
+        errRecon.backward()
         '''
         _, encoder_feature_map = encoder(original_real_mid_frame)
         err_perceptual_1 = criterion_reconstruction(G_feature_map[0], encoder_feature_map[0].detach())
@@ -262,7 +281,7 @@ for epoch in range(options.iteration):
         label.data.fill_(real_label)
         errG = 0.5 * torch.mean((outputG - label) ** 2)
         #errG = criterion_G(outputG, label)
-        errG.backward(retain_graph=True)
+        errG.backward()
 
 
         optimizerG_Adam.step()
@@ -278,7 +297,7 @@ for epoch in range(options.iteration):
 
         #if i == len(dataloader)-1:
         if True:
-            testImage = torch.cat((pre_frame[0],original_real_mid_frame.data[0],original_fake_mid_frame.data[0],nxt_frame[0]),2)
+            testImage = torch.cat(((pre_frame[0]),(original_real_mid_frame.data[0]),(original_fake_mid_frame.data[0]),(nxt_frame[0])),2)
             win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Sandwich GAN"])
             line_win_dict =LJY_visualize_tools.draw_lines_to_windict(line_win_dict,[errRecon.data.mean(), errD.data.mean(),errG.data.mean(), vis_D_x, vis_D_G_z1],
                                                                      ['loss_recon','lossD','lossG','real is?','fake is?'], epoch, i, len(dataloader))

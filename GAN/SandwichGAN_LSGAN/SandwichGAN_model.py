@@ -19,20 +19,19 @@ class _encoder(nn.Module):
     def __init__(self, ngpu):
         super(_encoder, self).__init__()
         self.ngpu = ngpu
-        self.encoder_layer_1 = nn.Sequential(
+        self.encoder = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=64, kernel_size=7, stride=1, padding=3,bias=False),
             nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.1, inplace=True))
+            nn.LeakyReLU(0.1, inplace=True),
 
-        self.encoder_layer_2 = nn.Sequential(
             nn.Conv2d(64, 128, 4, 2, 1,bias=False),
             nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.1, inplace=True))
+            nn.LeakyReLU(0.1, inplace=True),
 
-        self.encoder_layer_3 = nn.Sequential(
             nn.Conv2d(128, 256, 4, 2, 1, bias=False),
             nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.1, inplace=True))
+            nn.LeakyReLU(0.1, inplace=True)
+        )
 
         self.encoder_residual_block = nn.Sequential(
             ResidualBlock(dim_in=256, dim_out=256),
@@ -47,14 +46,11 @@ class _encoder(nn.Module):
         if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
             output = nn.parallel.data_parallel(self._encoder, input, range(self.ngpu))
         else:
-            output_1 = self.encoder_layer_1(input) # 80 64 64 64
-            output_2 = self.encoder_layer_2(output_1) # 80 128 32 32
-            output_3 = self.encoder_layer_3(output_2) # 80 256 16 16
-            output = self.encoder_residual_block(output_3) # 80 256 16 16
+            output = self.encoder(input) # 80 64 64 64
 
+            output = self.encoder_residual_block(output) # 80 256 16 16
 
-
-        return output, (output_1, output_2)
+        return output
 
 # Generator
 class _netG(nn.Module):
@@ -62,31 +58,28 @@ class _netG(nn.Module):
         super(_netG, self).__init__()
         self.ngpu = ngpu
 
-        self.netG_layer_1 = nn.Sequential(
+        self.netG= nn.Sequential(
             nn.ConvTranspose2d(in_channels=256*2, out_channels=128, kernel_size=4, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, True),
-            nn.Dropout(0.5))
+            nn.Dropout(0.5),
 
-        self.netG_layer_2 = nn.Sequential(
             nn.ConvTranspose2d(128, 64, 4,2,1, bias=False),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2, True),
-            nn.Dropout(0.5))
+            nn.Dropout(0.5),
 
-        self.netG_layer_3 = nn.Sequential(
             nn.ConvTranspose2d(64, 3, 7,1,3, bias=False),
-            nn.Tanh())
+            nn.Tanh()
+        )
 
     def forward(self, input):
         if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
             outputG = nn.parallel.data_parallel(self.main_netG, input, range(self.ngpu))
         else:
-            output_1 = self.netG_layer_1(input) # 80 128 32 32
-            output_2 = self.netG_layer_2(output_1) # 80 64 64 64
-            outputG = self.netG_layer_3(output_2) # 80 3 64 64
+            outputG = self.netG(input) # 80 128 32 32
 
-        return outputG, (output_2, output_1)
+        return outputG
 
 # Discriminator
 class _netD(nn.Module):
@@ -115,7 +108,6 @@ class _netD(nn.Module):
 
 
             nn.Conv2d(1024, 1, 4, 1, 1, bias=False),
-            nn.Sigmoid()
         )
 
 

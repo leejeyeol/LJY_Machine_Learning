@@ -30,7 +30,7 @@ class encoder(nn.Module):
         feature_map_2 = self.layer_2(feature_map_1)
         z = self.layer_3(feature_map_2)
 
-        return z, [feature_map_1, feature_map_2]
+        return z
 
     def weight_init(self):
         self.layer_1.apply(weight_init)
@@ -70,7 +70,7 @@ class decoder(nn.Module):
         feature_map_1 = self.layer_1(z)
         feature_map_2 = self.layer_2(feature_map_1)
         recon_x = self.layer_3(feature_map_2)
-        return recon_x , [feature_map_1,feature_map_2]
+        return recon_x
 
     def weight_init(self):
         self.layer_1.apply(weight_init)

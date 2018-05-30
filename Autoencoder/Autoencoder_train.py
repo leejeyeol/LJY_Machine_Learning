@@ -2,6 +2,7 @@ import argparse
 import os
 import random
 
+import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
@@ -12,11 +13,11 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 
 
+import Autoencoder.VGG16_lossnet as vgg
 
 import Autoencoder.Autoencoder_model as model
 # import custom package
 import LJY_utils
-
 import LJY_visualize_tools
 
 win_dict = LJY_visualize_tools.win_dict()
@@ -90,14 +91,24 @@ if torch.cuda.is_available() and not options.cuda:
 
 # MNIST call and load   ================================================================================================
 
+
+
 dataloader = torch.utils.data.DataLoader(
-    dset.MNIST('../data', train=True, download=True,
+    dset.MNIST('../MNIST', train=True, download=True,
                    transform=transforms.Compose([
                        transforms.ToTensor(),
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-
+'''
+dataloader = torch.utils.data.DataLoader(
+    dset.CIFAR10('../CIFAR10', train=True, download=True,
+                   transform=transforms.Compose([
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,), (0.5,))
+                   ])),
+    batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+'''
 # normalize to -1~1
 ngpu = int(options.ngpu)
 nz = int(options.nz)
@@ -122,17 +133,24 @@ if options.netD != '':
     decoder.load_state_dict(torch.load(options.netD))
 print(decoder)
 
+loss_net = vgg.VGG16()
+print(loss_net)
 
 #=======================================================================================================================
 # Training
 #=======================================================================================================================
 
 # criterion set
-BCE = nn.BCELoss()
-MSE = nn.MSELoss()
-
+BCE_loss = nn.BCELoss()
+MSE_loss = nn.MSELoss()
+def Perceptual_loss(input, target):
+    feature_input = loss_net(input)
+    feature_target = loss_net(target)
+    loss = 0
+    for i in range(4):
+        loss = loss + MSE_loss(feature_input[i], feature_target[i])
+    return loss/4
 # setup optimizer   ====================================================================================================
-Q_Influence = 1.0
 # todo add betas=(0.5, 0.999),
 optimizerD = optim.Adam(decoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
 optimizerE = optim.Adam(encoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
@@ -147,10 +165,8 @@ input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.image
 if options.cuda:
     encoder.cuda()
     decoder.cuda()
-
-
-    MSE.cuda()
-    BCE.cuda()
+    MSE_loss.cuda()
+    BCE_loss.cuda()
 
     input = input.cuda()
 
@@ -168,44 +184,34 @@ for epoch in range(options.iteration):
         # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
-        optimizerD.zero_grad()
         optimizerE.zero_grad()
+
+        optimizerD.zero_grad()
 
 
         real_cpu, _ = data
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
 
-        z, encoder_feature_map = encoder(input)
-        x_recon, decoder_feature_map = decoder(z)
+        z= encoder(input)
+        x_recon= decoder(z)
 
-
-
-
-
-        z_recon, recon_encoder_feature_map = encoder(x_recon)
-        _, recon_decoder_feature_map = decoder(z_recon)
-
-        err_perceptual_autoencoder = MSE(recon_encoder_feature_map[1], encoder_feature_map[1].detach())
-        err_perceptual_autoencoder.backward(retain_graph=True)
-
-        err_perceptual_autodecoder = MSE(recon_decoder_feature_map[1], decoder_feature_map[1].detach())
-        err_perceptual_autodecoder.backward()
+        err_mse = MSE_loss(x_recon, input.detach())
+        err_mse.backward(retain_graph=True)
+        #err_perceptual = Perceptual_loss(x_recon, input.detach())
+        #err_perceptual.backward(retain_graph=True)
 
 
         optimizerE.step()
         optimizerD.step()
 
         #visualize
-        print('[%d/%d][%d/%d] Loss_E: %.4f Loss_D: %.4f'
+        print('[%d/%d][%d/%d] Loss: %.4f'
               % (epoch, options.iteration, i, len(dataloader),
-                 err_perceptual_autoencoder.data.mean(), err_perceptual_autodecoder.data.mean()))
+                 err_mse.data.mean()))
         testImage = torch.cat((input.data[0], x_recon.data[0]), 2)
-        win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Cyclic Autoencoder"])
-        line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
-                                                                  [err_perceptual_autoencoder.data.mean(), err_perceptual_autodecoder.data.mean()],
-                                                                  ['loss_recon_x', 'loss_recon_z'],
-                                                                  epoch, i, len(dataloader))
+        win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
+        line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict, [err_mse.data.mean(),0], ['loss_recon_x','zero'], epoch, i, len(dataloader))
 
     # do checkpointing
     '''

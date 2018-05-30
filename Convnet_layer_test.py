@@ -4,10 +4,10 @@ from torch.autograd import Variable
 
 # test input
 batch_size = 80
-in_channel = 200
+in_channel = 512
 width = 1
 length = 1
-tranposed = True
+tranposed =True
 
 
 '''
@@ -19,17 +19,17 @@ layers = []
 '''
 if not tranposed :
     #encoder
-    out_channel = [64,128,200]
-    kernel_size = [5,4,3]
-    stride = [4,2,2] #default 1
-    padding = [3,1,0] # default 0
+    out_channel = [64,128,256,512]
+    kernel_size = [(2,8),(2,6),(2,4),(1,2)]
+    stride = [4,2,1,1] #default 1
+    padding = [0,0,0,0] # default 0
     layers = []
 else:
     #decoder
-    out_channel = [128, 64, 1]
-    kernel_size = [3,4,6]
-    stride = [ 1, 3, 4]  # default 1
-    padding = [ 0,  1, 3]  # default 0
+    out_channel = [256, 128, 64, 1]
+    kernel_size = [(1, 2), (2, 3), (2, 3), (2, 4)]
+    stride = [2, 2, 3, 4]  # default 1
+    padding = [0, 0, 0, 0]  # default 0
     layers = []
 
 '''
@@ -49,7 +49,7 @@ if tranposed == False:
 
     for i in range(len(out_channel)):
         layers.append(nn.Conv2d(in_channel, out_channel[i], kernel_size[i], stride[i], padding[i]))
-        print("%d, %d, %s, %d, %d"%(in_channel,out_channel[i],kernel_size[i],stride[i],padding[i]))
+        print("nn.Conv2d(%d, %d, %s, %d, %d),"%(in_channel,out_channel[i],kernel_size[i],stride[i],padding[i]))
         in_channel = out_channel[i]
     print("===============")
 
@@ -66,7 +66,7 @@ else:
     for i in range(len(out_channel)):
 
         layers.append(nn.ConvTranspose2d(in_channel, out_channel[i], kernel_size[i], stride[i], padding[i]))
-        print("%d, %d, %d, %d, %d"%(in_channel,out_channel[i],kernel_size[i],stride[i],padding[i]))
+        print("nn.ConvTranspose2d(%d, %d, %s, %d, %d),"%(in_channel,out_channel[i],kernel_size[i],stride[i],padding[i]))
         in_channel = out_channel[i]
     print("===============")
 

@@ -261,10 +261,10 @@ for epoch in range(options.iteration):
 
         if options.display:
             win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict,
-                                                            [torch.cat((R[0],G[0],B[0]),0).view(3,18,60),
-                                                             torch.cat((output_R[0],output_G[0],output_B[0]),0).view(3,18,60).data,
-                                                             D[0].view(18, 60),
-                                                             output_D[0].view(18, 60).data],
+                                                            [torch.cat((R[0],G[0],B[0]),0),
+                                                             torch.cat((output_R[0],output_G[0],output_B[0]),0).data,
+                                                             D[0],
+                                                             output_D[0].data],
                                                              ["RGB","RGB_recon","D","D_recon"])
         '''
         if i == len(dataloader)-1:

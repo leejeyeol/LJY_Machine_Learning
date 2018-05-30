@@ -40,17 +40,18 @@ class MMAE_Dataloader(torch.utils.data.Dataset):
             G = torch.FloatTensor(G)
             B = torch.FloatTensor(B)
             D = torch.FloatTensor(D)
-            return R.view(-1), G.view(-1), B.view(-1), D.view(-1)
-
+            #return R.view(-1), G.view(-1), B.view(-1), D.view(-1)
+            return R.view(1,18,60), G.view(1,18,60), B.view(1,18,60), D.view(1,18,60)
         else:
             R = 2 * (R) / (255) - 1
             G = 2 * (G) / (255) - 1
             B = 2 * (B) / (255) - 1
-            D = D - D.mean()
+            D = 2 * (D) / (255) - 1
+            #D = D - D.mean()
             R = torch.FloatTensor(R)
             G = torch.FloatTensor(G)
             B = torch.FloatTensor(B)
             D = torch.FloatTensor(D)
-            return R.view(-1), G.view(-1), B.view(-1), D.view(-1)
-
+            #return R.view(-1), G.view(-1), B.view(-1), D.view(-1)
+            return R.view(1,18,60),G.view(1,18,60),B.view(1,18,60),D.view(1,18,60)
 
