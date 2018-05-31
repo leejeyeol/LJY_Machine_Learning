@@ -216,7 +216,7 @@ for epoch in range(options.iteration):
                                                                       len(dataloader))
 
     # do checkpointing
-    if epoch % 10 == 0:
+    if epoch % 2 == 0:
         torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (options.outf, epoch))
         torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (options.outf, epoch))
 
