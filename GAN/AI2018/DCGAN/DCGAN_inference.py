@@ -7,13 +7,26 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
 import torchvision.transforms as transforms
+from PIL import Image
 from torch.autograd import Variable
 
 import GAN.AI2018.DCGAN.DCGAN_model as model
-import GAN.AI2018.DCGAN.DCGAN_dataloader as dset
 # import custom package
 import LJY_utils
 import LJY_visualize_tools
+
+
+# version conflict
+import torch._utils
+try:
+    torch._utils._rebuild_tensor_v2
+except AttributeError:
+    def _rebuild_tensor_v2(storage, storage_offset, size, stride, requires_grad, backward_hooks):
+        tensor = torch._utils._rebuild_tensor(storage, storage_offset, size, stride)
+        tensor.requires_grad = requires_grad
+        tensor._backward_hooks = backward_hooks
+        return tensor
+    torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
 
 #=======================================================================================================================
 # Options
@@ -21,14 +34,15 @@ import LJY_visualize_tools
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
-parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
-parser.add_argument('--outf', default='./output', help="folder to output images and model checkpoints")
+parser.add_argument('--netG', default='/home/leejeyeol/Git/LJY_Machine_Learning/GAN/AI2018/DCGAN/output/netG_epoch_90.pth', help="path of Generator networks.(to continue training)")
+parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_results/DCGAN', help="folder to output images and model checkpoints")
+#parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_results/Test_Fake', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=True, help='display options. default:False.')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
-parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
+parser.add_argument('--iteration', type=int, default=50000, help='number of epochs to train for')
 
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
@@ -37,6 +51,7 @@ parser.add_argument('--model', type=str, default='pretrained_model', help='Model
 parser.add_argument('--nc', type=int, default=3, help='number of input channel.')
 parser.add_argument('--nz', type=int, default=100, help='dimension of noise.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
+parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
 
@@ -81,7 +96,7 @@ nc = int(options.nc)
 # CelebA call and load   ===============================================================================================
 
 
-
+makeimg= transforms.ToPILImage()
 unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
 # ======================================================================================================================
@@ -94,8 +109,6 @@ netG.apply(LJY_utils.weights_init)
 if options.netG != '':
     netG.load_state_dict(torch.load(options.netG))
 print(netG)
-
-
 
 # container generate
 noise = torch.FloatTensor(batch_size, nz, 1, 1)
@@ -116,17 +129,17 @@ win_dict = LJY_visualize_tools.win_dict()
 print("Training Start!")
 for epoch in range(options.iteration):
     # generate noise    ============================================================================================
-    noise.data.resize_(1, nz, 1, 1)
     noise.data.normal_(0, 1)
-
     # train with fake data   =======================================================================================
     fake = netG(noise)
 
     #visualize
     print('[%d/%d]' % (epoch, options.iteration))
 
+    testImage = unorm(fake.data[0].cpu())
+    makeimg(testImage).save(os.path.join(options.outf, '%05d.png' % epoch))
+
     if display:
-        testImage = torch.cat((unorm(input.data[0]), unorm(fake.data[0])), 2)
         win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["DCGAN_%s" % dataset])
 
 

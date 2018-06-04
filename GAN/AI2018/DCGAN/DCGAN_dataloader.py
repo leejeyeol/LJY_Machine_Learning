@@ -33,11 +33,6 @@ class Dataloader(torch.utils.data.Dataset):
         if self.transform is not None:
             img = self.transform(img)
 
-
-
-
-
-
         return img
 
 
