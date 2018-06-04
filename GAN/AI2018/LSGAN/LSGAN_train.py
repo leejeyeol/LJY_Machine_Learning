@@ -3,7 +3,6 @@ import os
 import random
 
 import torch.backends.cudnn as cudnn
-import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
 import torchvision.transforms as transforms

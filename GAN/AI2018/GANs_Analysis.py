@@ -135,9 +135,8 @@ nz = int(options.nz)
 ngf = int(options.ngf)
 ndf = int(options.ndf)
 nc = int(options.nc)
+
 # CelebA call and load   ===============================================================================================
-
-
 transform = transforms.Compose([
     transforms.CenterCrop(150),
     transforms.Scale(64),
@@ -305,7 +304,12 @@ while i < len(dataloader):
     #visualize
     print('[%d/%d]' % (i, options.iteration/batch_size))
     i += 1
-    #np.save('%s/analysis.npy' % (options.outf),output_array.numpy())
+
+print(output_array.numpy().mean(axis=0))
+print(output_array.numpy().std(axis=0))
+
+np.save('%s/analysis.npy' % (options.outf),output_array.numpy())
+
 
 
 
