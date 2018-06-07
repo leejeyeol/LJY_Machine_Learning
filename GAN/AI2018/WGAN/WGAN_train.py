@@ -22,6 +22,9 @@ parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
+parser.add_argument('--fold', default=None, help = 'fold number')
+parser.add_argument('--fold_dataroot', default='',help='Proprocessing/fold_divider.py')
+
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
 parser.add_argument('--outf', default='./output', help="folder to output images and model checkpoints")
@@ -91,10 +94,12 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
-
-
-dataloader = torch.utils.data.DataLoader(dset.Dataloader(options.dataroot, transform),
-                                         batch_size=options.batchSize, shuffle=True, num_workers=options.workers,drop_last=False)
+if options.fold is None:
+    dataloader = torch.utils.data.DataLoader(dset.Dataloader(options.dataroot, transform),
+                                             batch_size=options.batchSize, shuffle=True, num_workers=options.workers,drop_last=False)
+else:
+    dataloader = torch.utils.data.DataLoader(dset.fold_Dataloader(options.fold, options.fold_dataroot, transform, type='train'),
+                                             batch_size=options.batchSize, shuffle=True, num_workers=options.workers,drop_last=False)
 
 unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
@@ -219,8 +224,8 @@ for epoch in range(options.iteration):
 
     # do checkpointing
     if epoch % 10 == 0:
-        torch.save(netG.state_dict(), '%s/netG_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(netD.state_dict(), '%s/netD_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(netG.state_dict(), '%s/%d_fold_netG_epoch_%d.pth' % (options.outf, epoch))
+        torch.save(netD.state_dict(), '%s/%d_fold_netD_epoch_%d.pth' % (options.outf, epoch))
 
 
 
