@@ -117,3 +117,19 @@ def time_visualizer(start_time, current_time):
     m_ = int(h_)%60
     s = int(m_)
     return tm, "%d:%02d:%02d" % (h, m, s)
+
+def fold_loader(fold_num, root_path):
+    fold_num = int(fold_num)
+    total_fold = int(os.path.basename(root_path).split('_')[-1])
+    fold_list = glob.glob(os.path.join(root_path, "*.*"))
+
+    train_paths = None
+    for i in range(total_fold):
+        if i != fold_num:
+            if train_paths is None:
+                train_paths = np.load(fold_list[i])
+            else:
+                train_paths = np.hstack((train_paths, np.load(fold_list[i])))
+
+    val_paths = np.load(fold_list[fold_num])
+    return train_paths, val_paths

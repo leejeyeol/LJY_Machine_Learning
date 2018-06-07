@@ -8,8 +8,6 @@ import torch.utils.data
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 
-
-
 import GAN.AI2018.DCGAN.DCGAN_model as DCmodel
 import GAN.AI2018.WGAN.WGAN_model as Wmodel
 import GAN.AI2018.LSGAN.LSGAN_model as LSmodel

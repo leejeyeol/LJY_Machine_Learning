@@ -6,6 +6,7 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
+import torchvision.transforms as transforms
 
 import torchvision.utils as vutils
 from torch.autograd import Variable
@@ -23,7 +24,12 @@ import LJY_visualize_tools
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='KITTI', help='what is dataset?')
-parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/train', help='path to dataset')
+parser.add_argument('--image_dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/img_ppm', help='path to dataset')
+parser.add_argument('--depth_dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/depth', help='path to dataset')
+parser.add_argument('--semantic_dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/semantic', help='path to dataset')
+parser.add_argument('--fold', default=None)
+parser.add_argument('--fold_dataroot',default='/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/fold_10', help='folds maked by Preprocessing/fold_divider')
+
 parser.add_argument('--net', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--outf', default='./pretrained_model', help="folder to output images and model checkpoints")
 
@@ -35,8 +41,8 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=[60, 18], help='the height / width of the input image to network')
+parser.add_argument('--batchSize', type=int, default=3, help='input batch size')
+parser.add_argument('--imageSize', type=int, default=[608, 96], help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
@@ -49,10 +55,15 @@ parser.add_argument('--seed', type=int, help='manual seed')
 options = parser.parse_args()
 print(options)
 
+if options.fold is None:
+    outf = options.outf
+else:
+    outf = os.path.join(options.outf, "fold_%d" % options.fold)
 
 # save directory make   ================================================================================================
 try:
-    os.makedirs(options.outf)
+    os.makedirs(outf)
+
 except OSError:
     pass
 
@@ -79,10 +90,20 @@ if torch.cuda.is_available() and not options.cuda:
 
 # MNIST call and load   ================================================================================================
 
-dataloader = torch.utils.data.DataLoader(
-    dset.MMAE_Dataloader(options.dataroot),
-    batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+])
+if options.fold is None:
+    dataloader = torch.utils.data.DataLoader(
+        dset.MMAE_Dataloader(options.image_dataroot, options.depth_dataroot, options.semantic_dataroot, transform),
+        batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+else:
+    dataloader = torch.utils.data.DataLoader(
+        dset.fold_MMAE_Dataloader(options.fold, options.fold_dataroot, transform, 'train'),
+        batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
 
+unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 # normalize to -1~1
 ngpu = int(options.ngpu)
 
@@ -149,7 +170,7 @@ def noise_mask(shape):
 
 # criterion set
 class RMSEloss(nn.Module):
-    def forward(self, input, targets, size_avarage=False):
+    def forward(self, input, targets, size_avarage = False):
 
         mask = (input)!=input.data.min()
         masked_input = torch.masked_select(input, mask)
@@ -157,7 +178,9 @@ class RMSEloss(nn.Module):
         #return torch.sqrt(torch.mean((input - targets).pow(2))/targets.size()[1])
         return torch.sqrt(torch.mean((masked_input - masked_targets).pow(2)))
 
-criterion = RMSEloss()
+#criterion = RMSEloss()
+criterion = nn.MSELoss()
+criterion_BCE = nn.BCELoss()
 
 
 # setup optimizer   ====================================================================================================
@@ -165,7 +188,7 @@ criterion = RMSEloss()
 optimizer = optim.Adam(list(encoder_R.parameters()) + list(decoder_R.parameters())+
                        list(encoder_G.parameters()) + list(decoder_G.parameters())+
                        list(encoder_B.parameters()) + list(decoder_B.parameters())+
-                       list(encoder_D.parameters()) + list(decoder_D.parameters()), betas=(0.5, 0.999), lr=1e-2)
+                       list(encoder_D.parameters()) + list(decoder_D.parameters()), betas=(0.5, 0.999), lr=2e-4)
 
 # container generate
 input_R = torch.FloatTensor(options.batchSize, 1, options.imageSize[0]*options.imageSize[1])
@@ -259,32 +282,27 @@ for epoch in range(options.iteration):
 
 
 
-        if options.display:
-            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict,
-                                                            [torch.cat((R[0],G[0],B[0]),0),
-                                                             torch.cat((output_R[0],output_G[0],output_B[0]),0).data,
-                                                             D[0],
-                                                             output_D[0].data],
-                                                             ["RGB","RGB_recon","D","D_recon"])
-        '''
-        if i == len(dataloader)-1:
-            vutils.save_image(real_cpu,
-                    '%s/real_samples.png' % options.outf,
-                    normalize=True)
-            fake = netG(fixed_noise)
-            vutils.save_image(fake.data,
-                    '%s/fake_samples_epoch_%03d.png' % (options.outf, epoch),
-                    normalize=True)
-        '''
-    if epoch % 100 == 0:
-        torch.save(encoder_R.state_dict(), '%s/encoder_R_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(encoder_G.state_dict(), '%s/encoder_G_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(encoder_B.state_dict(), '%s/encoder_B_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(encoder_D.state_dict(), '%s/encoder_D_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(decoder_R.state_dict(), '%s/decoder_R_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(decoder_G.state_dict(), '%s/decoder_G_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(decoder_B.state_dict(), '%s/decoder_B_epoch_%d.pth' % (options.outf, epoch))
-        torch.save(decoder_D.state_dict(), '%s/decoder_D_epoch_%d.pth' % (options.outf, epoch))
+        if True:
+            RGB_Image = torch.cat((unorm(torch.cat((R[0],G[0],B[0]),0)), unorm(torch.cat((output_R[0].data,output_G[0].data,output_B[0].data), 0)).cpu()),1)
+            Depth_Image =torch.cat((unorm(D[0]), unorm(output_D[0].data).cpu()), 1)
+            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict,[RGB_Image,Depth_Image],["RGB","Depth"])
+
+            line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
+                                                                      [err_R.data.mean(), err_G.data.mean(),err_B.data.mean(),err_D.data.mean()],
+                                                                      ['lossR', 'lossG', 'lossB', 'lossD'], epoch,
+                                                                      i,
+                                                                      len(dataloader))
+
+
+    if epoch % 1 == 0:
+        torch.save(encoder_R.state_dict(), '%s/encoder_R_epoch_%d.pth' % (outf, epoch))
+        torch.save(encoder_G.state_dict(), '%s/encoder_G_epoch_%d.pth' % (outf, epoch))
+        torch.save(encoder_B.state_dict(), '%s/encoder_B_epoch_%d.pth' % (outf, epoch))
+        torch.save(encoder_D.state_dict(), '%s/encoder_D_epoch_%d.pth' % (outf, epoch))
+        torch.save(decoder_R.state_dict(), '%s/decoder_R_epoch_%d.pth' % (outf, epoch))
+        torch.save(decoder_G.state_dict(), '%s/decoder_G_epoch_%d.pth' % (outf, epoch))
+        torch.save(decoder_B.state_dict(), '%s/decoder_B_epoch_%d.pth' % (outf, epoch))
+        torch.save(decoder_D.state_dict(), '%s/decoder_D_epoch_%d.pth' % (outf, epoch))
 
 
 

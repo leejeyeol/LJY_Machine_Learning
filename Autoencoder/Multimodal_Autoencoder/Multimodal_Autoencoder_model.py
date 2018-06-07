@@ -7,16 +7,26 @@ class encoder(nn.Module):
         super().__init__()
         #512
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 64, (2, 8), 4, 0),
+            nn.Conv2d(1, 64, (4, 11), 2, 1),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(64, 128, (2, 6), 2, 0),
+            nn.Conv2d(64, 128, (4, 11), 2, 1),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(128, 256, (2, 4), 1, 0),
+            nn.Conv2d(128, 256, (4, 11), 2, 1),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, True),
 
-            nn.Conv2d(256, 512, (1, 2), 1, 0),
+            nn.Conv2d(256, 512, (4, 11), 2, 1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, 512, (4, 11), 2, 1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, 512, (3, 12), 1, 0),
             nn.LeakyReLU(0.2, True)
 
         )
@@ -40,32 +50,52 @@ class decoder(nn.Module):
         self.data_type = data_type
         #2048
         self.decoder_RGB = nn.Sequential(
-            nn.ConvTranspose2d(2048, 256, (1, 2), 2, 0),
+            nn.ConvTranspose2d(2048, 512, (3, 12), 1, 0),
+            nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True),
 
-            nn.ConvTranspose2d(256, 128, (2, 3), 2, 0),
+            nn.ConvTranspose2d(512, 512, (4, 11), 2, 1),
+            nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True),
 
-
-            nn.ConvTranspose2d(128, 64, (2, 3), 3, 0),
+            nn.ConvTranspose2d(512, 256, (4, 11), 2, 1),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, True),
 
-            nn.ConvTranspose2d(64, 1, (2, 4), 4, 0),
+            nn.ConvTranspose2d(256, 128, (4, 12), 2, 1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(128, 64, (4, 12), 2, 1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(64, 1, (4, 12), 2, 1),
             nn.Tanh()
         )
         self.decoder_d = nn.Sequential(
-            nn.ConvTranspose2d(2048, 256, (1, 2), 2, 0),
+            nn.ConvTranspose2d(2048, 512, (3, 12), 1, 0),
+            nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True),
 
-            nn.ConvTranspose2d(256, 128, (2, 3), 2, 0),
+            nn.ConvTranspose2d(512, 512, (4, 11), 2, 1),
+            nn.BatchNorm2d(512),
             nn.LeakyReLU(0.2, True),
 
-            nn.ConvTranspose2d(128, 64, (2, 3), 3, 0),
+            nn.ConvTranspose2d(512, 256, (4, 11), 2, 1),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2, True),
 
-            nn.ConvTranspose2d(64, 1, (2, 4), 4, 0),
+            nn.ConvTranspose2d(256, 128, (4, 12), 2, 1),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(128, 64, (4, 12), 2, 1),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(64, 1, (4, 12), 2, 1),
             nn.Tanh()
-
         )
 
         # init weights

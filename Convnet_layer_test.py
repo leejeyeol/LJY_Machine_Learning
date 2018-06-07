@@ -3,12 +3,19 @@ import torch.nn as nn
 from torch.autograd import Variable
 
 # test input
-batch_size = 80
-in_channel = 512
-width = 1
-length = 1
-tranposed =True
 
+tranposed = False
+
+if not tranposed:
+    batch_size = 1
+    in_channel = 3
+    width = 608
+    length = 96
+else:
+    batch_size = 1
+    in_channel = 512
+    width = 1
+    length = 1
 
 '''
 out_channel = [128, 64,32,128]
@@ -17,19 +24,21 @@ stride = [4,2,2,2] #default 1
 padding = [1,1,1,1] # default 0
 layers = []
 '''
+
+
 if not tranposed :
     #encoder
-    out_channel = [64,128,256,512]
-    kernel_size = [(2,8),(2,6),(2,4),(1,2)]
-    stride = [4,2,1,1] #default 1
-    padding = [0,0,0,0] # default 0
+    out_channel = [64,128,256,512,512,512]
+    kernel_size = [(11,4),(11,4),(11,4),(11,4),(11,4),(12,3)]
+    stride = [2,2,2,2,2,1] #default 1
+    padding = [1,1,1,1,1,0] # default 0
     layers = []
 else:
     #decoder
-    out_channel = [256, 128, 64, 1]
-    kernel_size = [(1, 2), (2, 3), (2, 3), (2, 4)]
-    stride = [2, 2, 3, 4]  # default 1
-    padding = [0, 0, 0, 0]  # default 0
+    out_channel = [512,512,512,256,128,64]
+    kernel_size = [(12,3),(11,4),(11,4),(12,4),(12,4),(12,4)]
+    stride = [1,2,2,2,2,2] #default 1
+    padding = [0,1,1,1,1,1] # default 0
     layers = []
 
 '''

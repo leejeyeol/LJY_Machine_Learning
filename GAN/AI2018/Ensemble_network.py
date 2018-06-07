@@ -17,9 +17,8 @@ import LJY_utils
 import LJY_visualize_tools
 from PIL import Image
 
-# version conflict
+# version conflict =====================================================================================================
 import torch._utils
-
 try:
     torch._utils._rebuild_tensor_v2
 except AttributeError:
@@ -29,8 +28,9 @@ except AttributeError:
         tensor._backward_hooks = backward_hooks
         return tensor
     torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
+# ======================================================================================================================
 
-
+# model and dataloader =================================================================================================
 class Classifier(nn.Module):
     def __init__(self, ngpu, ndf = 64):
         super(Classifier, self).__init__()
@@ -216,7 +216,7 @@ parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
-parser.add_argument('--Type', default='train', help='train, evaluation, test')
+parser.add_argument('--Type', default='evaluation', help='train, evaluation, test')
 
 parser.add_argument('--DC_G_dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_results/DCGAN', help='path to dataset')
 parser.add_argument('--W_G_dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_results/WGAN', help='path to dataset')
@@ -230,8 +230,8 @@ parser.add_argument('--net_W_D', default='/home/leejeyeol/Git/LJY_Machine_Learni
 parser.add_argument('--net_LS_D', default='/home/leejeyeol/Git/LJY_Machine_Learning/GAN/AI2018/LSGAN/output/netD_epoch_130.pth', help="path of LSGAN Discriminator networks.(to continue training)")
 parser.add_argument('--net_EB_D', default='/home/leejeyeol/Git/LJY_Machine_Learning/GAN/AI2018/EBGAN/output/netD_epoch_4.pth', help="path of EBGAN Discriminator networks.(to continue training)")
 
-#parser.add_argument('--classifier', default='./output/classifier_0.pth', help="real, fake classifier")
-parser.add_argument('--classifier', default='', help="real, fake classifier")
+#parser.add_argument('--classifier', default='', help="real, fake classifier")
+parser.add_argument('--classifier', default='./output/classifier_0.pth', help="real, fake classifier")
 
 parser.add_argument('--outf', default='./output', help="folder to output images and model checkpoints")
 
@@ -244,7 +244,7 @@ parser.add_argument('--num_fake_data', type=int, default=50000, help='number of 
 
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=200, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=3, help='number of input channel.')
@@ -279,7 +279,6 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-
 # ======================================================================================================================
 # Data and Parameters
 # ======================================================================================================================
@@ -300,7 +299,12 @@ transform = transforms.Compose([
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
 
-makeimg= transforms.ToPILImage()
+transform_resize = transforms.Compose([
+            transforms.Scale(64),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+        ])
+makeimg = transforms.ToPILImage()
 unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
 train_dataloader = torch.utils.data.DataLoader(Train_Dataloader(options.dataroot, options.DC_G_dataroot,options.W_G_dataroot,
@@ -309,12 +313,6 @@ train_dataloader = torch.utils.data.DataLoader(Train_Dataloader(options.dataroot
 
 eval_dataloader = torch.utils.data.DataLoader(Eval_Dataloader(options.dataroot, options.eval_fake_dataroot, transform),
                                          batch_size=1, shuffle=True, num_workers=options.workers)
-
-transform_resize = transforms.Compose([
-            transforms.Scale(64),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-        ])
 
 test_dataloader = torch.utils.data.DataLoader(Test_Dataloader(options.test_dataroot, transform_resize),
                                          batch_size=1, shuffle=True, num_workers=options.workers)
@@ -395,9 +393,9 @@ if options.Type == 'train':
             err = BCE(output, label.float().view(label.shape[0], 1))
             err.backward()
             optimizer.step()
-            print('[%d/%d] err : %f' % (i, len(train_dataloader), err.data))
+            print('[%d/%d] err : %f label mean%f' % (i, len(train_dataloader), err.data, label.data.float().mean()))
 
-    torch.save(classifier.state_dict(), '%s/classifier_%d.pth' % (options.outf, epoch))
+            torch.save(classifier.state_dict(), '%s/classifier_%d.pth' % (options.outf, epoch))
 
 elif options.Type == 'evaluation':
     print("evaluate")
