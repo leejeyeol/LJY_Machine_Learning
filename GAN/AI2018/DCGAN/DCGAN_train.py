@@ -227,7 +227,7 @@ for epoch in range(options.iteration):
 
     # do checkpointing
     if epoch % 10 == 0:
-        torch.save(netG.state_dict(), '%s/%d_fold_netG_epoch_%d.pth' % (options.fold, options.outf, epoch))
-        torch.save(netD.state_dict(), '%s/%d_fold_netD_epoch_%d.pth' % (options.fold, options.outf, epoch))
+        torch.save(netG.state_dict(), '%s/%d_fold_netG_epoch_%d.pth' % (options.outf, options.fold, epoch))
+        torch.save(netD.state_dict(), '%s/%d_fold_netD_epoch_%d.pth' % (options.outf, options.fold, epoch))
 
 # Je Yeol. Lee \[T]/
