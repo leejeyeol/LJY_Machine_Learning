@@ -21,7 +21,7 @@ parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
-parser.add_argument('--fold', default=None, help = 'fold number')
+parser.add_argument('--fold', type=int,default=None, help = 'fold number')
 parser.add_argument('--fold_dataroot', default='',help='Proprocessing/fold_divider.py')
 
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
