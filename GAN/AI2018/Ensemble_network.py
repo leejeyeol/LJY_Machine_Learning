@@ -169,34 +169,46 @@ class fold_Dataloader(torch.utils.data.Dataset):
 
             assert os.path.exists(path_EB)
             self.base_path_EB = path_EB
+        elif self.type == 'validation':
+            assert os.path.exists(path_DC+'_val')
+            self.base_path_DC = path_DC+'_val'
 
-            cur_file_paths = sorted(glob.glob(self.base_path_DC + '/*.*'))
-            self.file_paths = self.file_paths + cur_file_paths
-            #random_files = random.sample(cur_file_paths, self.real_data_length)
-            #self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
+            assert os.path.exists(path_W+'_val')
+            self.base_path_W = path_W+'_val'
 
-            cur_file_paths = sorted(glob.glob(self.base_path_W + '/*.*'))
-            self.file_paths = self.file_paths + cur_file_paths
-            #random_files = random.sample(cur_file_paths, self.real_data_length)
-            #self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
-            #self.label = self.label + [2 for _ in range(options.num_fake_data)]
+            assert os.path.exists(path_LS+'_val')
+            self.base_path_LS = path_LS+'_val'
 
-            cur_file_paths = sorted(glob.glob(self.base_path_LS + '/*.*'))
-            self.file_paths = self.file_paths + cur_file_paths
-            #random_files = random.sample(cur_file_paths, self.real_data_length)
-            #self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
-            #self.label = self.label + [3 for _ in range(options.num_fake_data)]
+            assert os.path.exists(path_EB+'_val')
+            self.base_path_EB = path_EB+'_val'
+
+        cur_file_paths = sorted(glob.glob(self.base_path_DC + '/*.*'))
+        self.file_paths = self.file_paths + cur_file_paths
+        #random_files = random.sample(cur_file_paths, self.real_data_length)
+        #self.file_paths = self.file_paths + random_files
+        self.label = self.label + [1 for _ in range(len(cur_file_paths))]
+
+        cur_file_paths = sorted(glob.glob(self.base_path_W + '/*.*'))
+        self.file_paths = self.file_paths + cur_file_paths
+        #random_files = random.sample(cur_file_paths, self.real_data_length)
+        #self.file_paths = self.file_paths + random_files
+        self.label = self.label + [1 for _ in range(len(cur_file_paths))]
+        #self.label = self.label + [2 for _ in range(options.num_fake_data)]
+
+        cur_file_paths = sorted(glob.glob(self.base_path_LS + '/*.*'))
+        self.file_paths = self.file_paths + cur_file_paths
+        #random_files = random.sample(cur_file_paths, self.real_data_length)
+        #self.file_paths = self.file_paths + random_files
+        self.label = self.label + [1 for _ in range(len(cur_file_paths))]
+        #self.label = self.label + [3 for _ in range(options.num_fake_data)]
 
 
-            cur_file_paths = sorted(glob.glob(self.base_path_EB + '/*.*'))
-            self.file_paths = self.file_paths + cur_file_paths
-            #random_files = random.sample(cur_file_paths, self.real_data_length)
-            #self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
-            #self.label = self.label + [4 for _ in range(options.num_fake_data)]
+        cur_file_paths = sorted(glob.glob(self.base_path_EB + '/*.*'))
+        self.file_paths = self.file_paths + cur_file_paths
+        #random_files = random.sample(cur_file_paths, self.real_data_length)
+        #self.file_paths = self.file_paths + random_files
+        self.label = self.label + [1 for _ in range(len(cur_file_paths))]
+        #self.label = self.label + [4 for _ in range(options.num_fake_data)]
 
 
     def pil_loader(self,path):
@@ -292,7 +304,7 @@ parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
-parser.add_argument('--Type', default='train', help='train, validation, test')
+parser.add_argument('--Type', default='validation', help='train, validation, test')
 parser.add_argument('--fold', type=int, default=None, help = 'fold number')
 parser.add_argument('--fold_dataroot', default='',help='Proprocessing/fold_divider.py')
 
@@ -322,7 +334,7 @@ parser.add_argument('--num_fake_data', type=int, default=50000, help='number of 
 
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=100, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=3, help='number of input channel.')
