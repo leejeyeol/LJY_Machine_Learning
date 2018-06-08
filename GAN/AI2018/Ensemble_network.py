@@ -453,7 +453,7 @@ if options.cuda:
 if options.Type == 'train':
     print("Train")
     for epoch in range(options.iteration):
-        for i, (data, label) in enumerate(train_dataloader, 0):
+        for i, (data, label) in enumerate(dataloader, 0):
             classifier.zero_grad()
 
             input = Variable(data, volatile=True)
@@ -476,7 +476,7 @@ if options.Type == 'train':
             err = BCE(output, label.float().view(label.shape[0], 1))
             err.backward()
             optimizer.step()
-            print('[%d/%d] err : %f label mean%f' % (i, len(train_dataloader), err.data, label.data.float().mean()))
+            print('[%d/%d] err : %f label mean%f' % (i, len(dataloader), err.data, label.data.float().mean()))
 
             torch.save(classifier.state_dict(), '%s/classifier_%d.pth' % (options.outf, epoch))
 
@@ -487,7 +487,7 @@ elif options.Type == 'validation':
     FP = 0
     FN = 0
     TN = 0
-    for i, (data, label) in enumerate(eval_dataloader, 0):
+    for i, (data, label) in enumerate(dataloader, 0):
         input = Variable(data, volatile=True)
         if options.cuda:
             input = input.cuda()
@@ -525,7 +525,7 @@ elif options.Type == 'validation':
 
 elif options.Type == 'test':
     print("test")
-    for i, data in enumerate(test_dataloader, 0):
+    for i, data in enumerate(dataloader, 0):
         input = Variable(data, volatile=True)
         if options.cuda:
             input = input.cuda()
