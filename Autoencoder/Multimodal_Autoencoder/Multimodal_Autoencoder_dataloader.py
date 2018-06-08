@@ -54,6 +54,7 @@ class MMAE_Dataloader(torch.utils.data.Dataset):
         Depth_path = self.Depth_paths[item]
         img = self.pil_loader(Depth_path, 'L')
         D = self.transform(img)
+        D_mask = self.sparse_mask(D)
 
         '''
         # Semantic Preprocessing =======================================================================================
@@ -66,7 +67,7 @@ class MMAE_Dataloader(torch.utils.data.Dataset):
             array_data = np.fromfile(array_file, dtype=np.int16)
         S_ground, S_object, S_building, S_vegetation, S_sky = self.Semantic_to_binary_mask(np.reshape(array_data, shape))
         '''
-        return R, G, B, D #S_ground, S_object, S_building, S_vegetation, S_sky
+        return R, G, B, D, D_mask #S_ground, S_object, S_building, S_vegetation, S_sky
 
     def pil_loader(self, path , convert = 'RGB'):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
@@ -91,7 +92,8 @@ class MMAE_Dataloader(torch.utils.data.Dataset):
                 result_list[i] = result_list[i] + masked
 
         return result_list[0], result_list[1], result_list[2], result_list[3], result_list[4]
-
+    def sparse_mask(self, sparse_matrix):
+        return sparse_matrix != sparse_matrix.data.min()
 
 class fold_MMAE_Dataloader(torch.utils.data.Dataset):
     def __init__(self, fold_number, fold_path,  transfrom, type = 'train'):
@@ -127,6 +129,7 @@ class fold_MMAE_Dataloader(torch.utils.data.Dataset):
         Depth_path = self.Depth_paths[item]
         img = self.pil_loader(Depth_path, 'L')
         D = self.transform(img)
+        D_mask = self.sparse_mask(D)
 
         '''
         # Semantic Preprocessing =======================================================================================
@@ -139,7 +142,7 @@ class fold_MMAE_Dataloader(torch.utils.data.Dataset):
             array_data = np.fromfile(array_file, dtype=np.int16)
         S_ground, S_object, S_building, S_vegetation, S_sky = self.Semantic_to_binary_mask(np.reshape(array_data, shape))
         '''
-        return R, G, B, D  # S_ground, S_object, S_building, S_vegetation, S_sky
+        return R, G, B, D,D_mask  # S_ground, S_object, S_building, S_vegetation, S_sky
 
     def pil_loader(self, path, convert='RGB'):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
@@ -164,3 +167,6 @@ class fold_MMAE_Dataloader(torch.utils.data.Dataset):
                 result_list[i] = result_list[i] + masked
 
         return result_list[0], result_list[1], result_list[2], result_list[3], result_list[4]
+    def sparse_mask(self, sparse_matrix):
+        mask = sparse_matrix != sparse_matrix.min()
+        return mask
