@@ -171,27 +171,31 @@ class fold_Dataloader(torch.utils.data.Dataset):
             self.base_path_EB = path_EB
 
             cur_file_paths = sorted(glob.glob(self.base_path_DC + '/*.*'))
-            random_files = random.sample(cur_file_paths, self.real_data_length)
-            self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(options.num_fake_data)]
+            self.file_paths = self.file_paths + cur_file_paths
+            #random_files = random.sample(cur_file_paths, self.real_data_length)
+            #self.file_paths = self.file_paths + random_files
+            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
 
             cur_file_paths = sorted(glob.glob(self.base_path_W + '/*.*'))
-            random_files = random.sample(cur_file_paths, self.real_data_length)
-            self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(options.num_fake_data)]
+            self.file_paths = self.file_paths + cur_file_paths
+            #random_files = random.sample(cur_file_paths, self.real_data_length)
+            #self.file_paths = self.file_paths + random_files
+            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
             #self.label = self.label + [2 for _ in range(options.num_fake_data)]
 
             cur_file_paths = sorted(glob.glob(self.base_path_LS + '/*.*'))
-            random_files = random.sample(cur_file_paths, self.real_data_length)
-            self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(options.num_fake_data)]
+            self.file_paths = self.file_paths + cur_file_paths
+            #random_files = random.sample(cur_file_paths, self.real_data_length)
+            #self.file_paths = self.file_paths + random_files
+            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
             #self.label = self.label + [3 for _ in range(options.num_fake_data)]
 
 
             cur_file_paths = sorted(glob.glob(self.base_path_EB + '/*.*'))
-            random_files = random.sample(cur_file_paths, self.real_data_length)
-            self.file_paths = self.file_paths + random_files
-            self.label = self.label + [1 for _ in range(options.num_fake_data)]
+            self.file_paths = self.file_paths + cur_file_paths
+            #random_files = random.sample(cur_file_paths, self.real_data_length)
+            #self.file_paths = self.file_paths + random_files
+            self.label = self.label + [1 for _ in range(len(cur_file_paths))]
             #self.label = self.label + [4 for _ in range(options.num_fake_data)]
 
 
