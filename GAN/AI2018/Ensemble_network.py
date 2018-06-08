@@ -149,9 +149,9 @@ class fold_Dataloader(torch.utils.data.Dataset):
         self.type = type
         train_path, val_path = LJY_utils.fold_loader(fold, path)
         if self.type == 'train':
-            self.file_paths = train_path[0]
+            self.file_paths = list(train_path[0])
         elif self.type == 'validation':
-            self.file_paths = val_path[0]
+            self.file_paths = list(val_path[0])
 
         self.real_data_length = len(self.file_paths)
         self.label = [0 for _ in range(self.real_data_length)]
