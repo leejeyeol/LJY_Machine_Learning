@@ -16,6 +16,7 @@ import GAN.AI2018.EBGAN.EBGAN_model as EBmodel
 import LJY_utils
 import LJY_visualize_tools
 from PIL import Image
+import numpy as np
 
 # version conflict =====================================================================================================
 import torch._utils
@@ -321,7 +322,7 @@ parser.add_argument('--net_LS_D', default='/home/leejeyeol/Git/LJY_Machine_Learn
 parser.add_argument('--net_EB_D', default='/home/leejeyeol/Git/LJY_Machine_Learning/GAN/AI2018/EBGAN/output/netD_epoch_4.pth', help="path of EBGAN Discriminator networks.(to continue training)")
 
 #parser.add_argument('--classifier', default='', help="real, fake classifier")
-parser.add_argument('--classifier', default='', help="real, fake classifier")
+parser.add_argument('--classifier', default='./output/classifier_0.pth', help="real, fake classifier")
 
 parser.add_argument('--outf', default='./output', help="folder to output images and model checkpoints")
 
@@ -397,20 +398,23 @@ transform_resize = transforms.Compose([
 makeimg = transforms.ToPILImage()
 unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
-if options.fold is None:
-    train_dataloader = torch.utils.data.DataLoader(Train_Dataloader(options.dataroot, options.DC_G_dataroot,options.W_G_dataroot,
-                                                        options.EB_G_dataroot,options.LS_G_dataroot, transform),
-                                             batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-
-    eval_dataloader = torch.utils.data.DataLoader(Eval_Dataloader(options.dataroot, options.eval_fake_dataroot, transform),
-                                             batch_size=1, shuffle=True, num_workers=options.workers)
-
+if options.Type == 'test':
     test_dataloader = torch.utils.data.DataLoader(Test_Dataloader(options.test_dataroot, transform_resize),
-                                             batch_size=1, shuffle=True, num_workers=options.workers)
-else:
-    dataloader = torch.utils.data.DataLoader(fold_Dataloader(options.fold, options.fold_dataroot, options.DC_G_dataroot,options.W_G_dataroot,
-                                                        options.EB_G_dataroot,options.LS_G_dataroot, transform, type=options.Type),
-                                             batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+                                                  batch_size=1, shuffle=True, num_workers=options.workers)
+else :
+    if options.fold is None:
+        train_dataloader = torch.utils.data.DataLoader(Train_Dataloader(options.dataroot, options.DC_G_dataroot,options.W_G_dataroot,
+                                                            options.EB_G_dataroot,options.LS_G_dataroot, transform),
+                                                 batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
+        eval_dataloader = torch.utils.data.DataLoader(Eval_Dataloader(options.dataroot, options.eval_fake_dataroot, transform),
+                                                 batch_size=1, shuffle=True, num_workers=options.workers)
+
+
+    else:
+        dataloader = torch.utils.data.DataLoader(fold_Dataloader(options.fold, options.fold_dataroot, options.DC_G_dataroot,options.W_G_dataroot,
+                                                            options.EB_G_dataroot,options.LS_G_dataroot, transform, type=options.Type),
+                                                 batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
 
 MSE = nn.MSELoss()
 BCE = nn.BCELoss()
@@ -499,6 +503,10 @@ elif options.Type == 'validation':
     FP = 0
     FN = 0
     TN = 0
+
+    resultByEachGANs_real = []
+    resultByEachGANs_fake = []
+
     for i, (data, label) in enumerate(dataloader, 0):
         input = Variable(data, volatile=True)
         if options.cuda:
@@ -508,6 +516,10 @@ elif options.Type == 'validation':
         output_LS_DC = net_LS_D(input)
         output_EB_DC = net_EB_D(input)
         output_EB_DC = torch.mean(torch.mean(torch.mean((output_EB_DC - input) ** 2, 1), 1), 1)
+        if (label.data[0] == 0).cpu().numpy():
+            resultByEachGANs_real.append(np.asarray([output_DC_DC.data[0], output_W_DC.data[0], output_LS_DC.data[0], output_EB_DC.data[0],label.data[0]]))
+        else:
+            resultByEachGANs_fake.append(np.asarray([output_DC_DC.data[0], output_W_DC.data[0], output_LS_DC.data[0], output_EB_DC.data[0],label.data[0]]))
 
         input = Variable(data, volatile=True)
         label = Variable(label)
@@ -534,10 +546,12 @@ elif options.Type == 'validation':
     print("TP : %d\t FN : %d\t FP : %d\t TN : %d\t" % (TP, FN, FP, TN))
     print("Accuracy : %f \t Precision : %f \t Recall : %f" % (
         (TP + TN) / (TP + TN + FP + FN), TP / (TP + FP), TP / (FN + TP)))
+    np.save('/home/mlpa/Workspace/experimental_result/resultByEachGANs_real.npy',resultByEachGANs_real)
+    np.save('/home/mlpa/Workspace/experimental_result/resultByEachGANs_fake.npy',resultByEachGANs_fake)
 
 elif options.Type == 'test':
     print("test")
-    for i, data in enumerate(dataloader, 0):
+    for i, data in enumerate(test_dataloader, 0):
         input = Variable(data, volatile=True)
         if options.cuda:
             input = input.cuda()
