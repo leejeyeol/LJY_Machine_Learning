@@ -185,7 +185,7 @@ for epoch in range(options.iteration):
         outputD_fake = netD(fake.detach())
         visual_D_fake = outputD_fake.data.mean()
 
-        errD = 0.5 * torch.mean((outputD_real-real_label)**2) + torch.mean((outputD_fake-fake_label)**2)
+        errD = 0.5 * (torch.mean((outputD_real-real_label)**2) + torch.mean((outputD_fake-fake_label)**2))
         errD.backward()
         optimizerD.step()
 

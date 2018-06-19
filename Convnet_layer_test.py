@@ -4,16 +4,16 @@ from torch.autograd import Variable
 
 # test input
 
-tranposed = False
+tranposed = True
 
 if not tranposed:
     batch_size = 1
-    in_channel = 3
-    width = 608
-    length = 96
+    in_channel = 1
+    width = 96
+    length = 608
 else:
     batch_size = 1
-    in_channel = 512
+    in_channel = 2048
     width = 1
     length = 1
 
@@ -29,14 +29,14 @@ layers = []
 if not tranposed :
     #encoder
     out_channel = [64,128,256,512,512,512]
-    kernel_size = [(11,4),(11,4),(11,4),(11,4),(11,4),(12,3)]
+    kernel_size = [(4,11),(4,11),(4,11),(4,11),(4,11),(3,12)]
     stride = [2,2,2,2,2,1] #default 1
     padding = [1,1,1,1,1,0] # default 0
     layers = []
 else:
     #decoder
-    out_channel = [512,512,512,256,128,64]
-    kernel_size = [(12,3),(11,4),(11,4),(12,4),(12,4),(12,4)]
+    out_channel = [512,512,256,128,64,1]
+    kernel_size = [(3,12),(4,11),(4,11),(4,12),(4,12),(4,12)]
     stride = [1,2,2,2,2,2] #default 1
     padding = [0,1,1,1,1,1] # default 0
     layers = []

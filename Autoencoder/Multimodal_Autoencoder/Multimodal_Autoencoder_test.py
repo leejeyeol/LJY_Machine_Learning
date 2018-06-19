@@ -41,7 +41,7 @@ parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
-parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
+parser.add_argument('--iteration', type=int, default=1, help='number of epochs to train for')
 
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
@@ -51,14 +51,14 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--net_ER', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/encoder_R_epoch_0.pth', help='Encoder Red')
-parser.add_argument('--net_EG', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/encoder_G_epoch_0.pth', help='Encoder Green')
-parser.add_argument('--net_EB', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/encoder_B_epoch_0.pth', help='Encoder Blue')
-parser.add_argument('--net_ED', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/encoder_D_epoch_0.pth', help='Encoder Depth')
-parser.add_argument('--net_DR', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/decoder_R_epoch_0.pth', help='Decoder Red')
-parser.add_argument('--net_DG', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/decoder_G_epoch_0.pth', help='Decoder Green')
-parser.add_argument('--net_DB', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/decoder_B_epoch_0.pth', help='Decoder Blue')
-parser.add_argument('--net_DD', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/fold_0/decoder_D_epoch_0.pth', help='Decoder Depth')
+parser.add_argument('--net_ER', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_R_epoch_5.pth', help='Encoder Red')
+parser.add_argument('--net_EG', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_G_epoch_5.pth', help='Encoder Green')
+parser.add_argument('--net_EB', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_B_epoch_5.pth', help='Encoder Blue')
+parser.add_argument('--net_ED', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_D_epoch_5.pth', help='Encoder Depth')
+parser.add_argument('--net_DR', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_R_epoch_5.pth', help='Decoder Red')
+parser.add_argument('--net_DG', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_G_epoch_5.pth', help='Decoder Green')
+parser.add_argument('--net_DB', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_B_epoch_5.pth', help='Decoder Blue')
+parser.add_argument('--net_DD', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_D_epoch_5.pth', help='Decoder Depth')
 
 
 # custom options
@@ -224,18 +224,27 @@ input_D = Variable(input_D)
 
 win_dict = LJY_visualize_tools.win_dict()
 line_win_dict = LJY_visualize_tools.win_dict()
-
+mean_err_R = []
+mean_err_G = []
+mean_err_B = []
+mean_err_D = []
 # training start
 print("Training Start!")
 for epoch in range(options.iteration):
     for i, (R, G, B, D, D_mask) in enumerate(dataloader, 0):
+        original_R = R
+        original_G = G
+        original_B = B
         original_D = D
         D_mask=Variable(D_mask).cuda()
         ############################
         # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
-        D = torch.zeros(D.shape)
+        R = torch.zeros(R.shape)
+        G = torch.zeros(G.shape)
+        B = torch.zeros(B.shape)
+        #D = torch.zeros(D.shape)
 
         batch_size = R.size(0)
         input_R.data.resize_(R.size()).copy_(R)
@@ -271,10 +280,16 @@ for epoch in range(options.iteration):
                  err_R.data[0], err_G.data[0], err_B.data[0], err_D.data[0]))
 
         if True:
+
             RGB_Image = torch.cat((unorm(torch.cat((R[0], G[0], B[0]), 0)),
-                                   unorm(torch.cat((output_R[0].data, output_G[0].data, output_B[0].data), 0)).cpu()),
+                                   unorm(torch.cat((output_R[0].data, output_G[0].data, output_B[0].data), 0)).cpu(),
+                                   unorm(torch.cat((original_R[0], original_G[0], original_B[0]), 0))),
                                   1)
             Depth_Image = torch.cat((unorm(D[0]), unorm(output_D[0].data).cpu(), unorm(original_D[0])), 1)
+
+            Test_Input_Image = torch.cat((unorm(R[0]), unorm(G[0]), unorm(B[0]), unorm(original_D[0])), 1)
+            Test_Output_Image = torch.cat((unorm(output_R[0].data), unorm(output_G[0].data), unorm(output_B[0].data), unorm(output_D[0].data)), 1).cpu()
+
             win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [RGB_Image, Depth_Image], ["RGB", "Depth"])
 
             line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
@@ -283,16 +298,13 @@ for epoch in range(options.iteration):
                                                                       ['lossR', 'lossG', 'lossB', 'lossD'], epoch,
                                                                       i,
                                                                       len(dataloader))
-
-    if epoch % 1 == 0:
-        torch.save(encoder_R.state_dict(), '%s/encoder_R_epoch_%d.pth' % (outf, epoch))
-        torch.save(encoder_G.state_dict(), '%s/encoder_G_epoch_%d.pth' % (outf, epoch))
-        torch.save(encoder_B.state_dict(), '%s/encoder_B_epoch_%d.pth' % (outf, epoch))
-        torch.save(encoder_D.state_dict(), '%s/encoder_D_epoch_%d.pth' % (outf, epoch))
-        torch.save(decoder_R.state_dict(), '%s/decoder_R_epoch_%d.pth' % (outf, epoch))
-        torch.save(decoder_G.state_dict(), '%s/decoder_G_epoch_%d.pth' % (outf, epoch))
-        torch.save(decoder_B.state_dict(), '%s/decoder_B_epoch_%d.pth' % (outf, epoch))
-        torch.save(decoder_D.state_dict(), '%s/decoder_D_epoch_%d.pth' % (outf, epoch))
-
+            mean_err_R.append(err_R.data.mean())
+            mean_err_G.append(err_G.data.mean())
+            mean_err_B.append(err_B.data.mean())
+            mean_err_D.append(err_D.data.mean())
+print(np.array(mean_err_R).mean())
+print(np.array(mean_err_G).mean())
+print(np.array(mean_err_B).mean())
+print(np.array(mean_err_D).mean())
 # Je Yeol. Lee \[T]/
 # Jolly Co-operation

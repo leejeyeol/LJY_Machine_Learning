@@ -27,13 +27,13 @@ parser.add_argument('--netD', default='', help="path of Discriminator networks.(
 parser.add_argument('--outf', default='./output', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=80, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=200, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nz', type=int, default=62, help='number of input channel.')
@@ -128,8 +128,7 @@ input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.image
 noise = torch.FloatTensor(options.batchSize, nz, 1, 1)
 
 label = torch.FloatTensor(options.batchSize)
-real_label = 1
-fake_label = 0
+
 
 if options.cuda:
     netD.cuda()
@@ -142,7 +141,7 @@ if options.cuda:
 
 # make to variables ====================================================================================================
 input = Variable(input)
-label = Variable(label)
+label = Variable(label,requires_grad = False)
 noise = Variable(noise)
 
 win_dict = LJY_visualize_tools.win_dict()
@@ -155,16 +154,21 @@ for epoch in range(options.iteration):
         # (1) Update D network
         ###########################
         # train with real data  ========================================================================================
+
         optimizerD.zero_grad()
 
         real_cpu = data
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
-        label.data.resize_(batch_size).fill_(real_label)
+
+        label.data.resize_(batch_size).fill_(1)
+        real_label = label.clone()
+        label.data.resize_(batch_size).fill_(0)
+        fake_label = label.clone()
 
         outputD = netD(input)
-        errD_real = criterion_D(outputD, label)
-        errD_real.backward()
+        errD_real = criterion_D(outputD, real_label)
+        #errD_real.backward()
         D_x = outputD.data.mean()   # for visualize
 
         # generate noise    ============================================================================================
@@ -173,34 +177,31 @@ for epoch in range(options.iteration):
 
         #train with fake data   ========================================================================================
         fake = netG(noise)
-        label.data.fill_(fake_label)
-
         outputD = netD(fake.detach())
-        errD_fake = criterion_D(outputD, label)
-        errD_fake.backward()
+        errD_fake = criterion_D(outputD, fake_label)
+        #errD_fake.backward()
         D_G_z1 = outputD.data.mean()
 
-        errD = errD_real + errD_fake
+        errD = errD_fake+errD_real
+        errD.backward()
         optimizerD.step()
 
         ############################
         # (2) Update G network and Q network
         ###########################
         optimizerG.zero_grad()
-        label.data.fill_(real_label)  # fake labels are real for generator cost
 
         #fake = Variable(fake.data, requires_grad = True)
         outputD = netD(fake)
-        errG = criterion_G(outputD, label)
+        errG = criterion_G(outputD, real_label)
         errG.backward()
         D_G_z2 = outputD.data.mean()
-
         optimizerG.step()
 
         #visualize
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
+        print('[%d/%d][%d/%d] Loss_D: %.4f(1:%.4f 2:%.4f) Loss_G: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
               % (epoch, options.iteration, i, len(dataloader),
-                 errD.data[0], errG.data[0],  D_x, D_G_z1, D_G_z2))
+                 errD.data[0],errD_real.mean(),errD_fake.mean(), errG.data[0],  D_x, D_G_z1, D_G_z2))
         if True:
             testImage = fake.data[0]
             win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["MNIST GAN"])

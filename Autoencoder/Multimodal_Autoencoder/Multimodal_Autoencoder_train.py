@@ -44,13 +44,14 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--iteration', type=int, default=1000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=3, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=2, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=[608, 96], help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
+'''
 parser.add_argument('--net_ER', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/encoder_R_epoch_0.pth', help='Encoder Red')
 parser.add_argument('--net_EG', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/encoder_G_epoch_0.pth', help='Encoder Green')
 parser.add_argument('--net_EB', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/encoder_B_epoch_0.pth', help='Encoder Blue')
@@ -59,8 +60,8 @@ parser.add_argument('--net_DR', default='/home/leejeyeol/Git/LJY_Machine_Learnin
 parser.add_argument('--net_DG', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/decoder_G_epoch_0.pth', help='Decoder Green')
 parser.add_argument('--net_DB', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/decoder_B_epoch_0.pth', help='Decoder Blue')
 parser.add_argument('--net_DD', default='/home/leejeyeol/Git/LJY_Machine_Learning/Autoencoder/Multimodal_Autoencoder/pretrained_model/decoder_D_epoch_0.pth', help='Decoder Depth')
-
 '''
+
 parser.add_argument('--net_ER', default='', help='Encoder Red')
 parser.add_argument('--net_EG', default='', help='Encoder Green')
 parser.add_argument('--net_EB', default='', help='Encoder Blue')
@@ -69,7 +70,7 @@ parser.add_argument('--net_DR', default='', help='Decoder Red')
 parser.add_argument('--net_DG', default='', help='Decoder Green')
 parser.add_argument('--net_DB', default='', help='Decoder Blue')
 parser.add_argument('--net_DD', default='', help='Decoder Depth')
-'''
+
 
 
 
@@ -206,7 +207,6 @@ criterion_D = RMSEloss()
 
 
 # setup optimizer   ====================================================================================================
-# todo add betas=(0.5, 0.999),
 optimizer = optim.Adam(list(encoder_R.parameters()) + list(decoder_R.parameters()) +
                        list(encoder_G.parameters()) + list(decoder_G.parameters()) +
                        list(encoder_B.parameters()) + list(decoder_B.parameters()) +
@@ -247,11 +247,23 @@ print("Training Start!")
 for epoch in range(options.iteration):
     for i, (R, G, B, D, D_mask) in enumerate(dataloader, 0):
         D_mask=Variable(D_mask).cuda()
+
+        original_R = R
+        original_R = Variable(original_R).cuda()
+        original_G = G
+        original_G = Variable(original_G).cuda()
+        original_B = B
+        original_B = Variable(original_B).cuda()
+
         original_D = D
         original_D = Variable(original_D).cuda()
 
-        if random.random() < 1 / 2:
-            D = torch.zeros(D.shape)
+        if random.random() < 1 / 3:
+            R = torch.zeros(R.shape)
+            G = torch.zeros(G.shape)
+            B = torch.zeros(B.shape)
+
+            #D = torch.zeros(D.shape)
 
         ############################
         # (1) Update D network
@@ -286,13 +298,13 @@ for epoch in range(options.iteration):
         output_B = decoder_B(z)
         output_D = decoder_D(z)
 
-        err_R = criterion(output_R, input_R)
+        err_R = criterion(output_R, original_R)
         err_R.backward(retain_graph=True)
 
-        err_G = criterion(output_G, input_G)
+        err_G = criterion(output_G, original_G)
         err_G.backward(retain_graph=True)
 
-        err_B = criterion(output_B, input_B)
+        err_B = criterion(output_B, original_B)
         err_B.backward(retain_graph=True)
 
         err_D = criterion(output_D, original_D)
@@ -319,7 +331,7 @@ for epoch in range(options.iteration):
                                                                       i,
                                                                       len(dataloader))
 
-    if epoch % 1 == 0:
+    if True:
         torch.save(encoder_R.state_dict(), '%s/encoder_R_epoch_%d.pth' % (outf, epoch))
         torch.save(encoder_G.state_dict(), '%s/encoder_G_epoch_%d.pth' % (outf, epoch))
         torch.save(encoder_B.state_dict(), '%s/encoder_B_epoch_%d.pth' % (outf, epoch))
