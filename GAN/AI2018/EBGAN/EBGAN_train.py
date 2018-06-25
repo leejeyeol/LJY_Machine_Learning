@@ -95,7 +95,7 @@ margin = int(options.margin)
 
 transform = transforms.Compose([
     transforms.CenterCrop(150),
-    transforms.Scale(64),
+    #transforms.Scale(64),
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
