@@ -40,7 +40,7 @@ parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--dataset', default='CelebA', help='what is dataset?')
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
-parser.add_argument('--Type', default='test', help='train, validation, test')
+parser.add_argument('--Type', default='validation', help='train, validation, test')
 parser.add_argument('--fold', type=int, default=None, help = 'fold number')
 parser.add_argument('--fold_dataroot', default='',help='Proprocessing/fold_divider.py')
 
@@ -70,7 +70,7 @@ parser.add_argument('--num_fake_data', type=int, default=50000, help='number of 
 
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=200, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=1, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=64, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=3, help='number of input channel.')
@@ -510,8 +510,12 @@ if options.Type == 'train':
             optimizer.step()
             print('[%d/%d] err : %f label mean%f' % (i, len(dataloader), err.data, label.data.float().mean()))
             if True:
-                testImage = torch.cat((unorm(input.data[0]), unorm(input.data[1])), 2)
-                win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Ensemble%s" % dataset])
+                testImage = torch.cat((input.data.cpu().view(input.shape[1], input.shape[2], input.shape[3]),
+                                      unorm(input.data.cpu().view(input.shape[1], input.shape[2], input.shape[3]))),2)
+                makeimg(testImage).save(os.path.join(options.outf, 'visualize', '%05d.png' % (i)))
+
+                #testImage = torch.cat((unorm(input.data[0]), unorm(input.data[1])), 2)
+                #win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Ensemble%s" % dataset])
 
 
         torch.save(classifier.state_dict(), '%s/classifier_%d.pth' % (options.outf, epoch))
@@ -615,24 +619,34 @@ elif options.Type == 'test':
         output = classifier(input, pretrained_D)
         save_data.append(str(float(output)))
         _save_data.append(save_data)
-        testImage = unorm(input.data.cpu().view(input.shape[1], input.shape[2], input.shape[3]))
+        testImage = torch.cat(input.data.cpu().view(input.shape[1], input.shape[2], input.shape[3], unorm(input.data.cpu().view(input.shape[1], input.shape[2], input.shape[3]))),1)
         print('%f'%output.data[0].cpu().numpy()[0])
+        '''
         if (output.data[0] >= 1/2).cpu().numpy():  # Postive
             makeimg(testImage).save(os.path.join(options.outf, 'fake_%05d.png') % (i))
         else:  # False
             makeimg(testImage).save(os.path.join(options.outf, 'real_%05d.png') % (i))
+        '''
 
         # Evaluation
         if (i <= 200):  # label is Positive
             if (output.data[0] >= 1 / 2).cpu().numpy():  # decision is Positive
                 TP += 1
+                makeimg(testImage).save(os.path.join(options.outf,'TP', '%05d.png' % (i)))
+
             else:  # decision is Negative
                 FN += 1
+                makeimg(testImage).save(os.path.join(options.outf,'FN', '%05d.png' % (i)))
+
         else:  # label is Negative
             if (output.data[0] <= 1 / 2).cpu().numpy():  # decision is Positive
                 TN += 1
+                makeimg(testImage).save(os.path.join(options.outf,'TN', '%05d.png' % (i)))
+
             else:  # decision is Negative
                 FP += 1
+                makeimg(testImage).save(os.path.join(options.outf,'FP', '%05d.png' % (i)))
+
 
     '''
     with open('output.csv', 'a') as outcsv:
