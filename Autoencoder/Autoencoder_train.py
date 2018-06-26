@@ -14,6 +14,7 @@ from torch.autograd import Variable
 
 
 import Autoencoder.VGG16_lossnet as vgg
+from torchvision import models
 
 import Autoencoder.Autoencoder_model as model
 # import custom package
@@ -92,7 +93,7 @@ if torch.cuda.is_available() and not options.cuda:
 # MNIST call and load   ================================================================================================
 
 
-
+'''
 dataloader = torch.utils.data.DataLoader(
     dset.MNIST('../MNIST', train=True, download=True,
                    transform=transforms.Compose([
@@ -104,11 +105,12 @@ dataloader = torch.utils.data.DataLoader(
 dataloader = torch.utils.data.DataLoader(
     dset.CIFAR10('../CIFAR10', train=True, download=True,
                    transform=transforms.Compose([
+                       transforms.Scale(224),
                        transforms.ToTensor(),
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
     batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-'''
+
 # normalize to -1~1
 ngpu = int(options.ngpu)
 nz = int(options.nz)
@@ -135,6 +137,9 @@ print(decoder)
 
 loss_net = vgg.VGG16()
 print(loss_net)
+
+vggnet = models.vgg16(pretrained=True)
+print(vggnet)
 
 #=======================================================================================================================
 # Training
@@ -188,10 +193,11 @@ for epoch in range(options.iteration):
 
         optimizerD.zero_grad()
 
-
         real_cpu, _ = data
         batch_size = real_cpu.size(0)
         input.data.resize_(real_cpu.size()).copy_(real_cpu)
+
+        ddddd=vggnet(input)
 
         z= encoder(input)
         x_recon= decoder(z)
