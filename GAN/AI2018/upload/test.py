@@ -113,17 +113,18 @@ class VGG16(torch.nn.Module):
         return output
 
 mission1_torso_lq = VGG16()
-mission1_torso_lq.load_state_dict(torch.load(saved_data[0]))
+mission1_torso_lq.load_state_dict(torch.load(saved_data[1]))
 mission1_torso_lq.cuda()
-'''
+
 mission1_torso_hq = VGG16()
+mission1_torso_hq.load_state_dict(torch.load(saved_data[0]))
 mission1_torso_hq.cuda()
 
 
 mission2_face = VGG16()
-#mission2_face.load_state_dict(torch.load(saved_data[2]))
+mission2_face.load_state_dict(torch.load(saved_data[2]))
 mission2_face.cuda()
-'''
+
 # container generate
 input = torch.FloatTensor(batch_size, 3, 224, 224)
 input = input.cuda()
@@ -244,12 +245,18 @@ def align_face_image(_img, _eyes_in_img):
     alignment_res = get_alignment_status(_img, _eyes_in_img)
     rows, cols, chs = _img.shape
 
-    if Alignment.NOT_ALIGNED != alignment_res:
-        if Alignment.TIGHT == alignment_res or rows < kPathSize[1]:
+    # if Alignment.NOT_ALIGNED != alignment_res:
+    #     if Alignment.TIGHT == alignment_res or rows < kPathSize[1]:
+    #         img_aligned = cv2.resize(_img, (kPathSize[0], kPathSize[0]))
+    #     else:
+    #         img_aligned = cv2.resize(_img, (kPathSize[1], kPathSize[1]))
+    #
+    #     return img_aligned, alignment_res
+    if Alignment.LOOSE == alignment_res:
+        if rows < kPathSize[1]:
             img_aligned = cv2.resize(_img, (kPathSize[0], kPathSize[0]))
         else:
             img_aligned = cv2.resize(_img, (kPathSize[1], kPathSize[1]))
-
         return img_aligned, alignment_res
 
     # =========================================================================
@@ -281,7 +288,7 @@ def align_face_image(_img, _eyes_in_img):
 def save_result_to_txt(_result_dict_list, _file_path):
     with open(_file_path, "w") as res_file:
         for cur_dict in _result_dict_list:
-            res_file.writelines(cur_dict['problem_no'] + ",%1.6f" % cur_dict['prob'])
+            res_file.writelines(cur_dict['problem_no'] + ",%.4f\n" % cur_dict['prob'])
 
 
 def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
@@ -310,27 +317,33 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
             continue
 
         # image alignment
-        left_eye = [preds[36:42, 0].mean(), preds[36:42, 1].mean()]
-        right_eye = [preds[42:48, 0].mean(), preds[42:48, 1].mean()]
+        left_eye = [preds[0][36:42, 0].mean(), preds[0][36:42, 1].mean()]
+        right_eye = [preds[0][42:48, 0].mean(), preds[0][42:48, 1].mean()]
         img_aligned, alignment_type = align_face_image(img, [left_eye, right_eye])
 
         if alignment_type == Alignment.TIGHT:
             print('tight')
             cur_result['prob'] = 1.0
             # todo Implement tight
+
+
         elif alignment_type == Alignment.LOOSE:
-            print('loose')
-            cur_result['prob'] = 1.0
+            img_aligned = Image.fromarray(img_aligned)
+            img_tensor = transform(img_aligned)
+            img_tensor.view(1, img_tensor.shape[0], img_tensor.shape[1], img_tensor.shape[2])
+            input.data.copy_(img_tensor)
 
-            img_tensor = transform(img)
+            if img_aligned.size[0] < kPathSize[1]:
+                print('loose')
 
-            input.data.resize_(img_tensor.size()).copy_(img_tensor)
-            output = mission1_torso_lq(input)
+                output = mission1_torso_lq(input)
+
+            else:
+                output = mission1_torso_hq(input)
+
             output = output.cpu().view(output.shape[0])
             cur_result['prob'] = output.data[0]
 
-            # if  shape is 64x64 = > LQ
-            # elif shape is 224x224 => HQ
 
         prediction_results.append(cur_result)
 
@@ -355,20 +368,27 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
         preds_allfaces = fa.get_landmarks(img, all_faces=True)
 
         max_prob = 0.0
-        for preds_face in preds_allfaces:
-            # align per face
-            left_eye = [preds_face[36:42, 0].mean(), preds_face[36:42, 1].mean()]
-            right_eye = [preds_face[42:48, 0].mean(), preds_face[42:48, 1].mean()]
-            img_aligned, alignment_type = align_loose_image(img, [left_eye, right_eye])
+        if preds_allfaces is None:
+            prediction_results.append(cur_result)
+            continue
+        else:
+            for preds_face in preds_allfaces:
+                # align per face
+                left_eye = [preds_face[36:42, 0].mean(), preds_face[36:42, 1].mean()]
+                right_eye = [preds_face[42:48, 0].mean(), preds_face[42:48, 1].mean()]
+                img_aligned, alignment_type = align_loose_image(img, [left_eye, right_eye])
 
-            # todo : save image for test
-            Image.fromarray(img_aligned).save('%s/%06d.png' % (kSavePath, i))
-            i += 1
-            # todo : or feed to vgg16
-            # todo : get result
-            cur_prob = 0.4  # temporal value
-            if max_prob < cur_prob:
-                max_prob = cur_prob
+                img_aligned = Image.fromarray(img_aligned)
+                img_tensor = transform(img_aligned)
+                img_tensor.view(1, img_tensor.shape[0], img_tensor.shape[1], img_tensor.shape[2])
+                input.data.copy_(img_tensor)
+
+                output = mission2_face(input)
+
+                output = output.cpu().view(output.shape[0])
+                cur_prob = output.data[0]
+                if max_prob < cur_prob:
+                    max_prob = cur_prob
 
         cur_result['prob'] = max_prob
         prediction_results.append(cur_result)
