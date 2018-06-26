@@ -139,6 +139,14 @@ def align_tight_face_image(_img, _eyes_in_img):
                              pad_bottom), Alignment.TIGHT
 
 
+def align_loose_image(_img, _eyes_in_img, _size=kPathSize[1]):
+    rows, _, _ = _img.shape
+    aligned_eyes = [_size * kEyeLooseL, _size * kEyeLooseR]
+    pad_left, pad_top, pad_right, pad_bottom = get_padding(_eyes_in_img, aligned_eyes, rows, _size)
+    return get_aligned_image(_img, _eyes_in_img, aligned_eyes, _size, pad_left, pad_top, pad_right,
+                             pad_bottom), Alignment.LOOSE
+
+
 def align_face_image(_img, _eyes_in_img):
     """
         Get transformed image on input(_img) with replicated padding.
@@ -205,7 +213,8 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
-        cur_result = {'problem_no': file_name, 'prob': 1.0}  # <= default value is one to handle landmark missing
+        problem_number = os.path.basename(file_name).split('.')[0]
+        cur_result = {'problem_no': problem_number, 'prob': 1.0}  # <= default value is one to handle landmark missing
 
         # landmark prediction
         preds = _face_landmark_detector.get_landmarks(input)
@@ -243,15 +252,32 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
-        cur_result = {'problem_no': file_name, 'prob': 1.0}  # <= default value is one to handle landmark missing
+        if img.shape[2] == 4:
+            img = color.rgba2rgb(img)
 
-        # do works
-        # landmark prediction
-        preds = _face_landmark_detector.get_landmarks(input)
-        if preds is None:
-            prediction_results.append(cur_result)
-            continue
+        problem_number = os.path.basename(file_name).split('.')[0]
+        cur_result = {'problem_no': problem_number, 'prob': 1.0}  # <= default value is one to handle landmark missing
 
+        print(problem_number)
+        preds_allfaces = fa.get_landmarks(img, all_faces=True)
+
+        max_prob = 0.0
+        for preds_face in preds_allfaces:
+            # align per face
+            left_eye = [preds_face[36:42, 0].mean(), preds_face[36:42, 1].mean()]
+            right_eye = [preds_face[42:48, 0].mean(), preds_face[42:48, 1].mean()]
+            img_aligned, alignment_type = align_loose_image(img, [left_eye, right_eye])
+
+            # todo : save image for test
+            Image.fromarray(img_aligned).save('%s/%06d.png' % (kSavePath, i))
+            i += 1
+            # todo : or feed to vgg16
+            # todo : get result
+            cur_prob = 0.4  # temporal value
+            if max_prob < cur_prob:
+                max_prob = cur_prob
+
+        cur_result['prob'] = max_prob
         prediction_results.append(cur_result)
 
     # save result
