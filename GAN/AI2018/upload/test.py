@@ -266,8 +266,8 @@ def align_face_image(_img, _eyes_in_img):
         aligned_eyes = [patch_size * kEyeLooseL, patch_size * kEyeLooseR]
         pad_left, pad_top, pad_right, pad_bottom = get_padding(_eyes_in_img, aligned_eyes, rows, patch_size)
         allowable_padding_size = kAllowablePaddingRatio * patch_size
-        if pad_left > allowable_padding_size or pad_top > allowable_padding_size \
-                or pad_right > allowable_padding_size or pad_bottom > allowable_padding_size:
+
+        if patch_size == kPathSize[-1] and (pad_left > allowable_padding_size or pad_top > allowable_padding_size or pad_right > allowable_padding_size or pad_bottom > allowable_padding_size):
             continue
 
         return get_aligned_image(_img, _eyes_in_img, aligned_eyes, patch_size, pad_left, pad_top, pad_right, pad_bottom), Alignment.LOOSE
@@ -304,7 +304,7 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
         cur_result = {'problem_no': problem_number, 'prob': 1.0}  # <= default value is one to handle landmark missing
 
         # landmark prediction
-        preds = _face_landmark_detector.get_landmarks(input)
+        preds = _face_landmark_detector.get_landmarks(img)
         if preds is None:
             prediction_results.append(cur_result)
             continue
@@ -347,7 +347,6 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
-        img.convert('RGB')
 
         problem_number = os.path.basename(file_name).split('.')[0]
         cur_result = {'problem_no': problem_number, 'prob': 1.0}  # <= default value is one to handle landmark missing
