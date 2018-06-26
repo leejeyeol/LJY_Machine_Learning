@@ -34,6 +34,7 @@ kEyeTightL = np.float32([20/64, 33/64])
 kEyeTightR = np.float32([42/64, 33/64])
 kEyeTightDistance = LA.norm(kEyeTightR - kEyeTightL)
 
+
 kAlignMargin = 5/64
 kAllowablePaddingRatio = 0.05
 
@@ -255,6 +256,7 @@ kTestPath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_test'
 if __name__ == "__main__":
 
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, enable_cuda=True, flip_input=True)
+
 
     do_mission_1(kTestPath, kTestPath, fa)
     do_mission_2(kTestPath, kTestPath, fa)

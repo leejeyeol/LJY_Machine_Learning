@@ -16,8 +16,35 @@ from PIL import Image
 
 kTestPath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_faceswap/original'
 kSavePath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_faceswap/aligned'
+
+tttt ='/home/leejeyeol/Downloads/BEGAN_generated_sample'
 if __name__ == "__main__":
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, enable_cuda=True, flip_input=True)
+
+    tlist = glob.glob(tttt+'/*.*')
+
+    left_eyes = []
+    right_eyes = []
+    for i,t in enumerate(tlist):
+        img = io.imread(t)
+        if img.shape[2] == 4:
+            img = color.rgba2rgb(img)
+        preds = fa.get_landmarks(img)
+        left_eye = [preds[0][36:42, 0].mean(), preds[0][36:42, 1].mean()]
+        right_eye = [preds[0][42:48, 0].mean(), preds[0][42:48, 1].mean()]
+        left_eyes.append(left_eye)
+        right_eyes.append(right_eye)
+        print(i)
+        if i == 50:
+            break
+
+    print(12313)
+
+
+
+
+
+'''
 
     file_name_list = glob.glob(kTestPath+'/*.*')
     i = 0
@@ -52,4 +79,4 @@ if __name__ == "__main__":
             else:
                 result = 0
         print('%s is %f'%(os.path.basename(file_name), result))
-
+'''

@@ -11,6 +11,16 @@ from numpy import linalg as LA
 import enum
 from skimage import io
 import face_alignment
+import torch
+import torchvision.transforms as transforms
+import torch.backends.cudnn as cudnn
+import torchvision.models as models
+import torch.nn as nn
+from torch.autograd import Variable
+
+from PIL import Image
+batch_size= 1
+
 
 class Alignment(enum.Enum):
     TIGHT = 0
@@ -47,9 +57,77 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, help='directory containing input test data')
 parser.add_argument('--result_dir', type=str, help='save path')
 parser.add_argument('--model_dir', type=str, default='models', help='save path')
+
 options = parser.parse_args()
 print(options)
 
+saved_data = sorted(glob.glob(os.path.join(options.model_dir,'*.pth')))
+
+# save directory make   ================================================================================================
+try:
+    os.makedirs(options.result_dir)
+except OSError:
+    pass
+
+torch.backends.cudnn.benchmark = True
+cudnn.benchmark = True
+
+transform = transforms.Compose([
+    transforms.Scale(224),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                         std=[0.229, 0.224, 0.225])])
+
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+    elif classname.find('Linear')!=-1:
+        m.weight.data.normal_(0.0, 0.02)
+        m.bias.data.fill_(0)
+
+class VGG16(torch.nn.Module):
+    def __init__(self):
+        super(VGG16, self).__init__()
+        vgg = models.vgg16(pretrained=True)
+        vgg_pretrained_features = vgg.features
+        vgg_classifier = vgg.classifier
+        self.vgg_feature = torch.nn.Sequential()
+        self.classifier = torch.nn.Sequential()
+
+        for x in range(31):
+            self.vgg_feature.add_module(str(x), vgg_pretrained_features[x])
+        for x in range(6):
+            self.classifier.add_module(str(x), vgg_classifier[x])
+        self.classifier.add_module(str(6), nn.Linear(4096, 1, bias=True))
+        self.classifier.add_module(str(7), nn.Sigmoid())
+
+        self.classifier.apply(weights_init)
+    def forward(self, X):
+        h = self.vgg_feature(X)
+        h = h.view(h.size(0), -1)
+        output = self.classifier(h)
+        return output
+
+mission1_torso_lq = VGG16()
+mission1_torso_hq.load_state_dict(torch.load(saved_data[0]))
+mission1_torso_lq.cuda()
+'''
+mission1_torso_hq = VGG16()
+mission1_torso_hq.cuda()
+
+
+mission2_face = VGG16()
+#mission1_torso_hq.load_state_dict(torch.load(saved_data[2]))
+mission2_face.cuda()
+'''
+# container generate
+input = torch.FloatTensor(batch_size, 3, 224, 224)
+input = input.cuda()
+input = Variable(input,requires_grad = False)
 
 def get_alignment_status(_img, _eyes_in_img):
 
@@ -217,7 +295,8 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
     # model_face = ... os.path.join(options.model_dir, 'mission1_face.pth)
 
     # file load
-    file_name_list = glob.glob(_data_dir + '/1_*.*')
+    file_name_list = glob.glob(os.path.join(_data_dir, '1_*.*'))
+    file_name_list = sorted(file_name_list)
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
@@ -242,7 +321,14 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
         elif alignment_type == Alignment.LOOSE:
             print('loose')
             cur_result['prob'] = 1.0
-            # todo Implement loose
+
+            img_tensor = transform(img)
+
+            input.data.resize_(img_tensor.size()).copy_(img_tensor)
+            output = mission1_torso_lq(input)
+            output = output.cpu().view(output.shape[0])
+            cur_result['prob'] = output.data[0]
+
             # if  shape is 64x64 = > LQ
             # elif shape is 224x224 => HQ
 
@@ -257,11 +343,11 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
     # MISSION 2
     # =========================================================================
     file_name_list = glob.glob(_data_dir + '/2_*.*')
+    file_name_list = sorted(file_name_list)
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
-        if img.shape[2] == 4:
-            img = color.rgba2rgb(img)
+        img.convert('RGB')
 
         problem_number = os.path.basename(file_name).split('.')[0]
         cur_result = {'problem_no': problem_number, 'prob': 1.0}  # <= default value is one to handle landmark missing
