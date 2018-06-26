@@ -90,7 +90,7 @@ nc = int(options.nc)
 
 transform = transforms.Compose([
     transforms.CenterCrop(150),
-    transforms.Scale(64),
+    #transforms.Scale(64),
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
@@ -194,6 +194,7 @@ for epoch in range(options.iteration):
             optimizerD.step()
             for p in netD.parameters():
                 p.data.clamp_(-0.01, 0.01)
+            visual_W_Distance = -(errD.data.mean())
 
         ############################
         # (2) Update G network and Q network
@@ -209,7 +210,7 @@ for epoch in range(options.iteration):
         optimizerG.step()
 
         #visualize
-        print('[%d/%d][%d/%d] Loss_D: %.4f Loss_G: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
+        print('[%d/%d][%d/%d] Wasserstein_Distance: %.4f Loss_G: %.4f     D(x): %.4f D(G(z)): %.4f | %.4f'
               % (epoch, options.iteration, i, len(dataloader),
                  errD.data.mean(), errG.data.mean(),  visual_D_real, visual_D_fake, visual_D_fake_2))
 
@@ -217,9 +218,9 @@ for epoch in range(options.iteration):
             testImage = torch.cat((unorm(input.data[0]), unorm(fake.data[0])), 2)
             win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["WGAN_%s" % dataset])
             line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
-                                                                      [errD.data.mean(), errG.data.mean(), visual_D_real,
+                                                                      [-errD.data.mean(), errG.data.mean(), visual_D_real,
                                                                        visual_D_fake],
-                                                                      ['lossD', 'lossG', 'real is?', 'fake is?'], epoch,i,
+                                                                      ['Wasserstein_D', 'lossG', 'real is?', 'fake is?'], epoch,i,
                                                                       len(dataloader))
 
     # do checkpointing

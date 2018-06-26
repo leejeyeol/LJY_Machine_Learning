@@ -89,7 +89,7 @@ nc = int(options.nc)
 
 transform = transforms.Compose([
     transforms.CenterCrop(150),
-    transforms.Scale(64),
+    #transforms.Scale(64),
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 ])
@@ -185,7 +185,7 @@ for epoch in range(options.iteration):
         outputD_fake = netD(fake.detach())
         visual_D_fake = outputD_fake.data.mean()
 
-        errD = 0.5 * torch.mean((outputD_real-real_label)**2) + torch.mean((outputD_fake-fake_label)**2)
+        errD = 0.5 * (torch.mean((outputD_real-real_label)**2) + torch.mean((outputD_fake-fake_label)**2))
         errD.backward()
         optimizerD.step()
 
