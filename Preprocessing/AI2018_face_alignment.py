@@ -8,6 +8,8 @@ import os
 from numpy.linalg import inv
 from numpy import linalg as LA
 import enum
+from skimage import io
+import face_alignment
 
 class Alignment(enum.Enum):
     TIGHT = 0
@@ -117,6 +119,14 @@ def get_aligned_image(_img, _eyes_in_img, _aligned_eyes, _target_size, pad_left,
     return img_aligned
 
 
+def align_tight_face_image(_img, _eyes_in_img):
+    rows, _, _ = _img.shape
+    aligned_eyes = [kPathSize[0] * kEyeTightL, kPathSize[0] * kEyeTightR]
+    pad_left, pad_top, pad_right, pad_bottom = get_padding(_eyes_in_img, aligned_eyes, rows, kPathSize[0])
+    return get_aligned_image(_img, _eyes_in_img, aligned_eyes, kPathSize[0], pad_left, pad_top, pad_right,
+                             pad_bottom), Alignment.TIGHT
+
+
 def align_face_image(_img, _eyes_in_img):
     """
         Get transformed image on input(_img) with replicated padding.
@@ -169,19 +179,36 @@ def align_face_image(_img, _eyes_in_img):
     return get_aligned_image(_img, _eyes_in_img, aligned_eyes, kPathSize[0], pad_left, pad_top, pad_right, pad_bottom), Alignment.TIGHT
 
 
-kTestPath = 'test'
+kTestPath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_test'
 if __name__ == "__main__":
+    fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, enable_cuda=True, flip_input=True)
 
-    file_name_list = [os.path.basename(cur_path).replace('.npy', '') for cur_path in glob.glob(os.path.join(kTestPath, '*.npy'))]
-
+    file_name_list = glob.glob(kTestPath+'/*.*')
     for file_name in file_name_list:
-        img = cv2.imread(os.path.join(kTestPath, file_name + '.jpg'))
-        preds = np.load(os.path.join(kTestPath, file_name + '.npy'))
+        img = io.imread(file_name)
+        if int(os.path.basename(file_name).split('_')) == 1:
+            preds = fa.get_landmarks(input)
+            left_eye = [preds[36:42, 0].mean(), preds[36:42, 1].mean()]
+            right_eye = [preds[42:48, 0].mean(), preds[42:48, 1].mean()]
+            img_aligned, alignment_type = align_face_image(img, [left_eye, right_eye])
 
-        left_eye = [preds[36:42, 0].mean(), preds[36:42, 1].mean()]
-        right_eye = [preds[42:48, 0].mean(), preds[42:48, 1].mean()]
 
-        img_aligned, _ = align_face_image(img, [left_eye, right_eye])
+            if alignment_type == Alignment.TIGHT :
+                print('tight')
+                # todo Implement tight
+            elif alignment_type == Alignment.LOOSE :
+                print('loose')
+                # todo Implement loose
+                #if  shape is 64x64 = > LQ
+                # elif shape is 224x224 => HQ
+
+
+
+        elif int(os.path.basename(file_name).split('_')) == 2:
+            preds = fa.get_landmarks(input)
+            left_eye = [preds[36:42, 0].mean(), preds[36:42, 1].mean()]
+            right_eye = [preds[42:48, 0].mean(), preds[42:48, 1].mean()]
+            img_aligned, _ = align_face_image(img, [left_eye, right_eye])
 
         # # visualization
         # plt.subplot(121), plt.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB)), plt.title('Input'), plt.plot(left_eye[0], left_eye[1], marker='o', markersize=3, color="red"), plt.plot(right_eye[0], right_eye[1], marker='o', markersize=3, color="red")

@@ -34,7 +34,7 @@ parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Dat
 parser.add_argument('--netG', default='', help="path of Generator networks.(to continue training)")
 parser.add_argument('--netD', default='', help="path of Discriminator networks.(to continue training)")
 parser.add_argument('--outf', default='./pretrained_model', help="folder to output images and model checkpoints")
-parser.add_argument('--net_vgg', default='./pretrained_model/vgg_0.pth', help="path of vgg classifier")
+parser.add_argument('--net_vgg', default='./pretrained_model/vgg_1.pth', help="path of vgg classifier")
 
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -143,8 +143,8 @@ class Dataloader(torch.utils.data.Dataset):
         if label == 0 :
             img = self.transform_crop(img)
         else:
-            img= self.transform(img)
-            #img = self.transform_crop(img)
+            #img= self.transform(img)
+            img = self.transform_crop(img)
 
 
         return img, label
@@ -166,7 +166,7 @@ transform = transforms.Compose([
 makeimg = transforms.ToPILImage()
 unorm = LJY_visualize_tools.UnNormalize(mean=[0.485, 0.456, 0.406],
                          std=[0.229, 0.224, 0.225])
-
+'''
 dataloader = torch.utils.data.DataLoader(Dataloader(options.dataroot,[options.DC_G_dataroot,
                                                                       options.W_G_dataroot,
                                                                       options.LS_G_dataroot,
@@ -178,7 +178,7 @@ dataloader = torch.utils.data.DataLoader(Dataloader(options.dataroot,[options.DC
 dataloader = torch.utils.data.DataLoader(Dataloader(options.dataroot,[options.test_dataroot], transform_crop,transform),
                                          batch_size=batch_size, shuffle=True, num_workers=options.workers,
                                          drop_last=False)
-'''
+
 #=======================================================================================================================
 # Models
 #=======================================================================================================================
