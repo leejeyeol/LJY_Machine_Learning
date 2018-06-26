@@ -5,6 +5,7 @@ import numpy as np
 import numpy.matlib
 import glob
 import os
+import argparse
 from numpy.linalg import inv
 from numpy import linalg as LA
 import enum
@@ -38,6 +39,15 @@ kAlignMargin = 5/64
 kAllowablePaddingRatio = 0.05
 
 kResultFilePostfix = 'K-CYL2_김태훈'
+
+# ======================================================================================================================
+# Options
+# ======================================================================================================================
+parser = argparse.ArgumentParser()
+parser.add_argument('--data_dir', type=str, help='directory containing input test data')
+parser.add_argument('--result_dir', type=str, help='save path')
+options = parser.parse_args()
+print(options)
 
 
 def get_alignment_status(_img, _eyes_in_img):
@@ -191,14 +201,14 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
     # =========================================================================
     # MISSION 1
     # =========================================================================
-    file_name_list = glob.glob(kTestPath + '/1_*.*')
+    file_name_list = glob.glob(_data_dir + '/1_*.*')
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
         cur_result = {'problem_no': file_name, 'prob': 1.0}  # <= default value is one to handle landmark missing
 
         # landmark prediction
-        preds = fa.get_landmarks(input)
+        preds = _face_landmark_detector.get_landmarks(input)
         if preds is None:
             prediction_results.append(cur_result)
             continue
@@ -229,13 +239,18 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
     # =========================================================================
     # MISSION 2
     # =========================================================================
-    file_name_list = glob.glob(kTestPath + '/2_*.*')
+    file_name_list = glob.glob(_data_dir + '/2_*.*')
     prediction_results = []
     for file_name in file_name_list:
         img = io.imread(file_name)
         cur_result = {'problem_no': file_name, 'prob': 1.0}  # <= default value is one to handle landmark missing
 
         # do works
+        # landmark prediction
+        preds = _face_landmark_detector.get_landmarks(input)
+        if preds is None:
+            prediction_results.append(cur_result)
+            continue
 
         prediction_results.append(cur_result)
 
@@ -243,13 +258,16 @@ def do_mission_2(_data_dir, _res_dir, _face_landmark_detector):
     save_result_to_txt(prediction_results, os.path.join(_res_dir, 'mission2_%s.txt' % kResultFilePostfix))
 
 
-kTestPath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_test'
 if __name__ == "__main__":
 
     fa = face_alignment.FaceAlignment(face_alignment.LandmarksType._2D, enable_cuda=True, flip_input=True)
 
-    do_mission_1(kTestPath, kTestPath, fa)
-    do_mission_2(kTestPath, kTestPath, fa)
+    do_mission_1(options.data_dir, options.result_dir, fa)
+    do_mission_2(options.data_dir, options.result_dir, fa)
+
+# ()()
+# ('') HAANJU & YEOLJERRY
+
 
 
 
