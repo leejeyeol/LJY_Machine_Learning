@@ -129,6 +129,14 @@ def align_tight_face_image(_img, _eyes_in_img):
                              pad_bottom), Alignment.TIGHT
 
 
+def align_loose_image(_img, _eyes_in_img, _size=kPathSize[1]):
+    rows, _, _ = _img.shape
+    aligned_eyes = [_size * kEyeLooseL, _size * kEyeLooseR]
+    pad_left, pad_top, pad_right, pad_bottom = get_padding(_eyes_in_img, aligned_eyes, rows, _size)
+    return get_aligned_image(_img, _eyes_in_img, aligned_eyes, _size, pad_left, pad_top, pad_right,
+                             pad_bottom), Alignment.LOOSE
+
+
 def align_face_image(_img, _eyes_in_img):
     """
         Get transformed image on input(_img) with replicated padding.

@@ -46,6 +46,7 @@ kResultFilePostfix = 'K-CYL2_김태훈'
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_dir', type=str, help='directory containing input test data')
 parser.add_argument('--result_dir', type=str, help='save path')
+parser.add_argument('--model_dir', type=str, default='models', help='save path')
 options = parser.parse_args()
 print(options)
 
@@ -209,6 +210,13 @@ def do_mission_1(_data_dir, _res_dir, _face_landmark_detector):
     # =========================================================================
     # MISSION 1
     # =========================================================================
+    # model load
+
+    # model_torso_hq = ... os.path.join(options.model_dir, 'mission1_torso_hq.pth)
+    # model_torso_lq = ... os.path.join(options.model_dir, 'mission1_torso_lq.pth)
+    # model_face = ... os.path.join(options.model_dir, 'mission1_face.pth)
+
+    # file load
     file_name_list = glob.glob(_data_dir + '/1_*.*')
     prediction_results = []
     for file_name in file_name_list:
