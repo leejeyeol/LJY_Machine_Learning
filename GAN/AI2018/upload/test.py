@@ -113,7 +113,7 @@ class VGG16(torch.nn.Module):
         return output
 
 mission1_torso_lq = VGG16()
-mission1_torso_hq.load_state_dict(torch.load(saved_data[0]))
+mission1_torso_lq.load_state_dict(torch.load(saved_data[0]))
 mission1_torso_lq.cuda()
 '''
 mission1_torso_hq = VGG16()
@@ -121,7 +121,7 @@ mission1_torso_hq.cuda()
 
 
 mission2_face = VGG16()
-#mission1_torso_hq.load_state_dict(torch.load(saved_data[2]))
+#mission2_face.load_state_dict(torch.load(saved_data[2]))
 mission2_face.cuda()
 '''
 # container generate
