@@ -3,10 +3,43 @@ import torch
 from torch.autograd import Variable
 import glob
 import numpy as np
+import math
+import time
+
+def measure_run_time(func):
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+
+        print("'%s' function running time : %s"%(func.__name__, end - start))
+        return result
+    return wrapper
+#@measure_run_time
+# function
+
+def Depth_evaluation(gt, predict, D_mask):
+    height = gt.data[0].shape[1]
+    width = gt.data[0].shape[2]
+    num_of_pixels = height * width
 
 
+    # average relative error
+    rel = (torch.abs((gt-predict).data[0]))[0]
+    sum = 0
+    valid_pixels = 0
+    for x in range(height):
+        for y in range(width):
+            if float(gt[0, 0, x, y].data) != 0:
+                sum += rel[x, y]
+                valid_pixels += 1
+    rel = sum/valid_pixels
 
 
+                # root mean squared error
+    rms = math.sqrt((((gt-predict).pow(2).data[0]*D_mask.data[0].cuda().float()).sum()/num_of_pixels))
+
+    return rel, rms
 # one hot generator
 def one_hot(size, index):
     """ Creates a matrix of one hot vectors.
