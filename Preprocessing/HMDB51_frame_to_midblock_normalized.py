@@ -26,7 +26,7 @@ def make_dir(path):
 
 
 root_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51"
-save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51/middle_block224x224"
+save_path = "/media/leejeyeol/74B8D3C8B8D38750/Data/HMDB51/middle_block"
 data_index = 0
 video_type_list = glob.glob(os.path.join(root_path,'frames/*'))
 for video_type_name in video_type_list:
@@ -34,7 +34,7 @@ for video_type_name in video_type_list:
     video_list = glob.glob(os.path.join(video_type_name, '*'))
     for video in video_list:
         print(video)
-        subroot = os.path.join(root_path, 'frames224x224')
+        subroot = os.path.join(root_path, 'frames')
         filename = os.path.basename(video)
         folder_path = os.path.join(subroot, os.path.basename(os.path.dirname(video)), filename)
         frame_list = glob.glob(os.path.join(folder_path,'*'))

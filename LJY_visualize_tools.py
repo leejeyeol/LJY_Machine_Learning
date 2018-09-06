@@ -49,6 +49,8 @@ def draw_images_to_windict(win_dict, image_list, name_list = None):
     return win_dict
 
 def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, total_iter):
+    # epoch * total_iter +iteration
+
     num_of_values = len(value_list)
     value_list = np.asarray(value_list)
 
@@ -77,7 +79,6 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
                                     ytype='linear',
                                     makers=False
                                 ))
-
 
     else:
         win_dict = vis.line(

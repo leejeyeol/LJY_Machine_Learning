@@ -8,9 +8,7 @@ import torch.optim as optim
 import torch.utils.data
 import torchvision.transforms as transforms
 from torch.autograd import Variable
-
-import Pytorch.GAN.AI2018.DCGAN.DCGAN_model as model
-import Pytorch.GAN.AI2018.DCGAN.DCGAN_dataloader as dset
+from PIL import Image
 # import custom package
 import LJY_utils
 import LJY_visualize_tools
@@ -48,6 +46,230 @@ parser.add_argument('--seed', type=int, help='manual seed')
 
 options = parser.parse_args()
 print(options)
+
+
+# Generator
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        m.weight.data.normal_(0.0, 0.02)
+    elif classname.find('BatchNorm') != -1:
+        m.weight.data.normal_(1.0, 0.02)
+        m.bias.data.fill_(0)
+
+#150x150
+class Generator(nn.Module):
+    def __init__(self, ngpu, nz, ngf, nc):
+        super(Generator, self).__init__()
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is Z, going into a convolution
+            # nz*1*1 => 512*4*4
+            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # 512*4*4 => 512*8*8
+            nn.ConvTranspose2d(ngf * 8, ngf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # 512*8*8 => 256*18*18
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 0, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # 256*18*18 => 128*36*36
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # 128*36*36 => 64*74*74
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 0, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # 64*74*74 => 3*150*150
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 0, bias=False),
+            nn.Tanh()
+        )
+
+    def forward(self, input):
+        if input.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            output = self.main(input)
+        return output
+
+
+
+# Discriminator
+class Discriminator(nn.Module):
+    def __init__(self, ngpu, ndf, nc):
+        super(Discriminator, self).__init__()
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is (nc) x 64 x 64
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 8, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, input):
+        if input.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            output = self.main(input)
+
+        return output.view(-1, 1).squeeze(1)
+
+'''
+#64x64
+class Generator(nn.Module):
+    def __init__(self, ngpu, nz, ngf, nc):
+        super(Generator, self).__init__()
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is Z, going into a convolution
+            nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+            nn.BatchNorm2d(ngf * 8),
+            nn.ReLU(True),
+            # state size. (ngf*8) x 4 x 4
+            nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 4),
+            nn.ReLU(True),
+            # state size. (ngf*4) x 8 x 8
+            nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf * 2),
+            nn.ReLU(True),
+            # state size. (ngf*2) x 16 x 16
+            nn.ConvTranspose2d(ngf * 2, ngf, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ngf),
+            nn.ReLU(True),
+            # state size. (ngf) x 32 x 32
+            nn.ConvTranspose2d(ngf, nc, 4, 2, 1, bias=False),
+            nn.Tanh()
+            # state size. (nc) x 64 x 64
+        )
+
+    def forward(self, input):
+        if input.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            output = self.main(input)
+        return output
+
+
+
+# Discriminator
+class Discriminator(nn.Module):
+    def __init__(self, ngpu, ndf, nc):
+        super(Discriminator, self).__init__()
+        self.ngpu = ngpu
+        self.main = nn.Sequential(
+            # input is (nc) x 64 x 64
+            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf) x 32 x 32
+            nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 2),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*2) x 16 x 16
+            nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 4),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*4) x 8 x 8
+            nn.Conv2d(ndf * 4, ndf * 8, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(ndf * 8),
+            nn.LeakyReLU(0.2, inplace=True),
+            # state size. (ndf*8) x 4 x 4
+            nn.Conv2d(ndf * 8, 1, 4, 1, 0, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, input):
+        if input.is_cuda and self.ngpu > 1:
+            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+        else:
+            output = self.main(input)
+
+        return output.view(-1, 1).squeeze(1)
+'''
+
+class Dataloader(torch.utils.data.Dataset):
+    def __init__(self, path, transform):
+        super().__init__()
+        self.transform = transform
+
+        assert os.path.exists(path)
+        self.base_path = path
+
+        #self.mean_image = self.get_mean_image()
+
+        cur_file_paths = glob.glob(self.base_path + '/*.*')
+        cur_file_paths.sort()
+        self.file_paths = cur_file_paths
+
+    def pil_loader(self,path):
+        # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+        with open(path, 'rb') as f:
+            with Image.open(f) as img:
+                return img.convert('RGB')
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, item):
+        path = self.file_paths[item]
+        img = self.pil_loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img
+
+class fold_Dataloader(torch.utils.data.Dataset):
+    def __init__(self,fold, path, transform, type ='train'):
+        super().__init__()
+        self.transform = transform
+
+        self.type = type
+        train_path, val_path = LJY_utils.fold_loader(fold, path)
+        if self.type == 'train':
+            self.file_paths = train_path[0]
+        # self.Semantic_base_path = Semantic_path
+        elif self.type == 'validation':
+            self.file_paths = val_path[0]
+
+    def pil_loader(self,path):
+        # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+        with open(path, 'rb') as f:
+            with Image.open(f) as img:
+                return img.convert('RGB')
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, item):
+        path = self.file_paths[item]
+        img = self.pil_loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img
+
 
 
 
@@ -96,10 +318,10 @@ transform = transforms.Compose([
 ])
 
 if options.fold is None:
-    dataloader = torch.utils.data.DataLoader(dset.Dataloader(options.dataroot, transform),
+    dataloader = torch.utils.data.DataLoader(fold_Dataloader.Dataloader(options.dataroot, transform),
                                              batch_size=options.batchSize, shuffle=True, num_workers=options.workers,drop_last=False)
 else:
-    dataloader = torch.utils.data.DataLoader(dset.fold_Dataloader(options.fold, options.fold_dataroot, transform, type='train'),
+    dataloader = torch.utils.data.DataLoader(fold_Dataloader.fold_Dataloader(options.fold, options.fold_dataroot, transform, type='train'),
                                              batch_size=options.batchSize, shuffle=True, num_workers=options.workers,drop_last=False)
 unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
@@ -108,14 +330,14 @@ unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5
 # ======================================================================================================================
 
 # Generator ============================================================================================================
-netG = model.Generator(ngpu, nz, ngf, nc)
+netG = Generator(ngpu, nz, ngf, nc)
 netG.apply(LJY_utils.weights_init)
 if options.netG != '':
     netG.load_state_dict(torch.load(options.netG))
 print(netG)
 
 # Discriminator ========================================================================================================
-netD = model.Discriminator(ngpu, ndf, nc)
+netD = Discriminator(ngpu, ndf, nc)
 netD.apply(LJY_utils.weights_init)
 if options.netD != '':
     netD.load_state_dict(torch.load(options.netD))

@@ -5,6 +5,15 @@ import glob
 import numpy as np
 import math
 import time
+def torch_model_gradient(model_parameters):
+    grad_list = []
+    for f in model_parameters:
+        num_of_weight = 1
+        for i in range(len(f.grad.shape)):
+            num_of_weight *= f.grad.shape[i]
+        grad_list.append(float(torch.sum(torch.abs(f.grad))/num_of_weight))
+    return np.asarray(grad_list).mean()
+
 
 def measure_run_time(func):
     def wrapper(*args, **kwargs):

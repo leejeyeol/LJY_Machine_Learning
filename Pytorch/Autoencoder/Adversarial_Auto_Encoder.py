@@ -13,7 +13,8 @@ import torchvision.utils as vutils
 from torch.autograd import Variable
 import LJY_utils
 import LJY_visualize_tools
-
+import numpy as np
+from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import math
 
@@ -23,6 +24,90 @@ def Variational_loss(input, target, mu, logvar):
     KLD_loss = -0.5 * torch.sum(1+logvar-mu.pow(2) - logvar.exp())
     print(KLD_loss)
     return recon_loss + KLD_loss
+
+class encoder_fcn(nn.Module):
+    def __init__(self, x_dim=784, N=1000, z_dim=120, type='AE'):
+        super().__init__()
+        self.type = type
+        self.encoder = nn.Sequential(
+            nn.Linear(x_dim, N),
+            nn.Dropout(0.25),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, N),
+            nn.Dropout(0.25),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, z_dim)
+        )
+        self.fc_mu = nn.Linear(z_dim, z_dim, 1)
+        self.fc_sig = nn.Linear(z_dim, z_dim, 1)
+        # init weights
+        self.weight_init()
+
+    def forward(self, x):
+        if self.type == 'AE':
+            #AE
+            z = self.encoder(x)
+            return z
+        elif self.type == 'VAE':
+            # VAE
+            z_ = self.encoder(x)
+            mu = self.fc_mu(z_)
+            logvar = self.fc_sig(z_)
+            return mu, logvar
+    def weight_init(self):
+        self.encoder.apply(weight_init)
+
+class decoder_fcn(nn.Module):
+    def __init__(self, x_dim=784, N=1000, z_dim=120):
+        super().__init__()
+
+        self.decoder = nn.Sequential(
+            nn.Linear(z_dim, N),
+            nn.Dropout(0.25),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, N),
+            nn.Dropout(0.25),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, x_dim)
+        )
+        # init weights
+        self.weight_init()
+
+    def forward(self, z):
+        recon_x = self.decoder(z)
+        return recon_x
+
+    def weight_init(self):
+        self.decoder.apply(weight_init)
+
+class discriminator(nn.Module):
+    def __init__(self, N=1000, z_dim=120):
+        super().__init__()
+        self.discriminator = nn.Sequential(
+            nn.Linear(z_dim, N),
+            nn.Dropout(0.2),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, N),
+            nn.Dropout(0.2),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, 1),
+            nn.Sigmoid()
+        )
+        # init weights
+        self.weight_init()
+    def forward(self, z):
+        cls = self.discriminator(z)
+
+        return cls
+
+    def weight_init(self):
+        self.discriminator.apply(weight_init)
 
 class encoder(nn.Module):
     def __init__(self, num_in_channels=1, z_size=2, num_filters=64):
@@ -47,19 +132,20 @@ class encoder(nn.Module):
         # init weights
         self.weight_init()
 
+    '''
     def forward(self,x):
         #VAE
         z_ = self.encoder(x)
         mu = self.fc_mu(z_)
         logvar = self.fc_sig(z_)
         return mu, logvar
-
     '''
+
     def forward(self, x):
         #AE
         z = self.encoder(x)
         return z
-    '''
+
     def weight_init(self):
         self.encoder.apply(weight_init)
 
@@ -93,32 +179,6 @@ class decoder(nn.Module):
     def weight_init(self):
         self.decoder.apply(weight_init)
 
-class discriminator(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-            nn.Linear(2, 100),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(100, 50),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(50, 30),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(30, 1),
-            nn.Sigmoid()
-        )
-
-        # init weights
-        self.weight_init()
-    def forward(self, z):
-        cls = self.discriminator(z)
-
-        return cls
-
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
 # xavier_init
 def weight_init(module):
     classname = module.__class__.__name__
@@ -265,19 +325,21 @@ if torch.cuda.is_available() and not options.cuda:
 ngpu = int(options.ngpu)
 nz = int(options.nz)
 
-encoder = encoder()
+encoder = encoder(z_size=nz)
+#encoder = encoder_fcn(784, 1000, nz, "AE")
 encoder.apply(LJY_utils.weights_init)
 if options.netG != '':
     encoder.load_state_dict(torch.load(options.netG))
 print(encoder)
 
-decoder = decoder()
+decoder = decoder(z_size=nz)
+#decoder = decoder_fcn(784, 1000, nz)
 decoder.apply(LJY_utils.weights_init)
 if options.netD != '':
     decoder.load_state_dict(torch.load(options.netD))
 print(decoder)
 
-discriminator = discriminator()
+discriminator = discriminator(500, nz)
 discriminator.apply(LJY_utils.weights_init)
 if options.netD != '':
     discriminator.load_state_dict(torch.load(options.netD))
@@ -292,13 +354,9 @@ MSE_loss = nn.MSELoss()
 
 # setup optimizer   ====================================================================================================
 # todo add betas=(0.5, 0.999),
-optimizerD = optim.Adam(decoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerE = optim.Adam(encoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
+optimizerD = optim.Adam(decoder.parameters(), betas=(0.5, 0.999), lr=2e-3)
+optimizerE = optim.Adam(encoder.parameters(), betas=(0.5, 0.999), lr=2e-3)
 optimizerDiscriminator = optim.Adam(discriminator.parameters(), betas=(0.5, 0.999), lr=2e-3)
-
-
-# container generate
-input = torch.FloatTensor(options.batchSize, 3, options.imageSize, options.imageSize)
 
 
 if options.cuda:
@@ -307,12 +365,6 @@ if options.cuda:
     discriminator.cuda()
     MSE_loss.cuda()
     BCE_loss.cuda()
-    input = input.cuda()
-
-
-
-# make to variables ====================================================================================================
-input = Variable(input)
 
 
 # training start
@@ -331,34 +383,30 @@ def train():
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
         batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     win_dict = LJY_visualize_tools.win_dict()
     line_win_dict = LJY_visualize_tools.win_dict()
     print("Training Start!")
     for epoch in range(options.iteration):
         for i, (data, _) in enumerate(dataloader, 0):
-            real = Variable(torch.Tensor(data.shape[0], 1).fill_(1.0), requires_grad=False).cuda()
-            fake = Variable(torch.Tensor(data.shape[0], 1).fill_(0.0), requires_grad=False).cuda()
 
-            ############################
-            # (1) Update D network
-            ###########################
-            # autoencoder training  ========================================================================================
             optimizerE.zero_grad()
             optimizerD.zero_grad()
 
             real_cpu = data
             batch_size = real_cpu.size(0)
-            input.data.resize_(real_cpu.size()).copy_(real_cpu)
+            #vectorize
+            #input = Variable(real_cpu.view(real_cpu.size(0), -1)).cuda()
+            input = Variable(real_cpu).cuda()
 
-
-            #z = encoder(input)
-
+            z = encoder(input)
+            '''
             mu, logvar = encoder(input)
             std = torch.exp(0.5 * logvar)
             eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
             z = eps.mul(std).add_(mu)
-
+            '''
             x_recon = decoder(z)
 
             err_mse = MSE_loss(x_recon, input.detach())
@@ -369,37 +417,35 @@ def train():
             optimizerD.step()
 
 
-
             # discriminator training =======================================================================================
             optimizerDiscriminator.zero_grad()
 
-            d_fake = discriminator(z.view(batch_size, 2))
 
-            noise = Variable(torch.FloatTensor(batch_size, nz, 1, 1).cuda())
+            d_fake = discriminator(z.view(z.size(0),-1))
+
+            noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
             noise.data.normal_(0, 1)
-            d_real = discriminator(noise.view(batch_size, 2))
+            d_real = discriminator(noise.view(batch_size, nz))
 
-
-            err_discriminator = (BCE_loss(d_real,real) + BCE_loss(d_fake,fake))
+            err_discriminator = -torch.mean(torch.log(d_real)+torch.log(1-d_fake))
             err_discriminator.backward(retain_graph=True)
             optimizerDiscriminator.step()
 
             # generator = encoder training =================================================================================
             optimizerE.zero_grad()
 
-            d_fake_2 = discriminator(z.view(batch_size, 2))
-            err_generator = BCE_loss(d_fake_2, real)
+            d_fake_2 = discriminator(z.view(batch_size, nz))
+            err_generator = -torch.mean(torch.log(d_fake_2))
             err_generator.backward(retain_graph=True)
 
-            gaussian_entropy = 1/2*math.log(2*math.pi*math.exp(1))
-            err_anomaly = torch.abs(torch.mean(z**2/2+1/2*math.log(2*math.pi))-gaussian_entropy)
-            err_anomaly.backward(retain_graph=True)
+            err_anomaly = -torch.mean(z)
+            #err_anomaly.backward(retain_graph=True)
             optimizerE.step()
 
             #visualize
-            print('[%d/%d][%d/%d] Loss: %.4f anomaly : %.4f'% (epoch, options.iteration, i, len(dataloader), err_mse.data.mean(), err_anomaly.data.mean()))
-            testImage = torch.cat((input.data[0], x_recon.data[0]), 2)
-            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage, err_image.data[0]], ["Autoencoder","error_image"])
+            print('[%d/%d][%d/%d] MSE_Loss: %.4f anomaly : %.4f'% (epoch, options.iteration, i, len(dataloader), err_mse.data.mean(), err_anomaly.data.mean()))
+            testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0])), 2)
+            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
 
             line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
                                                                       [err_mse.data.mean(), d_real.data.mean(),
@@ -407,22 +453,22 @@ def train():
                                                                        err_discriminator.data.mean(), err_generator.data.mean(),
                                                                        0],
                                                                       ['loss_recon_x', 'err_real d',
-                                                                       'fake d','anomaly','D loss','G loss', 'zero'],
+                                                                       'fake d', 'anomaly', 'D loss', 'G loss', 'zero'],
                                                                       epoch, i, len(dataloader))
 
 
 
         # do checkpointing
         if epoch % 50 == 0:
-            torch.save(encoder.state_dict(), '%s/weighted_unbiased_encoder_epoch_%d.pth' % (options.outf, epoch+ep))
-            torch.save(decoder.state_dict(), '%s/weighted_unbiased_decoder_epoch_%d.pth' % (options.outf, epoch+ep))
-            torch.save(discriminator.state_dict(), '%s/weighted_unbiased_discriminator_epoch_%d.pth' % (options.outf, epoch+ep))
+            torch.save(encoder.state_dict(), '%s/fcn_anomaly_encoder_epoch_%d.pth' % (options.outf, epoch+ep))
+            torch.save(decoder.state_dict(), '%s/fcn_anomaly_decoder_epoch_%d.pth' % (options.outf, epoch+ep))
+            torch.save(discriminator.state_dict(), '%s/fcn_anomaly_discriminator_epoch_%d.pth' % (options.outf, epoch+ep))
 
-def test():
-    ep = 200
-    encoder.load_state_dict(torch.load(os.path.join(options.outf, "weighted_unbiased_encoder_epoch_%d.pth")%ep))
-    decoder.load_state_dict(torch.load(os.path.join(options.outf, "weighted_unbiased_decoder_epoch_%d.pth")%ep))
-    discriminator.load_state_dict(torch.load(os.path.join(options.outf, "weighted_unbiased_discriminator_epoch_%d.pth")%ep))
+def tsne():
+    ep = 6000
+    encoder.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_encoder_epoch_%d.pth")%ep))
+    decoder.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_decoder_epoch_%d.pth")%ep))
+    discriminator.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_discriminator_epoch_%d.pth")%ep))
 
     dataloader = torch.utils.data.DataLoader(
         dset.MNIST('../../data', train=False, download=True,
@@ -431,6 +477,53 @@ def test():
                        transforms.Normalize((0.5,), (0.5,))
                    ])),
         batch_size=1, shuffle=False, num_workers=options.workers)
+
+    #vis_x = []
+    #vis_y = []
+    vis_label = []
+    vis = []
+    print("Testing Start!")
+    for i, (data, label) in enumerate(dataloader, 0):
+        real_cpu = data
+        batch_size = real_cpu.size(0)
+        input = Variable(real_cpu).cuda()
+
+        z = encoder(input)
+        '''
+        mu, logvar = encoder(input)
+        std = torch.exp(0.5 * logvar)
+        eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+        z = eps.mul(std).add_(mu)
+        '''
+
+        vis.append(np.asarray(z.data.view(nz)))
+        #vis_x.append(z.data.view(nz))
+        #vis_y.append(z.data.view(nz))
+
+        vis_label.append(int(label))
+        print("[%d/%d]" % (i, len(dataloader)))
+    vis = np.asarray(vis)
+    z_embedded = TSNE(n_components=2).fit_transform(vis)
+    fig = plt.figure()
+    plt.scatter(z_embedded[:,0], z_embedded[:,1], c=vis_label, s=2, cmap='tab10')
+    cb = plt.colorbar()
+    plt.show()
+def test():
+    ep = 500
+
+    encoder.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_encoder_epoch_%d.pth") % ep))
+    decoder.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_decoder_epoch_%d.pth") % ep))
+    discriminator.load_state_dict(
+        torch.load(os.path.join(options.outf, "fcn_anomaly_discriminator_epoch_%d.pth") % ep))
+
+    dataloader = torch.utils.data.DataLoader(
+        dset.MNIST('../../data', train=False, download=True,
+                   transform=transforms.Compose([
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,), (0.5,))
+                   ])),
+        batch_size=1, shuffle=False, num_workers=options.workers)
+
     vis_x = []
     vis_y = []
     vis_label = []
@@ -438,29 +531,50 @@ def test():
     for i, (data, label) in enumerate(dataloader, 0):
         real_cpu = data
         batch_size = real_cpu.size(0)
-        input.data.resize_(real_cpu.size()).copy_(real_cpu)
+        input = Variable(real_cpu).cuda()
 
-        #z = encoder(input)
+        z = encoder(input)
+        '''
         mu, logvar = encoder(input)
         std = torch.exp(0.5 * logvar)
         eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
         z = eps.mul(std).add_(mu)
+        '''
 
-        vis_x.append(z.data.view(2)[0])
-        vis_y.append(z.data.view(2)[1])
+        vis_x.append(z.data.view(nz)[0])
+        vis_y.append(z.data.view(nz)[1])
+
         vis_label.append(int(label))
-        print("[%d/%d]"%(i,len(dataloader)))
-
+        print("[%d/%d]" % (i, len(dataloader)))
     fig = plt.figure()
-    plt.scatter(vis_x,vis_y,c=vis_label, s=2, cmap='tab10')
+    plt.scatter(vis_x, vis_y, c=vis_label, s=2, cmap='tab10')
     cb = plt.colorbar()
     plt.show()
 
-if __name__ == "__main__" :
-    train()
-    #test()
+def visualize_latent_space():
+    ep = 1000
+    decoder.load_state_dict(torch.load(os.path.join(options.outf, "fcn_anomaly_decoder_epoch_%d.pth") % ep))
+    x = range(-10, 10)
+    y = range(-10, 10)
+    image = torch.FloatTensor()
+    for i in range(len(x)):
+        x_image = torch.FloatTensor()
+        for j in range(len(y)):
+            z = Variable(torch.FloatTensor(1, 2)).cuda()
+            z.data[0][0] = x[i]
+            z.data[0][1] = y[j]
+            recon_x = decoder(z)
+            x_image = torch.cat((x_image, recon_x.view(1,28,28)), 2)
+            image = torch.cat((image, x_image), 3)
+    print(1)
 
+
+if __name__ == "__main__" :
+    #train()
+    #test()
+    tsne()
+    #visualize_latent_space()
 
 
 # Je Yeol. Lee \[T]/
-# Jolly Co-operation
+# Jolly Co-operation.tolist()

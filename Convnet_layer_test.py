@@ -13,7 +13,7 @@ if tranposed is False:
     length = 120
 else:
     batch_size = 1
-    in_channel =50
+    in_channel =200
     width = 1
     length = 1
 
@@ -35,10 +35,10 @@ if not tranposed :
     layers = []
 else:
     #decoder
-    out_channel = [256,256,256,128,64,1]
-    kernel_size = [(4,5),(4,3),(4,3),3,3,3]
-    stride = [2,2,2,2,2,2] #default 1
-    padding = [0,1,1,1,1,1] # default 0
+    out_channel = [256,256,128,64,1]
+    kernel_size = [4,4,4,4,4]
+    stride = [2,2,2,2,2] #default 1
+    padding = [0,1,1,1,1] # default 0
     layers = []
 
 '''
