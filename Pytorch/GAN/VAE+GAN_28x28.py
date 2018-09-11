@@ -29,14 +29,15 @@ parser.add_argument('--dataset', default='CelebA', help='what is dataset?', choi
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 
 parser.add_argument('--autoencoderType', default='GAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['AE', 'VAE', 'AAE', 'GAN'])
-parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='MNIST_AVGAN', help="path of Encoder networks.")
+parser.add_argument('--pretrainedEpoch', type=int, default=45, help="path of Decoder networks. '0' is training from scratch.")
+parser.add_argument('--pretrainedModelName', default='celebA_GAN', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='./pretrained_model', help="folder to model checkpoints")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
+parser.add_argument('--save', default=False, help='save options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
@@ -47,7 +48,7 @@ parser.add_argument('--batchSize', type=int, default=200, help='input batch size
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=2, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=20, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
@@ -547,7 +548,7 @@ def train():
 
                 generator_err = BCE_loss(z_d_fake, real_label)
                 generator_err.backward(retain_graph=True)
-
+                generator_grad_AE += LJY_utils.torch_model_gradient(decoder.parameters())
                 optimizerE.step()
 
             # discriminator training =======================================================================================
@@ -661,11 +662,11 @@ def train():
 
         # do checkpointing
 
-        if epoch % options.save_tick == 0:
-            #torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
-            #torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
+        if epoch % options.save_tick == 0 or options.save:
+            torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
+            torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
-            #torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
+            torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
             print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
 
 def tsne():
@@ -757,7 +758,7 @@ def test():
     cb = plt.colorbar()
     plt.show()
 
-def visualize_latent_space():
+def visualize_latent_space_2d():
     ep = 50
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     decoder.load_state_dict(torch.load(os.path.join(options.outf, "GAN_decoder_epoch_%d.pth") % ep))
@@ -785,7 +786,37 @@ def visualize_latent_space():
     img = np.asarray(unorm(image.view(image.shape[2], image.shape[3])))
     plt.imshow(img)
     plt.show()
-    print(1)
+
+def visualize_latent_space():
+    ep = 50
+    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    decoder.load_state_dict(torch.load(os.path.join(options.outf, "GAN_decoder_epoch_%d.pth") % ep))
+    noise = Variable(torch.FloatTensor(4, nz, 1, 1)).cuda()
+    noise.data.normal_(0, 1)
+    generated_fake = decoder(noise)
+    num_range = 20
+    x = range(-num_range, num_range)
+    y = range(-num_range, num_range)
+    image = torch.FloatTensor()
+    for i in range(len(x)):
+        x_image = torch.FloatTensor()
+        for j in range(len(y)):
+            z = Variable(torch.FloatTensor(1, 2)).cuda()
+            z.data[0][0] = x[i]/(num_range/2)
+            z.data[0][1] = y[j]/(num_range/2)
+            recon_x = decoder(z.view(z.shape[0], z.shape[1], 1, 1))
+            recon_x = unorm(recon_x.data)
+            if len(x_image) == 0:
+                x_image = recon_x
+            else:
+                x_image = torch.cat((x_image, recon_x), 2)
+        if len(image) == 0:
+            image = x_image
+        else:
+            image = torch.cat((image, x_image), 3)
+    img = np.asarray(unorm(image.view(image.shape[2], image.shape[3])))
+    plt.imshow(img)
+    plt.show()
 
 
 if __name__ == "__main__" :
