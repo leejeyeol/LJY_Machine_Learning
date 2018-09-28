@@ -35,10 +35,10 @@ if not tranposed :
     layers = []
 else:
     #decoder
-    out_channel = [256,256,128,64,1]
-    kernel_size = [4,4,4,4,4]
-    stride = [2,2,2,2,2] #default 1
-    padding = [0,1,1,1,1] # default 0
+    out_channel = [256,256,256,256,256,256,256]
+    kernel_size = [3,3,3,3,3,3,2]
+    stride = [2,2,2,2,2,2,2] #default 1
+    padding = [0,0,0,1,1,1,1] # default 0
     layers = []
 
 '''

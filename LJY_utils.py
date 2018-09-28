@@ -9,9 +9,14 @@ def torch_model_gradient(model_parameters):
     grad_list = []
     for f in model_parameters:
         num_of_weight = 1
-        for i in range(len(f.grad.shape)):
-            num_of_weight *= f.grad.shape[i]
-        grad_list.append(float(torch.sum(torch.abs(f.grad))/num_of_weight))
+        if type(f.grad) is not type(None):
+            if torch.is_tensor(f.grad) is True:
+                for i in range(len(f.grad.shape)):
+                    num_of_weight *= f.grad.shape[i]
+            else:
+                for i in range(len(f.grad.data.shape)):
+                    num_of_weight *= f.grad.shape[i]
+            grad_list.append(float(torch.sum(torch.abs(f.grad))/num_of_weight))
     return np.asarray(grad_list).mean()
 
 

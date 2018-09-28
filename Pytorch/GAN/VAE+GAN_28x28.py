@@ -9,31 +9,39 @@ import torch.optim as optim
 import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 import torchvision.utils as vutils
 from torch.autograd import Variable
-import LJY_utils
-import LJY_visualize_tools
 import numpy as np
-from sklearn.manifold import TSNE
-import matplotlib.pyplot as plt
-from PIL import Image
+
 import math
 import glob as glob
+
+from PIL import Image
+from sklearn.manifold import TSNE
+import seaborn
+import matplotlib.pyplot as plt
+from Pytorch.GAN.mixture_gaussian import data_generator
+
+import LJY_utils
+import LJY_visualize_tools
+
+plt.style.use('ggplot')
 
 #=======================================================================================================================
 # Options
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='CelebA', help='what is dataset?', choices=['CelebA', 'MNIST'])
+parser.add_argument('--dataset', default='MG', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'MG'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 
-parser.add_argument('--autoencoderType', default='GAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['AE', 'VAE', 'AAE', 'GAN'])
-parser.add_argument('--pretrainedEpoch', type=int, default=45, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='celebA_GAN', help="path of Encoder networks.")
+parser.add_argument('--autoencoderType', default='VAE', help='additional autoencoder type. "GAN" use DCGAN only', choices=['AE', 'VAE', 'AAE', 'GAN'])
+parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
+parser.add_argument('--pretrainedModelName', default='MG', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='./pretrained_model', help="folder to model checkpoints")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
-parser.add_argument('--save_tick', type=int, default=1, help='save tick')
+parser.add_argument('--save_tick', type=int, default=100, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -44,11 +52,11 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--epoch', type=int, default=15000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=200, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=512, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=20, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=256, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
@@ -62,6 +70,48 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 
 options = parser.parse_args()
 print(options)
+
+class unbiased_MNIST(dset.MNIST):
+    def __init__(self, root,  train, download, transform):
+        super().__init__(root=root,  train=train, download=download, transform=transform)
+        idx_per_label = [[] for _ in range(10)]
+        label_list = list(self.train_labels)
+        for i in range(len(label_list)):
+            idx_per_label[label_list[i]].append(i)
+        random.seed(1)
+        # 0 : 5923 => 5923
+        # container
+        unbiased_train_data = self.train_data[0].view(1, 28, 28)
+        unbiased_labels = [self.train_labels[0]]
+
+        # sampling data
+        for idx in idx_per_label[0]:
+            torch.cat((unbiased_train_data, self.train_data[idx].view(1, 28, 28)), 0, unbiased_train_data)
+            unbiased_labels.append(self.train_labels[idx])
+
+        self.train_labes = torch.LongTensor(unbiased_labels)
+        self.train_data = unbiased_train_data
+
+class MG_Dataloader(torch.utils.data.Dataset):
+    def __init__(self, epoch, MG):
+        super().__init__()
+        self.len = epoch
+        self.MG = MG
+    def __len__(self):
+        return self.len
+    def __getitem__(self, item):
+        d_real_data = torch.from_numpy(self.MG.sample(1))
+        return d_real_data.view(2), 1
+
+def MGplot(MGdset, save_path, points, epoch, iteration, total_iter):
+    idx = epoch * total_iter + iteration
+    plt.figure(figsize=(5,5))
+    plt.scatter(points[:, 0], points[:, 1], s=10, c='r', alpha=0.5)
+    plt.scatter(MGdset.centers[:, 0], MGdset.centers[:, 1], s=100, c='g', alpha=0.5)
+    plt.ylim(-5, 5)
+    plt.xlim(-5, 5)
+    plt.savefig(os.path.join(save_path, "MG_result","powerful_vae_%06d.png" % idx))
+    plt.close()
 
 class custom_Dataloader(torch.utils.data.Dataset):
     def __init__(self, path, transform):
@@ -235,29 +285,6 @@ class discriminator64x64(nn.Module):
     def weight_init(self):
         self.main.apply(weight_init)
 
-class z_discriminator(nn.Module):
-    def __init__(self, N=1000, z_dim=120):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-            nn.Linear(z_dim, N),
-            nn.Dropout(0.2),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(N, N),
-            nn.Dropout(0.2),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(N, 1),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-    def forward(self, z):
-        cls = self.discriminator(z)
-        return cls
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
-
 class encoder(nn.Module):
     def __init__(self, num_in_channels=1, z_size=80, num_filters=64 ,type='AE'):
         super().__init__()
@@ -355,6 +382,85 @@ class discriminator(nn.Module):
     def weight_init(self):
         self.discriminator.apply(weight_init)
 
+class z_discriminator(nn.Module):
+    def __init__(self, N=1000, z_dim=120):
+        super().__init__()
+        self.discriminator = nn.Sequential(
+            nn.Linear(z_dim, N),
+            nn.Dropout(0.2),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, N),
+            nn.Dropout(0.2),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Linear(N, 1),
+            nn.Sigmoid()
+        )
+        # init weights
+        self.weight_init()
+    def forward(self, z):
+        cls = self.discriminator(z)
+        return cls
+    def weight_init(self):
+        self.discriminator.apply(weight_init)
+
+class MG_decoder(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MG_decoder, self).__init__()
+        self.map1 = nn.Linear(input_size, hidden_size)
+        self.map2 = nn.Linear(hidden_size, hidden_size)
+        self.map3 = nn.Linear(hidden_size, output_size)
+        #self.activation_fn = F.tanh
+        self.activation_fn = F.relu
+
+    def forward(self, x):
+        x = self.activation_fn(self.map1(x))
+        x = self.activation_fn(self.map2(x))
+        return self.map3(x)
+
+class MG_encoder(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, type):
+        super(MG_encoder, self).__init__()
+        self.map1 = nn.Linear(input_size, hidden_size)
+        self.map2 = nn.Linear(hidden_size, hidden_size)
+        self.map3 = nn.Linear(hidden_size, output_size)
+        self.activation_fn = F.relu
+        self.final_activation_fn = F.sigmoid
+        self.fc_mu = nn.Linear(output_size, output_size)
+        self.fc_sig = nn.Linear(output_size, output_size)
+        self.type = type
+
+    def forward(self, x):
+        if self.type == 'AE' or self.type == 'AAE':
+            # AE
+            x = self.activation_fn(self.map1(x))
+            x = self.activation_fn(self.map2(x))
+            z = self.final_activation_fn(self.map3(x))
+            return z
+        elif self.type == 'VAE':
+            # VAE
+            x = self.activation_fn(self.map1(x))
+            x = self.activation_fn(self.map2(x))
+            z_ = self.map3(x)
+            mu = self.final_activation_fn(self.fc_mu(z_))
+            logvar = self.final_activation_fn((self.fc_sig(z_)))
+            return mu, logvar
+
+class MG_discriminator(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MG_discriminator, self).__init__()
+        self.map1 = nn.Linear(input_size, hidden_size)
+        self.map2 = nn.Linear(hidden_size, hidden_size)
+        self.map3 = nn.Linear(hidden_size, output_size)
+        self.activation_fn = F.relu
+        self.final_activation_fn = F.sigmoid
+
+    def forward(self, x):
+        x = self.activation_fn(self.map1(x))
+        x = self.activation_fn(self.map2(x))
+        return self.final_activation_fn(self.map3(x))
+
 # xavier_init
 def weight_init(module):
     classname = module.__class__.__name__
@@ -417,7 +523,7 @@ if options.dataset == 'MNIST':
     print(discriminator)
 
 elif options.dataset == 'CelebA':
-    encoder = encoder64x64(num_in_channels=3, z_size=nz, num_filters=64 ,type=autoencoder_type)
+    encoder = encoder64x64(num_in_channels=3, z_size=nz, num_filters=64,type=autoencoder_type)
     encoder.apply(LJY_utils.weights_init)
     print(encoder)
 
@@ -429,6 +535,18 @@ elif options.dataset == 'CelebA':
     discriminator.apply(LJY_utils.weights_init)
     print(discriminator)
 
+elif options.dataset == 'MG':
+    encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
+    encoder.apply(LJY_utils.weights_init)
+    print(encoder)
+
+    decoder = MG_decoder(input_size=nz, hidden_size=128, output_size=2)
+    decoder.apply(LJY_utils.weights_init)
+    print(decoder)
+
+    discriminator = MG_discriminator(input_size=2, hidden_size=128, output_size=1)
+    discriminator.apply(LJY_utils.weights_init)
+    print(discriminator)
 z_discriminator = z_discriminator(N=500, z_dim=nz)
 z_discriminator.apply(LJY_utils.weights_init)
 print(z_discriminator)
@@ -439,7 +557,7 @@ print(z_discriminator)
 
 # criterion set
 BCE_loss = nn.BCELoss()
-MSE_loss = nn.MSELoss()
+MSE_loss = nn.MSELoss(size_average=False)
 
 # setup optimizer   ====================================================================================================
 # todo add betas=(0.5, 0.999),
@@ -464,10 +582,9 @@ def train():
     ep = options.pretrainedEpoch
     if ep != 0:
         #encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
-        #decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+        decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
         discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
         #z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
-
     if options.dataset == 'MNIST':
         dataloader = torch.utils.data.DataLoader(
             dset.MNIST(root='../../data', train=True, download=True,
@@ -476,6 +593,15 @@ def train():
                            transforms.Normalize((0.5,), (0.5,))
                        ])),
             batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+        '''
+        dataloader = torch.utils.data.DataLoader(
+            unbiased_MNIST(root='../../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+            batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+        '''
     elif options.dataset == 'CelebA':
         dataloader = torch.utils.data.DataLoader(
             custom_Dataloader(path=options.dataroot,
@@ -485,6 +611,12 @@ def train():
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    elif options.dataset == 'MG':
+        MGdset=data_generator()
+        #MGdset.random_distribution()
+        MGdset.uniform_distribution()
+        dataloader = torch.utils.data.DataLoader(MG_Dataloader(options.epoch, MGdset),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
     win_dict = LJY_visualize_tools.win_dict()
@@ -497,17 +629,15 @@ def train():
 
     for epoch in range(options.epoch):
         for i, (data, _) in enumerate(dataloader, 0):
-
             real_cpu = data
             batch_size = real_cpu.size(0)
             input = Variable(real_cpu).cuda()
             disc_input =input.clone()
 
-            real_label = Variable(torch.FloatTensor(batch_size, 1, 1, 1).cuda())
+            real_label = Variable(torch.FloatTensor(batch_size, 1).cuda())
             real_label.data.fill_(1)
-            fake_label = Variable(torch.FloatTensor(batch_size, 1, 1, 1).cuda())
+            fake_label = Variable(torch.FloatTensor(batch_size, 1).cuda())
             fake_label.data.fill_(0)
-
 
             if autoencoder_type == "VAE":
                 optimizerE.zero_grad()
@@ -554,9 +684,9 @@ def train():
             # discriminator training =======================================================================================
             optimizerDiscriminator.zero_grad()
             d_real = discriminator(disc_input)
-            noise = Variable(torch.FloatTensor(batch_size, nz, 1, 1)).cuda()
+            noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
             noise.data.normal_(0, 1)
-            generated_fake = decoder(noise)
+            generated_fake = decoder(noise.view(batch_size, nz))
             d_fake = discriminator(generated_fake)
 
             if autoencoder_type == 'VAE':
@@ -584,7 +714,7 @@ def train():
             optimizerDiscriminator.step()
 
             optimizerD.zero_grad()
-            noise = Variable(torch.FloatTensor(batch_size, nz, 1, 1)).cuda()
+            noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
             noise.data.normal_(0, 1)
             generated_fake = decoder(noise)
             d_fake_2 = discriminator(generated_fake)
@@ -600,13 +730,19 @@ def train():
              #visualize
             print('[%d/%d][%d/%d] recon_Loss: GAN  d_real: %.4f d_fake: %.4f Balance : %.2f alpha : %.2f'
                   % (epoch, options.epoch, i, len(dataloader), d_real.data.mean(), d_fake_2.data.mean(), balance_coef.data.mean(),alpha))
+            if options.display:
+                if autoencoder_type == 'GAN':
+                    testImage = torch.cat((unorm(input.data[0]), unorm(generated_fake.data[0])), 2)
+                else:
+                    testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0]), unorm(generated_fake.data[0])), 2)
+                win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
 
-            if autoencoder_type == 'GAN' :
-                testImage = torch.cat((unorm(input.data[0]), unorm(generated_fake.data[0])), 2)
-            else :
-                testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0]), unorm(generated_fake.data[0])), 2)
-            win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
             if options.display_type == 'per_iter':
+                if options.dataset == 'MG':
+                    noise = Variable(torch.FloatTensor(1000, nz)).cuda()
+                    noise.data.normal_(0, 1)
+                    generated_fake = decoder(noise)
+                    MGplot(MGdset, options.modelOutFolder, generated_fake, epoch, i, len(dataloader))
                 line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
                                                                           [
                                                                               err_discriminator_real.data.mean(),
@@ -632,6 +768,11 @@ def train():
                                                                                epoch, i, len(dataloader))
 
         if options.display_type =='per_epoch':
+            if options.dataset == 'MG':
+                noise = Variable(torch.FloatTensor(1000, nz)).cuda()
+                noise.data.normal_(0, 1)
+                generated_fake = decoder(noise)
+                MGplot(MGdset, options.modelOutFolder, generated_fake, 0, epoch, 0)
             line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
                                                                       [
                                                                        #z_err.data.mean(),
@@ -663,10 +804,10 @@ def train():
         # do checkpointing
 
         if epoch % options.save_tick == 0 or options.save:
-            torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
-            torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
-            torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
-            torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
+            #torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
+            #torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
+            #torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
+            #torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
             print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
 
 def tsne():
@@ -759,9 +900,10 @@ def test():
     plt.show()
 
 def visualize_latent_space_2d():
-    ep = 50
+    ep = 360
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-    decoder.load_state_dict(torch.load(os.path.join(options.outf, "GAN_decoder_epoch_%d.pth") % ep))
+    decoder.load_state_dict(
+        torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
 
     num_range = 20
     x = range(-num_range, num_range)
@@ -823,7 +965,7 @@ if __name__ == "__main__" :
     train()
     #test()
     #tsne()
-    #visualize_latent_space()
+    #visualize_latent_space_2d()
 
 
 # Je Yeol. Lee \[T]/
