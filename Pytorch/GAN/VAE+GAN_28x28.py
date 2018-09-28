@@ -33,26 +33,26 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MG', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'MG'])
-parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
+parser.add_argument('--dataset', default='HMDB51_224', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'MG'])
+parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/flow/flow', help='path to dataset')
 
-parser.add_argument('--autoencoderType', default='VAE', help='additional autoencoder type. "GAN" use DCGAN only', choices=['AE', 'VAE', 'AAE', 'GAN'])
+parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type. "GAN" use DCGAN only', choices=['AE', 'VAE', 'AAE', 'GAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='MG', help="path of Encoder networks.")
+parser.add_argument('--pretrainedModelName', default='HMDB_OF', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='./pretrained_model', help="folder to model checkpoints")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
-parser.add_argument('--save_tick', type=int, default=100, help='save tick')
+parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--save', default=False, help='save options. default:False. NOT IMPLEMENTED')
-parser.add_argument('--display', default=False, help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=15000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=512, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=2, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
@@ -70,7 +70,42 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 
 options = parser.parse_args()
 print(options)
+class HMDB51_Dataloader(torch.utils.data.Dataset):
+    def __init__(self, path, transform):
+        super().__init__()
+        self.transform = transform
 
+        assert os.path.exists(path)
+        self.base_path = path
+
+        #self.mean_image = self.get_mean_image()
+        cur_file_paths = []
+        HMDB_action_folders = sorted(glob.glob(self.base_path + '/*'))
+        for HMDB_actions in HMDB_action_folders:
+            HMDB_action = sorted(glob.glob(HMDB_actions + '/*'))
+            for clips in HMDB_action:
+                clip = sorted(glob.glob(clips + '/*'))
+                cur_file_paths = cur_file_paths + clip
+
+        print("data loading complete!")
+        self.file_paths = cur_file_paths
+
+    def pil_loader(self,path):
+        # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
+        with open(path, 'rb') as f:
+            with Image.open(f) as img:
+                return img.convert('L')
+
+    def __len__(self):
+        return len(self.file_paths)
+
+    def __getitem__(self, item):
+        path = self.file_paths[item]
+        img = self.pil_loader(path)
+        if self.transform is not None:
+            img = self.transform(img)
+
+        return img, 1
 class unbiased_MNIST(dset.MNIST):
     def __init__(self, root,  train, download, transform):
         super().__init__(root=root,  train=train, download=download, transform=transform)
@@ -171,6 +206,247 @@ def Variational_loss(input, target, mu, logvar):
     recon_loss = MSE_loss(input, target)
     KLD_loss = -0.5 * torch.sum(1+logvar-mu.pow(2) - logvar.exp())
     return recon_loss, KLD_loss
+
+
+class encoder224x224(nn.Module):
+    '''encoder'''
+
+    def __init__(self, nz, nc, type = 'VAE', large=False):
+        super(encoder224x224, self).__init__()
+
+        self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu1 = nn.LeakyReLU(0.1)
+
+        self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.relu2 = nn.LeakyReLU(0.1)
+
+        self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.relu3 = nn.LeakyReLU(0.1)
+
+        self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
+        self.bn4 = nn.BatchNorm2d(512)
+        self.relu4 = nn.LeakyReLU(0.1)
+
+        self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
+        self.bn5 = nn.BatchNorm2d(512)
+        self.relu5 = nn.LeakyReLU(0.1)
+
+        if large:
+            self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
+        else:
+            self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
+        self.bn6 = nn.BatchNorm2d(512)
+        self.relu6 = nn.LeakyReLU(0.1)
+
+        self.conv7 = nn.Conv2d(512, nz, 1, stride=1, padding=0, bias=False)
+
+        if self.type == 'VAE':
+            self.fc_mu = nn.Conv2d(nz, nz, 1)
+            self.fc_sig = nn.Conv2d(nz, nz, 1)
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        h = x
+        h = self.conv1(h)
+        h = self.bn1(h)
+        h = self.relu1(h)  # 64,112,112 (if input is 224x224)
+
+        h = self.conv2(h)
+        h = self.bn2(h)
+        h = self.relu2(h)  # 128,56,56
+
+        h = self.conv3(h)  # 256,28,28
+        h = self.bn3(h)
+        h = self.relu3(h)
+
+        h = self.conv4(h)  # 512,14,14
+        h = self.bn4(h)
+        h = self.relu4(h)
+
+        h = self.conv5(h)  # 512,7,7
+        h = self.bn5(h)
+        h = self.relu5(h)
+
+        h = self.conv6(h)
+        h = self.bn6(h)
+        h = self.relu6(h)  # 512,1,1
+
+        h = self.conv7(h)
+        h = F.sigmoid(h)
+
+        if self.type == 'AE' or self.type == 'AAE':
+            return h
+        elif self.type == 'VAE':
+            # VAE
+            mu = self.fc_mu(h)
+            logvar = self.fc_sig(h)
+            return mu, logvar
+
+        return h
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            if isinstance(m, nn.ConvTranspose2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+
+class decoder224x224(nn.Module):
+    '''Generator'''
+    def __init__(self, nz, nc):
+        super(decoder224x224, self).__init__()
+
+        self.deconv4 = nn.ConvTranspose2d(nz, 512, 3, stride=2, padding=0,  bias=False)
+        self.bn4 = nn.BatchNorm2d(512)
+        self.relu4 = nn.ReLU()
+
+        self.deconv5 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0, bias=False)
+        self.bn5 = nn.BatchNorm2d(512)
+        self.relu5 = nn.ReLU()
+
+        self.deconv6 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0,  bias=False)
+        self.bn6 = nn.BatchNorm2d(512)
+        self.relu6 = nn.ReLU()
+
+        self.deconv7 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, bias=False)
+        self.bn7 = nn.BatchNorm2d(256)
+        self.relu7 = nn.ReLU()
+
+        self.deconv8 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, bias=False)
+        self.bn8 = nn.BatchNorm2d(128)
+        self.relu8 = nn.ReLU()
+
+        self.deconv9 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1,bias=False)
+        self.bn9 = nn.BatchNorm2d(64)
+        self.relu9 = nn.ReLU()
+
+        self.deconv10 = nn.ConvTranspose2d(64, nc, 2, stride=2, padding=1, bias=False)
+        self.bn10 = nn.BatchNorm2d(3)
+        self.relu10 = nn.ReLU()
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        h = x
+        h = self.deconv4(h)
+        h = self.bn4(h)
+        h = self.relu4(h)  # 512,3,3
+
+        h = self.deconv5(h)
+        h = self.bn5(h)
+        h = self.relu5(h)  # 512,7,7
+
+        h = self.deconv6(h)
+        h = self.bn6(h)
+        h = self.relu6(h) # 512,14,14
+
+        h = self.deconv7(h)
+        h = self.bn7(h)
+        h = self.relu7(h) # 256,28,28
+
+        h = self.deconv8(h)
+        h = self.bn8(h)
+        h = self.relu8(h) # 128,56,56
+
+        h = self.deconv9(h)
+        h = self.bn9(h)
+        h = self.relu9(h) # 64,112,112
+
+        h = self.deconv10(h)
+        h = F.tanh(h) # 3,224,224
+
+        return h
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            if isinstance(m, nn.ConvTranspose2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+
+class discriminator224x224(nn.Module):
+    '''Discriminator'''
+    def __init__(self, nc, large=False):
+        super(discriminator224x224, self).__init__()
+
+        self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(64)
+        self.relu1 = nn.LeakyReLU(0.1)
+
+        self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.relu2 = nn.LeakyReLU(0.1)
+
+        self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.relu3 = nn.LeakyReLU(0.1)
+
+        self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
+        self.bn4 = nn.BatchNorm2d(512)
+        self.relu4 = nn.LeakyReLU(0.1)
+
+        self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
+        self.bn5 = nn.BatchNorm2d(512)
+        self.relu5 = nn.LeakyReLU(0.1)
+
+        if large:
+            self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
+        else:
+            self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
+        self.bn6 = nn.BatchNorm2d(512)
+        self.relu6 = nn.LeakyReLU(0.1)
+
+        self.conv7 = nn.Conv2d(512, 1, 1, stride=1, padding=0, bias=False)
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        h = x
+        h = self.conv1(h)
+        h = self.bn1(h)
+        h = self.relu1(h) # 64,112,112 (if input is 224x224)
+
+        h = self.conv2(h)
+        h = self.bn2(h)
+        h = self.relu2(h) # 128,56,56
+
+        h = self.conv3(h) # 256,28,28
+        h = self.bn3(h)
+        h = self.relu3(h)
+
+        h = self.conv4(h) # 512,14,14
+        h = self.bn4(h)
+        h = self.relu4(h)
+
+        h = self.conv5(h) # 512,7,7
+        h = self.bn5(h)
+        h = self.relu5(h)
+
+        h = self.conv6(h)
+        h = self.bn6(h)
+        h = self.relu6(h) # 512,1,1
+
+        h = self.conv7(h)
+        h = F.sigmoid(h)
+
+        return h
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            if isinstance(m, nn.ConvTranspose2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
 
 class encoder64x64(nn.Module):
     def __init__(self,  num_in_channels=1, z_size=2, num_filters=64 ,type='AE'):
@@ -535,6 +811,28 @@ elif options.dataset == 'CelebA':
     discriminator.apply(LJY_utils.weights_init)
     print(discriminator)
 
+elif options.dataset == 'HMDB51':
+    encoder = encoder64x64(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
+    encoder.apply(LJY_utils.weights_init)
+    print(encoder)
+
+    decoder = decoder64x64(num_in_channels=1, z_size=nz, num_filters=64)
+    decoder.apply(LJY_utils.weights_init)
+    print(decoder)
+
+    discriminator = discriminator64x64(num_in_channels=1, num_filters=64)
+    discriminator.apply(LJY_utils.weights_init)
+    print(discriminator)
+elif options.dataset == 'HMDB51_224':
+    encoder = encoder224x224(options.nz, options.nc)
+    print(encoder)
+
+    decoder = decoder224x224(options.nz,  options.nc)
+    print(decoder)
+
+    discriminator = discriminator224x224(1)
+    print(discriminator)
+
 elif options.dataset == 'MG':
     encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
     encoder.apply(LJY_utils.weights_init)
@@ -611,6 +909,23 @@ def train():
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    elif options.dataset == 'HMDB51':
+        dataloader = torch.utils.data.DataLoader(
+            HMDB51_Dataloader(path=options.dataroot,
+                              transform=transforms.Compose([
+                                  transforms.Scale((64,64)),
+                                  transforms.ToTensor(),
+                                  transforms.Normalize((0.5,), (0.5,))
+                              ])), batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
+    elif options.dataset == 'HMDB51_224':
+        dataloader = torch.utils.data.DataLoader(
+            HMDB51_Dataloader(path=options.dataroot,
+                              transform=transforms.Compose([
+                                  transforms.Scale((224,224)),
+                                  transforms.ToTensor(),
+                                  transforms.Normalize((0.5,), (0.5,))
+                              ])), batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
     elif options.dataset == 'MG':
         MGdset=data_generator()
         #MGdset.random_distribution()
@@ -634,9 +949,9 @@ def train():
             input = Variable(real_cpu).cuda()
             disc_input =input.clone()
 
-            real_label = Variable(torch.FloatTensor(batch_size, 1).cuda())
+            real_label = Variable(torch.FloatTensor(batch_size).cuda())
             real_label.data.fill_(1)
-            fake_label = Variable(torch.FloatTensor(batch_size, 1).cuda())
+            fake_label = Variable(torch.FloatTensor(batch_size).cuda())
             fake_label.data.fill_(0)
 
             if autoencoder_type == "VAE":
@@ -686,7 +1001,7 @@ def train():
             d_real = discriminator(disc_input)
             noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
             noise.data.normal_(0, 1)
-            generated_fake = decoder(noise.view(batch_size, nz))
+            generated_fake = decoder(noise.view(batch_size, nz, 1, 1))
             d_fake = discriminator(generated_fake)
 
             if autoencoder_type == 'VAE':
@@ -703,8 +1018,8 @@ def train():
                 d_fake_recon = discriminator(recon_real)
 
             balance_coef = torch.cat((d_fake, d_real), 0).mean()
-            err_discriminator_real = BCE_loss(d_real, real_label)
-            err_discriminator_fake = BCE_loss(d_fake, fake_label)
+            err_discriminator_real = BCE_loss(d_real.view(batch_size), real_label.view(batch_size))
+            err_discriminator_fake = BCE_loss(d_fake.view(batch_size), fake_label.view(batch_size))
 
             err_discriminator_origin = err_discriminator_real + err_discriminator_fake#+ BCE_loss(d_fake_recon, fake_label))
                                        #+ BCE_loss(balance_coef, Variable(torch.FloatTensor(balance_coef.shape).fill_(0.5).cuda()))
@@ -714,11 +1029,11 @@ def train():
             optimizerDiscriminator.step()
 
             optimizerD.zero_grad()
-            noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
+            noise = Variable(torch.FloatTensor(batch_size, nz ,1 ,1)).cuda()
             noise.data.normal_(0, 1)
             generated_fake = decoder(noise)
             d_fake_2 = discriminator(generated_fake)
-            err_generator = BCE_loss(d_fake_2, real_label) #+ BCE_loss(d_fake_recon, real_label))
+            err_generator = BCE_loss(d_fake_2.view(batch_size), real_label.view(batch_size)) #+ BCE_loss(d_fake_recon, real_label))
             err_generator = (1-alpha) * err_generator
             err_generator.backward(retain_graph=True)
 
@@ -805,8 +1120,8 @@ def train():
 
         if epoch % options.save_tick == 0 or options.save:
             #torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
-            #torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
-            #torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
+            torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
+            torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
             #torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
             print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
 

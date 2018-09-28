@@ -1,25 +1,22 @@
 import torch.utils.data as ud
 import argparse
-import os
+
 import random
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data
-import torchvision.datasets as dset
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 import LJY_utils
 import LJY_visualize_tools
 
-import matplotlib.pyplot as plt
 from PIL import Image
 from PIL import ImageOps
 import os
 import glob
 import torch.utils.data
-import numpy as np
 
 #=======================================================================================================================
 # Options
@@ -58,14 +55,13 @@ def Variational_loss(input, target, mu, logvar):
     recon_loss = MSE_loss(input, target)
     KLD_loss = -0.5 * torch.sum(1+logvar-mu.pow(2) - logvar.exp())
     return recon_loss + KLD_loss
+
 class CelebA_DL(torch.utils.data.Dataset):
     def __init__(self, path, transform):
         super().__init__()
         self.transform = transform
-
         assert os.path.exists(path)
         self.base_path = path
-
         #self.mean_image = self.get_mean_image()
 
         cur_file_paths = glob.glob(self.base_path + '/*.*')
@@ -101,8 +97,10 @@ class DL(torch.utils.data.Dataset):
 
         #self.mean_image = self.get_mean_image()
         total_file_paths = []
+        # training set ================
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'CMU_PIE_normal', '*'))
         total_file_paths = total_file_paths+cur_file_paths
+
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'YaleB_normal', '*'))
         total_file_paths = total_file_paths + cur_file_paths
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'Yale_normal', '*'))
@@ -112,11 +110,14 @@ class DL(torch.utils.data.Dataset):
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'AR_normal', '*'))
         total_file_paths = total_file_paths + cur_file_paths
         random.shuffle(total_file_paths)
-        num_of_valset = 1
+
+        #num_of_valset = 1
         #self.val_file_paths = sorted(total_file_paths[:num_of_valset])
-        self.file_paths = sorted(total_file_paths[num_of_valset:])
+        #self.file_paths = sorted(total_file_paths[num_of_valset:])
+        self.file_paths = sorted(total_file_paths)
 
         total_file_paths = []
+        #test set ===========================
         '''
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'CMU_PIE', '*'))
         total_file_paths = total_file_paths + cur_file_paths
@@ -126,9 +127,8 @@ class DL(torch.utils.data.Dataset):
         total_file_paths = total_file_paths + cur_file_paths
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'AR', '*'))
         total_file_paths = total_file_paths + cur_file_paths
-
-        #for occlusion
         '''
+        #for occlusion
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'FERET', '*'))
         total_file_paths = total_file_paths + cur_file_paths
         cur_file_paths = glob.glob(os.path.join(self.base_path, 'FERET_normal', '*'))
@@ -136,6 +136,7 @@ class DL(torch.utils.data.Dataset):
 
         # for testset
         self.val_file_paths = sorted(total_file_paths)
+
     def pil_loader(self,path):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
         with open(path, 'rb') as f:
@@ -205,7 +206,7 @@ class encoder(nn.Module):
         self.encoder.apply(weight_init)
 
 class decoder(nn.Module):
-    def __init__(self, z_size=2,channel=3, num_filters=64):
+    def __init__(self, z_size=2, channel=3, num_filters=64):
         super().__init__()
 
         self.decoder = nn.Sequential(
@@ -228,10 +229,10 @@ class decoder(nn.Module):
             nn.ConvTranspose2d(num_filters, channel, 4, 2, 1, bias=False),
             nn.Tanh()
         )
+        '''
         self.decoder_subpixel = nn.Sequential(
-
-
         )
+        '''
         # init weights
         self.weight_init()
 
@@ -355,13 +356,13 @@ def train():
         DL(options.dataroot, transform, 'test'),
         batch_size=options.batchSize, shuffle=True)
     '''
+    celebA dataset
     transform_celebA = transforms.Compose([
         transforms.CenterCrop(150),
         transforms.Scale(64),
         transforms.ToTensor(),
         transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     ])
-
     celebA_dataroot = '/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png'
     dataloader_celebA = torch.utils.data.DataLoader(CelebA_DL(celebA_dataroot, transform_celebA),
                                              batch_size=options.batchSize, shuffle=True, drop_last=False)
