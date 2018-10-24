@@ -1,9 +1,8 @@
 import cv2
 import os
 import glob as glob
-image_folder = '/home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/MG_result'
+image_folder = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN'
 
-os.system('ffmpeg -r 1 -i /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/MG_result/ours_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8" -y /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/ours_video.mp4')
-os.system('ffmpeg -r 1 -i /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/MG_result/original_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8"   -y /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/original_video.mp4')
-os.system('ffmpeg -r 1 -i /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/MG_result/ours_aae_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8" -y /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/ours_aae_video.mp4')
-os.system('ffmpeg -r 1 -i /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/MG_result/powerful_vae_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8" -y /home/leejeyeol/Git/LJY_Machine_Learning/Pytorch/GAN/pretrained_model/powerful_vae_video.mp4')
+os.system('ffmpeg -r 1 -i /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MG/gan_batch_1_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8" -y /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/gan_only.mp4')
+os.system('ffmpeg -r 1 -i /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MG/ours_batch_1_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8"   -y /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/ours.mp4')
+os.system('ffmpeg -r 1 -i /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MG/vae_batch_1_%06d.png -vcodec mpeg4 -vf scale="480:480" -framerate 1 -filter:v "setpts=PTS/8" -y /media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/vae_only.mp4')

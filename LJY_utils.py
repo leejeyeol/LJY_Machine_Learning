@@ -5,6 +5,7 @@ import glob
 import numpy as np
 import math
 import time
+import torch.nn as nn
 def torch_model_gradient(model_parameters):
     grad_list = []
     for f in model_parameters:
@@ -85,7 +86,8 @@ def weights_init(m):
         m.bias.data.fill_(0)
     elif classname.find('Linear')!=-1:
         m.weight.data.normal_(0.0, 0.02)
-        m.bias.data.fill_(0)
+
+#        nn.init.normal(m.weight.data)
 
 def make_dir(path):
     # if there is no directory, make a directory.
