@@ -89,13 +89,21 @@ def weights_init(m):
 
 #        nn.init.normal(m.weight.data)
 
-def make_dir(path):
+def make_dir(path, allow_duplication = False):
     # if there is no directory, make a directory.
     # make_dir(save_path)
     if not os.path.exists(path):
         os.makedirs(path)
         print(path+" : the save directory is maked.")
-    return
+    else:
+        if allow_duplication:
+            if not os.listdir(path):
+                #empty. reuse it.
+                path = path
+                return path
+            path = path + ':'
+            path = make_dir(path, allow_duplication)
+    return path
 
 def get_file_paths(path, separator, file_type):
     # return file list of the given type in the given path.
