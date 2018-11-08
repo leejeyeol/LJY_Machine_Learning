@@ -33,12 +33,12 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MNIST', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG'])
+parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
-parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
+parser.add_argument('--intergrationType', default='GANonly', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
 parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN'])
-parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D'])
+parser.add_argument('--ganType',  default='NoiseGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='biasedMNIST_VAEGAN', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST', help="folder to model checkpoints")
@@ -54,7 +54,7 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--epoch', type=int, default=50000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=256, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=4, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
@@ -87,7 +87,23 @@ def Variational_loss(input, target, mu, logvar):
     #print(input.data[:,1].max())
     #print(input.data[:,1].min())
     return alpha * recon_loss, beta * KLD_loss
+class ContrastiveLoss(torch.nn.Module):
+    """
+    Contrastive loss function.
+    Based on: http://yann.lecun.com/exdb/publis/pdf/hadsell-chopra-lecun-06.pdf
+    """
+    # for siamese network
+    def __init__(self, margin=2.0):
+        super(ContrastiveLoss, self).__init__()
+        self.margin = margin
 
+    def forward(self, output1, output2, label):
+        euclidean_distance = F.pairwise_distance(output1, output2)
+        loss_contrastive = torch.mean((1-label) * torch.pow(euclidean_distance, 2) +
+                                      (label) * torch.pow(torch.clamp(self.margin - euclidean_distance, min=0.0), 2))
+
+
+        return loss_contrastive
 def MGplot_seaborn(MGdset, points, epoch, iteration, total_iter):
     idx = epoch * total_iter + iteration
     points = np.asarray(points.data)
@@ -1012,7 +1028,7 @@ class decoder(nn.Module):
     def weight_init(self):
         self.decoder.apply(weight_init)
 
-class discriminator(nn.Module):
+class Discriminator(nn.Module):
     def __init__(self, num_in_channels=1,  num_filters=64):
         super().__init__()
         self.discriminator = nn.Sequential(
@@ -1040,6 +1056,33 @@ class discriminator(nn.Module):
 
     def weight_init(self):
         self.discriminator.apply(weight_init)
+
+class siamese_network(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = nn.Sequential(
+            nn.Linear(8 * 100 * 100, 500),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(500, 500),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(500, 5))
+
+        self
+        # init weights
+        self.weight_init()
+    def forward_once(self, x):
+        output = x.view(x.size()[0], -1)
+        output = self.fc1(output)
+        return output
+    def forward(self, input1, input2):
+        output1 = self.forward_once(input1)
+        output2 = self.forward_once(input2)
+        return output1, output2
+
+    def weight_init(self):
+        self.fc1.apply(weight_init)
 
 class z_discriminator(nn.Module):
     def __init__(self, N=1000, z_dim=120):
@@ -1290,7 +1333,7 @@ if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
     print(decoder)
 
     if autoencoder_type == 'RAE':
-        Recon_discriminator = discriminator(num_in_channels=1, num_filters=64)
+        Recon_discriminator = Discriminator(num_in_channels=1, num_filters=64)
         Recon_discriminator.apply(LJY_utils.weights_init)
         print(Recon_discriminator)
         Recon_discriminator.cuda()
@@ -1300,9 +1343,18 @@ if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
     elif options.ganType == 'DCGAN':
-        discriminator = discriminator(num_in_channels=1, num_filters=64)
+        discriminator = Discriminator(num_in_channels=1, num_filters=64)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
+    elif options.ganType == 'NoiseGAN':
+        discriminator = Discriminator(num_in_channels=1, num_filters=64)
+        discriminator.apply(LJY_utils.weights_init)
+        print(discriminator)
+
+        discriminator_2 = Discriminator(num_in_channels=1, num_filters=64)
+        discriminator_2.apply(LJY_utils.weights_init)
+        print(discriminator_2)
+        discriminator_2.cuda()
 
 elif options.dataset == 'CelebA':
     if options.img_size == 0:
@@ -1317,6 +1369,15 @@ elif options.dataset == 'CelebA':
         discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
+        if options.ganType == 'NoiseGAN':
+            discriminator = discriminator64x64(num_in_channels=1, num_filters=64)
+            discriminator.apply(LJY_utils.weights_init)
+            print(discriminator)
+
+            discriminator_2 = discriminator64x64(num_in_channels=1, num_filters=64)
+            discriminator_2.apply(LJY_utils.weights_init)
+            print(discriminator_2)
+            discriminator_2.cuda()
     else:
         encoder = encoder_freesize(img_size=options.img_size, num_in_channels=3, z_size=nz, num_filters=64, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
@@ -1392,6 +1453,9 @@ if autoencoder_type=='AAE' or autoencoder_type=='RAE':
     optimizer_z_Discriminator = optim.Adam(z_discriminator.parameters(), betas=(0.5, 0.999), lr=2e-3)
 if autoencoder_type=='RAE':
     optimizer_recon_Discriminator = optim.Adam(Recon_discriminator.parameters(), betas=(0.5, 0.999), lr=2e-3)
+
+if options.ganType == 'NoiseGAN':
+    optimizer_discriminator_2 = optim.Adam(discriminator_2.parameters(), betas=(0.5, 0.999), lr=2e-3)
 
 
 
@@ -1509,6 +1573,8 @@ def train():
             real_label.data.fill_(1)
             fake_label = Variable(torch.FloatTensor(batch_size).cuda())
             fake_label.data.fill_(0)
+            noise_regularizer = Variable(torch.FloatTensor(real_cpu.shape)).cuda()
+            noise_regularizer.data.fill_(1)
 
             # autoencoder part
             if options.intergrationType != 'GANonly':
@@ -1624,6 +1690,29 @@ def train():
             # adversarial training, discriminator part
             if options.intergrationType != 'AEonly': # GAN
                 optimizerDiscriminator.zero_grad()
+
+                if options.ganType  == 'NoiseGAN':
+                    d_real = discriminator_2(noise_regularizer)
+                    z = Variable(torch.FloatTensor(batch_size, nz)).cuda()
+                    z.data.normal_(0, 1)
+                    noise = decoder(z.view(batch_size, nz, 1, 1))
+                    d_fake = discriminator_2(noise)
+                    err_discriminator_real = BCE_loss(d_real.view(batch_size), real_label.view(batch_size))
+                    err_discriminator_fake = BCE_loss(d_fake.view(batch_size), fake_label.view(batch_size))
+                    err_discriminator_origin = err_discriminator_real + err_discriminator_fake
+                    err_discriminator = err_discriminator_origin
+                    err_discriminator.backward(retain_graph=True)
+                    optimizer_discriminator_2.step()
+
+                    z = Variable(torch.FloatTensor(batch_size, nz)).cuda()
+                    z.data.normal_(0, 1)
+                    noise = decoder(z.view(batch_size, nz, 1, 1))
+                    d_fake_2 = discriminator_2(noise)
+                    err_generator = BCE_loss(d_fake_2.view(batch_size), fake_label.view(batch_size))
+                    err_generator = 0.01 * err_generator
+                    optimizerD.zero_grad()
+                    err_generator.backward(retain_graph=True)
+                    optimizerD.step()
                 if options.ganType == 'small_D':
                     if autoencoder_type == 'VAE':
                         mu, logvar = encoder(disc_input)
@@ -1645,8 +1734,16 @@ def train():
                     else:
                         z = encoder(generated_fake)
                     d_fake = discriminator(z)
+
+                elif options.ganType == 'NoiseGAN':
+                    d_real = discriminator(input)
+                    z = Variable(torch.FloatTensor(batch_size, nz)).cuda()
+                    z.data.normal_(0, 1)
+                    noise = decoder(z.view(batch_size, nz, 1, 1))
+                    generated_fake = input.detach() * noise
+                    d_fake = discriminator(generated_fake)
                 else:
-                    d_real = discriminator(disc_input)
+                    d_real = discriminator(input)
                     noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
                     noise.data.normal_(0, 1)
                     generated_fake = decoder(noise.view(batch_size, nz, 1, 1))
@@ -1679,17 +1776,24 @@ def train():
                 # adversarial training, generator part
                 noise = Variable(torch.FloatTensor(batch_size, nz ,1 ,1)).cuda()
                 noise.data.normal_(0, 1)
-                generated_fake = decoder(noise)
                 if options.ganType == 'small_D':
                     if autoencoder_type == 'VAE':
+                        generated_fake = decoder(noise)
                         mu, logvar = encoder(generated_fake)
                         std = torch.exp(0.5 * logvar)
                         eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
                         z = eps.mul(std).add_(mu)
                     else:
+                        generated_fake = decoder(noise)
                         z = encoder(generated_fake)
                     d_fake_2 = discriminator(z)
+                elif options.ganType == 'NoiseGAN':
+
+                    noise = decoder(z.view(batch_size, nz, 1, 1))
+                    generated_fake = input.detach() * noise
+                    d_fake_2 = discriminator(generated_fake)
                 else:
+                    generated_fake = decoder(noise)
                     d_fake_2 = discriminator(generated_fake)
                 if recon_learn:
                     err_generator = BCE_loss(d_fake_2.view(batch_size), real_label.view(batch_size))
@@ -1720,9 +1824,13 @@ def train():
                     err_generator.backward(retain_graph=True)
                     generator_grad = LJY_utils.torch_model_gradient(decoder.parameters())
                     optimizerD.step()
+
                  #visualize
                 print('[%d/%d][%d/%d] recon_Loss: GAN  d_real: %.4f d_fake: %.4f Balance : %.2f'
                       % (epoch, options.epoch, i, len(dataloader), d_real.data.mean(), d_fake_2.data.mean(), balance_coef.data.mean()))
+                print(float(noise.data.view(noise.shape[0], -1).var(1).mean()))
+                print(float(noise.data.view(noise.shape[0], -1).mean(1).mean()))
+
             else:
                 print('[%d/%d][%d/%d] recon_Loss: AE  err: %.4f'
                       % (epoch, options.epoch, i, len(dataloader), err.data.mean()))
@@ -1874,11 +1982,9 @@ def train():
                 grad_line_win_dict = LJY_visualize_tools.draw_lines_to_windict(grad_line_win_dict,
                                                                           [
                                                                               discriminator_grad,
-                                                                              generator_grad_AE,
                                                                               generator_grad,
                                                                               0],
                                                                           [   'D gradient',
-                                                                              'G gradient_AE',
                                                                               'G gradient',
                                                                               'zero'],
                                                                           0, epoch, 0)
