@@ -33,12 +33,12 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG'])
+parser.add_argument('--dataset', default='MNIST', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
-parser.add_argument('--intergrationType', default='GANonly', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
-parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN'])
-parser.add_argument('--ganType',  default='NoiseGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN'])
+parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
+parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
+parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='biasedMNIST_VAEGAN', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST', help="folder to model checkpoints")
@@ -54,7 +54,7 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--epoch', type=int, default=50000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=4, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
@@ -1370,11 +1370,11 @@ elif options.dataset == 'CelebA':
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
         if options.ganType == 'NoiseGAN':
-            discriminator = discriminator64x64(num_in_channels=1, num_filters=64)
+            discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
             discriminator.apply(LJY_utils.weights_init)
             print(discriminator)
 
-            discriminator_2 = discriminator64x64(num_in_channels=1, num_filters=64)
+            discriminator_2 = discriminator64x64(num_in_channels=3, num_filters=64)
             discriminator_2.apply(LJY_utils.weights_init)
             print(discriminator_2)
             discriminator_2.cuda()
@@ -1470,12 +1470,13 @@ if options.cuda:
 
 # training start
 def train():
+    visualize_latent = False
     recon_learn = False
-    cycle_learn = True
-    recon_weight = 10.0
+    cycle_learn = False
+    recon_weight = 1000.0
     encoder_weight = 1.0
     decoder_weight = 1.0
-    validation_path = os.path.join(os.path.dirname(options.modelOutFolder),'%s_%s_%s'%(options.dataset,options.intergrationType,options.autoencoderType))
+    validation_path = os.path.join(os.path.dirname(options.modelOutFolder), '%s_%s_%s' % (options.dataset,options.intergrationType, options.autoencoderType))
     validation_path = LJY_utils.make_dir(validation_path, allow_duplication=True)
     save_path = os.path.join(options.modelOutFolder)
     save_path = LJY_utils.make_dir(save_path)
@@ -1592,6 +1593,26 @@ def train():
                     generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
                     optimizerE.step()
                     optimizerD.step()
+
+                    if cycle_learn:
+                        optimizerE.zero_grad()
+                        optimizerD.zero_grad()
+                        noise = Variable(torch.FloatTensor(batch_size, nz, 1, 1)).cuda()
+                        noise.data.normal_(0, 1)
+                        x = decoder(noise)
+                        mu, logvar = encoder(x)
+                        std = torch.exp(0.5 * logvar)
+                        eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                        z_recon = eps.mul(std).add_(mu)
+                        #x_recon = decoder(z_recon)
+                        #err = L1_loss(x_recon, x.detach())
+                        err1 = L1_loss(z_recon, noise.detach())
+                        err = recon_weight * (err1)
+                        err.backward(retain_graph=True)
+                        generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
+                        optimizerE.step()
+                        optimizerD.step()
+
                 elif autoencoder_type == 'AE' or autoencoder_type=='AAE':
                     optimizerE.zero_grad()
                     optimizerD.zero_grad()
@@ -1606,8 +1627,9 @@ def train():
                     generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
                     optimizerE.step()
                     optimizerD.step()
+                    err_recon = err
 
-                    if cycle_learn :
+                    if cycle_learn:
                         optimizerE.zero_grad()
                         optimizerD.zero_grad()
                         noise = Variable(torch.FloatTensor(batch_size, nz, 1, 1)).cuda()
@@ -1625,17 +1647,15 @@ def train():
                         optimizerD.step()
 
                 elif autoencoder_type == 'RAE':
-                    optimizerE.zero_grad()
-                    optimizerD.zero_grad()
                     original_input = input.detach()
                     #noised_input = add_noise(input.detach())
-                    #noised_input = input.detach()
-                    noised_input = gaussian_noise(input, is_training=True)
+                    noised_input = input.detach()
+                    #noised_input = gaussian_noise(input, is_training=True)
                     z = encoder(noised_input.detach())
                     x_recon = decoder(z)
                     for _ in range(5):
-                        real_dfimg = original_input.detach()-noised_input
-                        fake_dfimg = original_input.detach()-x_recon
+                        real_dfimg = noised_input - original_input.detach()
+                        fake_dfimg = x_recon - original_input.detach()
                         d_recon_real = Recon_discriminator(real_dfimg)
                         d_recon_fake = Recon_discriminator(fake_dfimg)
                         d_recon_err = BCE_loss(d_recon_fake.view(-1), fake_label) + BCE_loss(d_recon_real.view(-1), real_label)
@@ -1645,7 +1665,7 @@ def train():
 
                     z = encoder(noised_input.detach())
                     x_recon = decoder(z)
-                    fake_dfimg = original_input.detach() - x_recon
+                    fake_dfimg = x_recon - original_input.detach()
                     d_rcon = Recon_discriminator(fake_dfimg)
                     err = BCE_loss(d_rcon.view(-1), real_label)
 
@@ -1680,9 +1700,10 @@ def train():
 
                     generator_grad_AE += LJY_utils.torch_model_gradient(decoder.parameters())
                     optimizerE.step()
-                    print('z_real : %.4f   z_fake : %.4f    z_fake_2 : %.4f'    % (z_d_real.view(-1).data.mean(), z_d_fake.view(-1).data.mean(),
+                    print('AAE         z_real : %.4f   z_fake : %.4f    z_fake_2 : %.4f'    % (z_d_real.view(-1).data.mean(), z_d_fake.view(-1).data.mean(),
                                                                                    z_d_fake_2.view(-1).data.mean()))
-
+            print('[%d/%d][%d/%d] recon_error : %.4f'
+                  % (epoch, options.epoch, i, len(dataloader), err.mean()))
 
 
 
@@ -1709,7 +1730,7 @@ def train():
                     noise = decoder(z.view(batch_size, nz, 1, 1))
                     d_fake_2 = discriminator_2(noise)
                     err_generator = BCE_loss(d_fake_2.view(batch_size), fake_label.view(batch_size))
-                    err_generator = 0.01 * err_generator
+                    err_generator = 0.1 * err_generator
                     optimizerD.zero_grad()
                     err_generator.backward(retain_graph=True)
                     optimizerD.step()
@@ -1810,8 +1831,8 @@ def train():
                         z = eps.mul(std).add_(mu)
                     else:
                         z = encoder(input)
-                    x_recon = decoder(z)
-                    d_auto_fake = discriminator(x_recon)
+                    x = decoder(z)
+                    d_auto_fake = discriminator(x)
                     err_auto = BCE_loss(d_auto_fake.view(batch_size), real_label.view(batch_size))
                     err_auto.backward()
                     optimizerD.step()
@@ -1826,10 +1847,10 @@ def train():
                     optimizerD.step()
 
                  #visualize
-                print('[%d/%d][%d/%d] recon_Loss: GAN  d_real: %.4f d_fake: %.4f Balance : %.2f'
+                print('[%d/%d][%d/%d] d_real: %.4f d_fake: %.4f Balance : %.2f'
                       % (epoch, options.epoch, i, len(dataloader), d_real.data.mean(), d_fake_2.data.mean(), balance_coef.data.mean()))
-                print(float(noise.data.view(noise.shape[0], -1).var(1).mean()))
-                print(float(noise.data.view(noise.shape[0], -1).mean(1).mean()))
+                #print(float(noise.data.view(noise.shape[0], -1).var(1).mean()))
+                #print(float(noise.data.view(noise.shape[0], -1).mean(1).mean()))
 
             else:
                 print('[%d/%d][%d/%d] recon_Loss: AE  err: %.4f'
@@ -1866,21 +1887,18 @@ def train():
                                                                                    'recon loss',
                                                                                    'KLD loss',
                                                                                    'zero'], epoch, i, len(dataloader))
-                    elif autoencoder_type=='AAE':
+                    elif autoencoder_type == 'AAE':
                         line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
-                                                                                  [
-                                                                                      z_err_D.data.mean(),
-                                                                                      err_discriminator_real.data.mean(),
-                                                                                      err_discriminator_fake.data.mean(),
-                                                                                      err_generator.data.mean(),
-                                                                                      0],
-                                                                                  [
-                                                                                      'D_z',
-                                                                                      'D loss -real',
-                                                                                      'D loss -fake',
-                                                                                      'G loss',
-                                                                                      'zero'],
-                                                                                  epoch, i, len(dataloader))
+                                                                                  [err_discriminator_real.data.mean(),
+                                                                                   err_discriminator_fake.data.mean(),
+                                                                                   err_generator.data.mean(),
+                                                                                   err_recon.data.mean(),
+                                                                                   0],
+                                                                                  ['D loss -real',
+                                                                                   'D loss -fake',
+                                                                                   'G loss',
+                                                                                   'recon loss',
+                                                                                   'zero'], epoch, i, len(dataloader))
                     else:
                         line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
                                                                                   [
@@ -1916,20 +1934,18 @@ def train():
                                                                                       'recon loss',
                                                                                       'KLD loss',
                                                                                       'zero'], epoch, i, len(dataloader))
-                    elif autoencoder_type=='AAE':
+                    elif autoencoder_type == 'AAE':
                         line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
-                                                                                  [
-                                                                                      z_err_D.data.mean(),
-                                                                                      z_err_G.data.mean(),
-
-                                                                                      err.data.mean(),
-                                                                                      0],
-                                                                                  [
-                                                                                      'D_z',
-                                                                                      'G_z',
-                                                                                      'recon',
-                                                                                      'zero'],
-                                                                                  epoch, i, len(dataloader))
+                                                                                  [err_discriminator_real.data.mean(),
+                                                                                   err_discriminator_fake.data.mean(),
+                                                                                   err_generator.data.mean(),
+                                                                                   err_recon.data.mean(),
+                                                                                   0],
+                                                                                  ['D loss -real',
+                                                                                   'D loss -fake',
+                                                                                   'G loss',
+                                                                                   'recon loss',
+                                                                                   'zero'], epoch, i, len(dataloader))
                     else:
                         line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
                                                                                   [
@@ -1963,6 +1979,18 @@ def train():
                                                                                   'G loss',
                                                                                   'recon loss',
                                                                                   'KLD loss',
+                                                                                  'zero'], 0, epoch, 0)
+                elif autoencoder_type=='AAE':
+                    line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
+                                                                              [   err_discriminator_real.data.mean(),
+                                                                                  err_discriminator_fake.data.mean(),
+                                                                                  err_generator.data.mean(),
+                                                                                  err_recon.data.mean(),
+                                                                                  0],
+                                                                              [   'D loss -real',
+                                                                                  'D loss -fake',
+                                                                                  'G loss',
+                                                                                  'recon loss',
                                                                                   'zero'], 0, epoch, 0)
                 else:
                     line_win_dict = LJY_visualize_tools.draw_lines_to_windict(line_win_dict,
@@ -2011,46 +2039,47 @@ def train():
                                                                                   'zero'],
                                                                               0, epoch, 0)
 
-        #validation visualize
+        if options.nz == 2 and visualize_latent:
+            #validation visualize
 
-        vis_x = []
-        vis_y = []
-        vis_label = []
-        print("Validation Start!")
-        for j, (data, label) in enumerate(val_dataloader, 0):
-            real_cpu = data
-            batch_size = real_cpu.size(0)
-            input = Variable(real_cpu).cuda()
+            vis_x = []
+            vis_y = []
+            vis_label = []
+            print("Validation Start!")
+            for j, (data, label) in enumerate(val_dataloader, 0):
+                real_cpu = data
+                batch_size = real_cpu.size(0)
+                input = Variable(real_cpu).cuda()
 
 
-            if autoencoder_type == 'VAE':
-                mu, logvar = encoder(input)
-                std = torch.exp(0.5 * logvar)
-                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
-                z = eps.mul(std).add_(mu)
-            else:
-                z = encoder(input)
+                if autoencoder_type == 'VAE':
+                    mu, logvar = encoder(input)
+                    std = torch.exp(0.5 * logvar)
+                    eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                    z = eps.mul(std).add_(mu)
+                else:
+                    z = encoder(input)
 
-            zd = z.data.view(batch_size, nz)
-            for i in range(batch_size):
-                vis_x.append(zd[i][0])
-                vis_y.append(zd[i][1])
-                vis_label.append(int(label[i]))
-            print("[%d/%d]" % (j, len(val_dataloader)))
-        for j in range(int(len(val_dataloader) / 10)):
-            for i in range(batch_size):
-                vis_x.append(zd.normal_(0, 1)[i][0])
-                vis_y.append(zd.normal_(0, 1)[i][1])
-                vis_label.append(int(11))
+                zd = z.data.view(batch_size, nz)
+                for i in range(batch_size):
+                    vis_x.append(zd[i][0])
+                    vis_y.append(zd[i][1])
+                    vis_label.append(int(label[i]))
+                print("[%d/%d]" % (j, len(val_dataloader)))
+            for j in range(int(len(val_dataloader) / 10)):
+                for i in range(batch_size):
+                    vis_x.append(zd.normal_(0, 1)[i][0])
+                    vis_y.append(zd.normal_(0, 1)[i][1])
+                    vis_label.append(int(11))
 
-        fig = plt.figure()
-        plt.scatter(vis_x, vis_y, c=vis_label, s=2, cmap='rainbow')
-        cb = plt.colorbar()
-        plt.ylim(-5, 5)
-        plt.xlim(-5, 5)
-        plt.savefig(os.path.join(validation_path,
-                                 "ours_%06d.png" % epoch))
-        plt.close()
+            fig = plt.figure()
+            plt.scatter(vis_x, vis_y, c=vis_label, s=2, cmap='rainbow')
+            cb = plt.colorbar()
+            plt.ylim(-5, 5)
+            plt.xlim(-5, 5)
+            plt.savefig(os.path.join(validation_path,
+                                     "ours_%06d.png" % epoch))
+            plt.close()
 
         # do checkpointing
         if epoch % options.save_tick == 0 or options.save:
