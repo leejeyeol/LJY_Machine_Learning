@@ -33,37 +33,36 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MNIST', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG'])
+parser.add_argument('--dataset', default='CIFAR10', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
 parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
-parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN'])
+parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='biasedMNIST_VAEGAN', help="path of Encoder networks.")
+parser.add_argument('--pretrainedModelName', default='CelebA_Test1000_recon', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST', help="folder to model checkpoints")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_epoch', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--save', default=False, help='save options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--save', default=True, help='save options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=50000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=28, help='input batch size')
 parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=2, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=64, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
-
 
 parser.add_argument('--seed', type=int, help='manual seed')
 
@@ -292,6 +291,23 @@ def add_noise(ins):
     noisy_img = ins.data + noise
     return Variable(noisy_img)
 
+
+def swish(x):
+    return x * F.sigmoid(x)
+
+
+class log_gaussian:
+    def __call__(self, x, mu, var):
+        logli = -0.5 * (var.mul(2 * np.pi) + 1e-6).log() - \
+                (x - mu).pow(2).div(var.mul(2.0) + 1e-6)
+
+        return logli.sum(1).mean().mul(-1)
+
+def infogan_noise_sampler(con_c, noise):
+    con_c.data.uniform_(-1.0, 1.0)
+    noise.data.uniform_(-1.0, 1.0)
+    z = torch.cat([noise, con_c], 1).view(-1, 74, 1, 1)
+    return z
 class encoder_freesize(nn.Module):
     def __init__(self,  img_size = 224, num_in_channels=1, z_size=2, num_filters=64 ,type='AE'):
         super().__init__()
@@ -1273,6 +1289,88 @@ class MG_discriminator(nn.Module):
 
         return self.final_activation_fn(self.map3(x))
 
+
+class Info_FrontEnd(nn.Module):
+    ''' front end part of discriminator and Q'''
+
+    def __init__(self):
+        super(Info_FrontEnd, self).__init__()
+
+        self.main = nn.Sequential(
+            nn.Conv2d(1, 64, 4, 2, 1),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(128, 1024, 7, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.1, inplace=True),
+        )
+
+    def forward(self, x):
+        output = self.main(x)
+        return output
+
+
+class Info_D(nn.Module):
+
+    def __init__(self):
+        super(Info_D, self).__init__()
+
+        self.main = nn.Sequential(
+            nn.Conv2d(1024, 1, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        output = self.main(x).view(-1, 1)
+        return output
+
+
+class Info_Q(nn.Module):
+
+    def __init__(self):
+        super(Info_Q, self).__init__()
+
+        self.conv = nn.Conv2d(1024, 128, 1, bias=False)
+        self.bn = nn.BatchNorm2d(128)
+        self.lReLU = nn.LeakyReLU(0.1, inplace=True)
+        self.conv_mu = nn.Conv2d(128, 2, 1)
+        self.conv_var = nn.Conv2d(128, 2, 1)
+
+    def forward(self, x):
+        y = self.conv(x)
+
+        mu = self.conv_mu(y).squeeze()
+        var = self.conv_var(y).squeeze().exp()
+
+        return mu, var
+
+
+class Info_G(nn.Module):
+
+    def __init__(self):
+        super(Info_G, self).__init__()
+
+        self.main = nn.Sequential(
+            nn.ConvTranspose2d(74, 1024, 1, 1, bias=False),
+            nn.BatchNorm2d(1024),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(1024, 128, 7, 1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(True),
+            nn.ConvTranspose2d(64, 1, 4, 2, 1, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        output = self.main(x)
+        return output
+
+
 # xavier_init
 def weight_init(module):
     classname = module.__class__.__name__
@@ -1284,10 +1382,6 @@ def weight_init(module):
         module.bias.data.fill_(0)
     elif classname.find('Linear') != -1:
         torch.nn.init.normal(module.weight.data)
-
-
-
-
 
 # save directory make   ================================================================================================
 try:
@@ -1311,20 +1405,17 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-
 #=======================================================================================================================
 # Data and Parameters
 #=======================================================================================================================
 
 # MNIST call and load   ================================================================================================
 
-
-
 ngpu = int(options.ngpu)
 nz = int(options.nz)
 autoencoder_type = options.autoencoderType
 if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
-    encoder = encoder(num_in_channels=1, z_size=nz, num_filters=64 ,type=autoencoder_type)
+    encoder = encoder(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
     encoder.apply(LJY_utils.weights_init)
     print(encoder)
 
@@ -1471,7 +1562,7 @@ if options.cuda:
 # training start
 def train():
     visualize_latent = False
-    recon_learn = False
+    recon_learn = True
     cycle_learn = False
     recon_weight = 1000.0
     encoder_weight = 1.0
@@ -1532,6 +1623,7 @@ def train():
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
     elif options.dataset == 'HMDB51':
         dataloader = torch.utils.data.DataLoader(
             HMDB51_Dataloader(path=options.dataroot,
@@ -1821,7 +1913,7 @@ def train():
                     err_generator = decoder_weight * err_generator
                     optimizerD.zero_grad()
                     err_generator.backward(retain_graph=True)
-                    optimizerE.zero_grad()
+                    #optimizerE.zero_grad()
                     generator_grad = LJY_utils.torch_model_gradient(decoder.parameters())
 
                     if autoencoder_type == 'VAE':
@@ -1836,7 +1928,7 @@ def train():
                     err_auto = BCE_loss(d_auto_fake.view(batch_size), real_label.view(batch_size))
                     err_auto.backward()
                     optimizerD.step()
-                    optimizerE.step()
+                    #optimizerE.step()
 
                 else:
                     err_generator = BCE_loss(d_fake_2.view(batch_size), real_label.view(batch_size))
@@ -2062,14 +2154,14 @@ def train():
 
                 zd = z.data.view(batch_size, nz)
                 for i in range(batch_size):
-                    vis_x.append(zd[i][0])
-                    vis_y.append(zd[i][1])
+                    vis_x.append(float(zd[i][0]))
+                    vis_y.append(float(zd[i][1]))
                     vis_label.append(int(label[i]))
                 print("[%d/%d]" % (j, len(val_dataloader)))
             for j in range(int(len(val_dataloader) / 10)):
                 for i in range(batch_size):
-                    vis_x.append(zd.normal_(0, 1)[i][0])
-                    vis_y.append(zd.normal_(0, 1)[i][1])
+                    vis_x.append(float(zd.normal_(0, 1)[i][0]))
+                    vis_y.append(float(zd.normal_(0, 1)[i][1]))
                     vis_label.append(int(11))
 
             fig = plt.figure()
@@ -2254,6 +2346,9 @@ def visualize_latent_space():
     plt.show()
 def generate():
     num_gen = 10000
+    generate_path = os.path.join(os.path.dirname(options.modelOutFolder),
+                                   'generated_%s_%s_%s' % (options.dataset, options.intergrationType, options.autoencoderType))
+    generate_path = LJY_utils.make_dir(generate_path, allow_duplication=True)
 
     for ep in range(1,11):
         save_root = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/HMDB_OF/%d"%ep
