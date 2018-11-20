@@ -37,7 +37,7 @@ parser.add_argument('--dataset', default='CIFAR10', help='what is dataset? MG : 
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
-parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
+parser.add_argument('--autoencoderType', default='VAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='CelebA_Test1000_recon', help="path of Encoder networks.")
@@ -1073,6 +1073,130 @@ class Discriminator(nn.Module):
     def weight_init(self):
         self.discriminator.apply(weight_init)
 
+class encoder32x32(nn.Module):
+    def __init__(self, num_in_channels=1, z_size=80, type='AE'):
+        super().__init__()
+        self.type = type
+        self.encoder = nn.Sequential(
+            nn.Conv2d(num_in_channels, 64, 3, 1, 0),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(64, 128, 3, 1, 0),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(128, 256, 3, 2, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(256, 256, 3, 1, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(256, 512, 3, 1, 0),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, 512, 3, 2, 0),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, z_size, 4, 1, 0),
+
+        )
+        self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+        self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+
+    def forward(self, x):
+       if self.type == 'VAE':
+            # VAE
+            z_ = self.encoder(x)
+            mu = self.fc_mu(z_)
+            logvar = self.fc_sig(z_)
+            return mu, logvar
+       else:
+            # AE
+            z = self.encoder(x)
+            return z
+
+
+
+class decoder32x32(nn.Module):
+    def __init__(self, num_in_channels=1, z_size=80):
+        super().__init__()
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(z_size, 512, 4, 1, 0),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(512, 512, 4, 2, 0),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(512, 256, 3, 1, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(256, 256, 4, 2, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(256, 128, 3, 1, 0),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(128, 64, 3, 1, 0),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+
+            nn.ConvTranspose2d(64, num_in_channels, 3, 1, 0),
+            nn.Tanh()
+
+        )
+
+
+    def forward(self, z):
+        recon_x = self.decoder(z)
+        return recon_x
+
+class Discriminator32x32(nn.Module):
+    def __init__(self, num_in_channels=1):
+        super().__init__()
+        self.discriminator = nn.Sequential(
+            nn.Conv2d(num_in_channels, 64, 3, 1, 0),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(64, 128, 3, 1, 0),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(128, 256, 3, 2, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(256, 256, 3, 1, 0),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(256, 512, 3, 1, 0),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, 512, 3, 2, 0),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, True),
+
+            nn.Conv2d(512, 1, 4, 1, 0),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        d = self.discriminator(x)
+        return d
+
+
 class siamese_network(nn.Module):
     def __init__(self):
         super().__init__()
@@ -1504,7 +1628,18 @@ elif options.dataset == 'HMDB51_224':
 
     discriminator = discriminator224x224(1)
     print(discriminator)
+elif options.dataset == 'CIFAR10':
+    encoder = encoder32x32(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
+    encoder.apply(LJY_utils.weights_init)
+    print(encoder)
 
+    decoder = decoder32x32(num_in_channels=1, z_size=nz, num_filters=64)
+    decoder.apply(LJY_utils.weights_init)
+    print(decoder)
+
+    discriminator = Discriminator32x32(num_in_channels=1, num_filters=64)
+    discriminator.apply(LJY_utils.weights_init)
+    print(discriminator)
 elif options.dataset == 'MG':
     encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
     encoder.apply(LJY_utils.weights_init)
@@ -1564,7 +1699,7 @@ def train():
     visualize_latent = False
     recon_learn = True
     cycle_learn = False
-    recon_weight = 1000.0
+    recon_weight = 1.0
     encoder_weight = 1.0
     decoder_weight = 1.0
     validation_path = os.path.join(os.path.dirname(options.modelOutFolder), '%s_%s_%s' % (options.dataset,options.intergrationType, options.autoencoderType))
@@ -1587,6 +1722,21 @@ def train():
             batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
         val_dataloader = torch.utils.data.DataLoader(
             dset.MNIST('../../data', train=False, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+            batch_size=100, shuffle=False, num_workers=options.workers)
+    if options.dataset == 'CIFAR10':
+        dataloader = torch.utils.data.DataLoader(
+            dset.CIFAR10(root='../../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+            batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+        val_dataloader = torch.utils.data.DataLoader(
+            dset.CIFAR10('../../data', train=False, download=True,
                        transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))

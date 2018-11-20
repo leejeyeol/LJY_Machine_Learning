@@ -49,12 +49,13 @@ class Q(nn.Module):
         self.lReLU = nn.LeakyReLU(0.1, inplace=True)
         self.conv_mu = nn.Conv2d(128, nc, 1)
         self.conv_var = nn.Conv2d(128, nc, 1)
-
+        self.tanh = nn.Tanh()
     def forward(self, x):
         y = self.conv(x)
 
 
-        mu = self.conv_mu(y).squeeze()
+        mu = self.tanh(self.conv_mu(y).squeeze())
+
         var = self.conv_var(y).squeeze().exp()
 
         return mu, var
@@ -86,9 +87,9 @@ class G(nn.Module):
 class E(nn.Module):
     ''' Encoder '''
 
-    def __init__(self, nz):
+    def __init__(self, nz, type = 'VAE'):
         super(E, self).__init__()
-
+        self.type = type
         self.main = nn.Sequential(
             nn.Conv2d(1, 64, 4, 2, 1),
             nn.LeakyReLU(0.1, inplace=True),
@@ -100,11 +101,20 @@ class E(nn.Module):
             nn.LeakyReLU(0.1, inplace=True),
             nn.Conv2d(128, nz, 1)
         )
+        self.fc_mu = nn.Conv2d(nz, nz, 1)
+        self.fc_sig = nn.Conv2d(nz, nz, 1)
 
     def forward(self, x):
-        output = self.main(x).view(-1, 1)
-        return output
-
+       if self.type == 'VAE':
+            # VAE
+            z_ = self.main(x)
+            mu = self.fc_mu(z_)
+            logvar = self.fc_sig(z_)
+            return mu, logvar
+       else:
+            # AE
+            output = self.main(x).view(-1, 1)
+            return output
 
 def weights_init(m):
     classname = m.__class__.__name__

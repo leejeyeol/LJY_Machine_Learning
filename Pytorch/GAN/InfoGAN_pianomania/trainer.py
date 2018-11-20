@@ -21,9 +21,17 @@ class log_gaussian:
 
         return logli.sum(1).mean().mul(-1)
 
+reconstruction_loss = nn.MSELoss()
+def Variational_loss(input, target, mu, logvar):
+    alpha = 1
+    beta = 0.01
+    recon_loss = reconstruction_loss(input, target)
+    batch_size = logvar.data.shape[0]
+    nz = logvar.data.shape[1]
+    KLD_loss = (-0.5 * torch.sum(1+logvar-mu.pow(2) - logvar.exp()))/(nz*batch_size)
+    return alpha * recon_loss, beta * KLD_loss
 
 class Trainer:
-
     def __init__(self, G, FE, D, Q, E, nz, nc):
 
         self.G = G
@@ -37,8 +45,6 @@ class Trainer:
         self.nz = nz
 
     def _noise_sample(self, con_c, noise):
-
-
         con_c.data.uniform_(-1.0, 1.0)
         noise.data.uniform_(-1.0, 1.0)
         z = torch.cat([noise, con_c], 1).view(-1, 64, 1, 1)
@@ -58,18 +64,22 @@ class Trainer:
         noise = Variable(noise)
 
         criterionD = nn.BCELoss().cuda()
-        criterionQ_con = log_gaussian()
-
+        #criterionQ_con = log_gaussian()
+        criterionQ_con = nn.MSELoss().cuda()
+        optimE = optim.Adam([{'params': self.E.parameters()}], lr=0.001,
+                            betas=(0.5, 0.99))
         optimD = optim.Adam([{'params': self.FE.parameters()}, {'params': self.D.parameters()}], lr=0.0002,
                             betas=(0.5, 0.99))
-        optimG = optim.Adam([{'params': self.G.parameters()}, {'params': self.Q.parameters()}], lr=0.001,
+        optimG = optim.Adam([{'params': self.G.parameters()}], lr=0.001,
+                            betas=(0.5, 0.99))
+        optimQ = optim.Adam([{'params': self.Q.parameters()}], lr=0.001,
                             betas=(0.5, 0.99))
 
         dataset = dset.MNIST('./dataset', transform=transforms.ToTensor(), download=True)
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True, num_workers=1)
 
 
-        for epoch in range(100):
+        for epoch in range(50000):
             for num_iters, batch_data in enumerate(dataloader, 0):
 
                 # real part
@@ -105,19 +115,63 @@ class Trainer:
 
                 # G and Q part
                 optimG.zero_grad()
-
+                optimQ.zero_grad()
                 fe_out = self.FE(fake_x)
                 probs_fake = self.D(fe_out)
                 label.data.fill_(1.0)
 
-                reconstruct_loss = criterionD(probs_fake, label)
+                discriminator_loss = criterionD(probs_fake, label)
 
                 q_mu, q_var = self.Q(fe_out)
-                con_loss = criterionQ_con(con_c, q_mu, q_var) * 0.1
+                #con_loss = criterionQ_con(con_c, q_mu, q_var) * 0.1
+                con_loss = criterionQ_con(con_c, q_mu.detach()) * 0.1
 
-                G_loss = reconstruct_loss + con_loss
+                G_loss = discriminator_loss + con_loss
                 G_loss.backward()
                 optimG.step()
+                optimQ.step()
+
+
+                # autoencoding + regression
+                mu, logvar  = self.E(real_x)
+                std = torch.exp(0.5 * logvar)
+                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                z_encoded = eps.mul(std).add_(mu)
+
+
+                fe_out3 = self.FE(real_x)
+                q_mu, q_var = self.Q(fe_out3)
+                std = torch.exp(0.5 * torch.log(q_var))
+                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                z_c = eps.mul(std).add_(q_mu)
+
+                z = torch.cat([z_encoded.view(z_encoded.shape[0], z_encoded.shape[1]), z_c], 1).view(-1, 64, 1, 1)
+                recon_x = self.G(z)
+
+                recon_loss, KLD_loss = Variational_loss(recon_x, real_x.detach(), mu, logvar)
+                vae_loss = recon_loss + KLD_loss
+
+                fe_out4 = self.FE(recon_x)
+                probs_recon = self.D(fe_out4)
+                label.data.fill_(1)
+                loss_recon_fake = criterionD(probs_recon, label)
+
+                q_mu, q_var = self.Q(fe_out4)
+                #con_loss = criterionQ_con(z_c, q_mu.detach(), q_var.detach()) * 0.1
+                con_loss = criterionQ_con(z_c, q_mu.detach()) * 0.1
+                optimE.zero_grad()
+                optimG.zero_grad()
+                vae_loss.backward(retain_graph=True)
+                optimE.step()
+                optimG.step()
+
+                optimG.zero_grad()
+                loss_recon_fake.backward(retain_graph=True)
+                optimG.step()
+
+                optimQ.zero_grad()
+                con_loss.backward()
+                optimQ.step()
 
                 if num_iters % 100 == 0:
                     print('Epoch/Iter:{0}/{1}, Dloss: {2}, Gloss: {3}'.format(
@@ -149,4 +203,4 @@ class Trainer:
                         con_c.data.copy_(torch.from_numpy(condition[i]))
                         z = torch.cat([noise, con_c], 1).view(-1, self.nz + self.nc, 1, 1)
                         x_save = self.G(z)
-                        save_image(x_save.data, './tmp/c%d.png'%i, nrow=10)
+                        save_image(x_save.data, './tmp3/c%d.png'%i, nrow=10)

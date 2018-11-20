@@ -9,7 +9,7 @@ fe = FrontEnd()
 d = D()
 q = Q(nc)
 g = G()
-e = E(nz)
+e = E(nz, 'VAE')
 for i in [fe, d, q, g, e]:
   i.cuda()
   i.apply(weights_init)

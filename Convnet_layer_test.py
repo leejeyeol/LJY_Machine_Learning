@@ -4,13 +4,13 @@ from torch.autograd import Variable
 
 # test input
 
-tranposed = True
+tranposed = False
 
 if tranposed is False:
     batch_size = 1
-    in_channel = 1
-    width = 224
-    length = 224
+    in_channel = 3
+    width = 32
+    length = 32
 else:
     batch_size = 1
     in_channel =200
@@ -28,17 +28,17 @@ layers = []
 
 if not tranposed:
     #encoder
-    out_channel = [256, 256, 256, 256, 256, 256, 256]
-    kernel_size = [3, 3, 3, 3, 3, 3, 2]
-    stride = [2, 2, 2, 2, 2, 2, 2]  # default 1
-    padding = [1, 1, 1, 1, 0, 0, 0]  # default 0
+    out_channel = [64, 128, 256,256, 256, 512,20]
+    kernel_size = [3, 3,3, 3, 3, 3, 4]
+    stride = [1, 1, 2, 1, 1, 2, 1]  # default 1
+    padding = [0, 0, 0, 0, 0, 0 ,0]  # default 0
     layers = []
 else:
     #decoder
-    out_channel = [256,256,256,256]
-    kernel_size = [3,3,3,2]
-    stride = [2,2,2,2] #default 1
-    padding = [0,0,0,1] # default 0
+    out_channel = [512,512,256,256,256,128,64]
+    kernel_size = [4,4,3,4,3,3,3]
+    stride = [1,2,1,2,1,1,1] #default 1
+    padding = [0,0,0,0,0,0,0] # default 0
     layers = []
 
 '''
