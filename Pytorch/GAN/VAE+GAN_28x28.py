@@ -33,14 +33,14 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='CIFAR10', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
+parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
 parser.add_argument('--autoencoderType', default='VAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='CelebA_Test1000_recon', help="path of Encoder networks.")
+parser.add_argument('--pretrainedModelName', default='CelebA_Test1000vae_recon', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST', help="folder to model checkpoints")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
@@ -54,8 +54,7 @@ parser.add_argument('--workers', type=int, default=1, help='number of data loadi
 parser.add_argument('--epoch', type=int, default=50000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=28, help='input batch size')
-parser.add_argument('--imageSize', type=int, default=28, help='the height / width of the input image to network')
+parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
 parser.add_argument('--nz', type=int, default=64, help='number of input channel.')
@@ -1629,15 +1628,15 @@ elif options.dataset == 'HMDB51_224':
     discriminator = discriminator224x224(1)
     print(discriminator)
 elif options.dataset == 'CIFAR10':
-    encoder = encoder32x32(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
+    encoder = encoder32x32(num_in_channels=3, z_size=nz,type=autoencoder_type)
     encoder.apply(LJY_utils.weights_init)
     print(encoder)
 
-    decoder = decoder32x32(num_in_channels=1, z_size=nz, num_filters=64)
+    decoder = decoder32x32(num_in_channels=3, z_size=nz)
     decoder.apply(LJY_utils.weights_init)
     print(decoder)
 
-    discriminator = Discriminator32x32(num_in_channels=1, num_filters=64)
+    discriminator = Discriminator32x32(num_in_channels=3)
     discriminator.apply(LJY_utils.weights_init)
     print(discriminator)
 elif options.dataset == 'MG':
@@ -1699,7 +1698,7 @@ def train():
     visualize_latent = False
     recon_learn = True
     cycle_learn = False
-    recon_weight = 1.0
+    recon_weight = 1000.0
     encoder_weight = 1.0
     decoder_weight = 1.0
     validation_path = os.path.join(os.path.dirname(options.modelOutFolder), '%s_%s_%s' % (options.dataset,options.intergrationType, options.autoencoderType))
@@ -2496,26 +2495,66 @@ def visualize_latent_space():
     plt.show()
 def generate():
     num_gen = 10000
+    
+    celebA_imgsize = 64
+    dataloader = torch.utils.data.DataLoader(
+        custom_Dataloader(path=options.dataroot,
+                          transform=transforms.Compose([
+                              transforms.CenterCrop(150),
+                              transforms.Scale((celebA_imgsize, celebA_imgsize)),
+                       transforms.ToTensor(),
+                       transforms.Normalize((0.5,), (0.5,))
+                   ])),batch_size=1, shuffle=True, num_workers=options.workers)
+
+
     generate_path = os.path.join(os.path.dirname(options.modelOutFolder),
                                    'generated_%s_%s_%s' % (options.dataset, options.intergrationType, options.autoencoderType))
     generate_path = LJY_utils.make_dir(generate_path, allow_duplication=True)
 
-    for ep in range(1,11):
-        save_root = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/HMDB_OF/%d"%ep
-        LJY_utils.make_dir(save_root)
+    encoder.load_state_dict(
+        torch.load("/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST/CelebA_Test1000_recon_encoder_48.pth"))
+    decoder.load_state_dict(
+        torch.load("/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST/CelebA_Test1000_recon_decoder_48.pth"))
+    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    toimg = transforms.ToPILImage()
 
-        decoder.load_state_dict(
-            torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
-        unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
-        toimg = transforms.ToPILImage()
+    print("Generating Start!")
+    generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_generated"
+    for i in range(num_gen):
+        noise = Variable(torch.FloatTensor(1, nz)).cuda()
+        noise.data.normal_(0, 1)
+        generated_fake = decoder(noise.view(1, nz, 1, 1))
+        toimg(unorm(generated_fake.data[0]).cpu()).save(generate_path+"/%05d.png"%i)
+        print('[%d/%d]'%(i, num_gen))
 
-        print("Testing Start!")
-        for i in range(num_gen):
-            noise = Variable(torch.FloatTensor(1, nz)).cuda()
-            noise.data.normal_(0, 1)
-            generated_fake = decoder(noise.view(1, nz, 1, 1))
-            toimg(unorm(generated_fake.data[0]).cpu()).save(save_root+"/%05d.png"%i)
-            print('[%d/%d][%d/%d]'%(ep,10,i,num_gen))
+    for i, (data, _) in enumerate(dataloader, 0):
+        input = Variable(data).cuda()
+
+        if i <= num_gen:
+            generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon"
+            original_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon_original"
+
+            if autoencoder_type == 'VAE':
+                mu, logvar = encoder(input)
+                std = torch.exp(0.5 * logvar)
+                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                z = eps.mul(std).add_(mu)
+            else:
+                z = encoder(input)
+            x_recon = decoder(z.view(1, nz, 1, 1))
+            toimg(unorm(x_recon.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
+            toimg(unorm(input.data[0]).cpu()).save(original_path + "/%05d.png" % i)
+
+            print('[%d/%d]' % (i, num_gen))
+        else:
+            if i <= num_gen*2:
+                generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_real_sample"
+                toimg(unorm(input.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
+                print('[%d/%d]' % (i, num_gen))
+
+
+
+
 def generate_MG():
     MGdset = data_generator()
     # MGdset.random_distribution()
