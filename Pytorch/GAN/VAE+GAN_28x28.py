@@ -33,11 +33,11 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
+parser.add_argument('--dataset', default='MNIST', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
-parser.add_argument('--autoencoderType', default='VAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
+parser.add_argument('--autoencoderType', default='AE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='CelebA_Test1000vae_recon', help="path of Encoder networks.")
@@ -57,7 +57,7 @@ parser.add_argument('--epoch', type=int, default=50000, help='number of epochs t
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=64, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=2, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
@@ -1695,9 +1695,9 @@ if options.cuda:
 
 # training start
 def train():
-    visualize_latent = False
-    recon_learn = True
-    cycle_learn = False
+    visualize_latent = True
+    recon_learn = False
+    cycle_learn = True
     recon_weight = 1000.0
     encoder_weight = 1.0
     decoder_weight = 1.0
@@ -2551,6 +2551,8 @@ def generate():
                 generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_real_sample"
                 toimg(unorm(input.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
                 print('[%d/%d]' % (i, num_gen))
+            else:
+                break
 
 
 
