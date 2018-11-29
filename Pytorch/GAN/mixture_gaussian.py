@@ -9,7 +9,7 @@ class data_generator(object):
 
         n = 8
         radius = 2
-        std = 0.02
+        std = 0.1
         delta_theta = 2*np.pi / n
 
         centers_x = []

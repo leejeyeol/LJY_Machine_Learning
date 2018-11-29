@@ -169,14 +169,45 @@ def copy_2darray_into_3rd_dimension(array):
 def HWC_to_CHW_3d(array):
     return np.transpose(array, (2, 0, 1))
 
-def time_visualizer(start_time, current_time):
-    tm = current_time-start_time
-    h = int(tm)/360
-    h_ = int(tm)%360
-    m = int(h_)/60
-    m_ = int(h_)%60
-    s = int(m_)
-    return tm, "%d:%02d:%02d" % (h, m, s)
+class Time_calculator():
+    def __init__(self):
+        self.total_time_start()
+        self.mean_time = []
+
+    def total_time_start(self):
+        self.total_start_time = time.time()
+
+    def total_time_end(self):
+        self.time_print(time.time()-self.total_start_time, "total spended time")
+
+    def simple_time_start(self, string=None):
+        self.simple_start_time = time.time()
+        if string is None :
+            self.simple_time_name = 'spended time'
+        else:
+            self.simple_time_name = string
+
+    def simple_time_end(self):
+        used_time = time.time() - self.simple_start_time
+        self.mean_time.append(used_time)
+        #self.time_print(used_time, self.simple_time_name)
+        return used_time
+
+    def mean_reset(self):
+        self.mean_time = []
+    def mean_calc(self):
+        mean = np.asarray(self.mean_time).mean()
+        self.time_print(mean, 'mean time per epoch')
+        self.mean_reset()
+
+    def time_print(self, tm, string):
+        h = tm/360
+        h_ = tm%360
+        m = h_/60
+        m_ = h_%60
+        s = m_
+        print("%s is %d:%02d:%.4f" % (string, h, m, s))
+
 
 def fold_loader(fold_num, root_path):
     fold_num = int(fold_num)

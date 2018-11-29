@@ -1,5 +1,6 @@
-from torch.autograd import Variable
+'''from torch.autograd import Variable
 import pytorch_msssim
+
 import torch
 import glob as glob
 import numpy as np
@@ -31,3 +32,20 @@ for i in range(num_of_imgs):
     print("%0.3f    %0.3f    %0.3f    %0.3f"%(img1.data.min(),img1.data.max(),img2.data.min(),img2.data.max()))
 
     #print(m(img1, img2))
+'''
+
+import numpy as np
+
+import matplotlib.pyplot as plt
+data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/plot/data/real-generated.npy')
+
+#data = np.stack((data1,data2,data3,data4,data5),1)
+
+plt.boxplot(data1, notch=False, patch_artist=False)
+#plt.xlabel('methods')
+plt.ylabel('time per iteration (%)')
+#my_xticks = ['DCGAN','Ours(*)','Ours+Reconstruction','Ours_AAE','alpha-GAN']
+#plt.xticks([1, 2, 3, 4,5],my_xticks)
+plt.tight_layout()
+plt.show()
+#plt.savefig('/home/leejeyeol/Experiments/e_nose/test.eps')
