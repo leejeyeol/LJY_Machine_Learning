@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 # time
 
+
+'''
 data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_time/gans.npy')
 data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_time/ours.npy')
 data3=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_time/ours+recon_learn.npy')
@@ -20,10 +22,10 @@ my_xticks = ['DCGAN', 'Ours(*)', 'Ours+Reconstruction', 'Ours_AAE', 'alpha-GAN']
 #MS-SSIM
 data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/gans_9.npy')
 data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/ours_9.npy')
-data3=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/bases_9.npy')
-data = np.stack((data1,data2,data3),1)
-my_xticks = ['DCGAN', 'Ours(*)', 'alpha-GAN']
-'''
+#data3=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/bases_9.npy')
+data = np.stack((data1,data2),1)
+my_xticks = ['DCGAN', 'Ours(*)']
+
 
 '''
 # Wasserstein Critic

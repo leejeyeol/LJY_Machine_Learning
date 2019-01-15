@@ -5,6 +5,7 @@ result/*.*
 *.pth
 *-ubyte
 *.pyc
+*.csv
 CIFAR10/*
 *.mp4
 *.pt

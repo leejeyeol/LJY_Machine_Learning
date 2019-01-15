@@ -34,32 +34,32 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
-parser.add_argument('--dataset', default='MG', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
+parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
-parser.add_argument('--intergrationType', default='GAN_only', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
+parser.add_argument('--intergrationType', default='GANonly', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
 parser.add_argument('--autoencoderType', default='GAN', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
-parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
-parser.add_argument('--pretrainedModelName', default='gans_MG', help="path of Encoder networks.")
-parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN', help="folder to model checkpoints")
+parser.add_argument('--pretrainedEpoch', type=int, default=50, help="path of Decoder networks. '0' is training from scratch.")
+parser.add_argument('--pretrainedModelName', default='Base_CelebA', help="path of Encoder networks.")
+parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/Final_exp', help="folder to model checkpoints. WC_lite_VAEGAN")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--WassersteinCritic', default=False, help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--save', default=True, help='save options. default:False.')
+parser.add_argument('--save', default=False, help='save options. default:False.')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=100000, help='number of epochs to train for')
 
 # these options are saved for testing
-parser.add_argument('--batchSize', type=int, default=512, help='input batch size')
+parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=256, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=64, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
@@ -72,6 +72,13 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 
 options = parser.parse_args()
 print(options)
+
+if options.intergrationType == 'GANonly':
+    csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_GAN_result.csv")
+else:
+    csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_result.csv")
+csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'], save_path=csv_path)
+
 
 # criterion set
 BCE_loss = nn.BCELoss()
@@ -112,10 +119,11 @@ def MGplot_seaborn(MGdset, points, epoch, iteration, total_iter):
     ax.set_facecolor(bg_color)
 
     kde = ax.get_figure()
-    kde.savefig(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/GAN_MG_visualize',"seaborn_%06d.png" % idx))
+    kde.savefig(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MG_visualize_tanh',"seaborn_%06d.png" % idx))
     #kde.close()
 
 def MGplot(MGdset, points, epoch, iteration, total_iter,seaborn=False):
+    points = points.cpu().data.numpy()
     if seaborn :
         MGplot_seaborn(MGdset, points, epoch, iteration, total_iter)
     idx = epoch * total_iter + iteration
@@ -124,7 +132,7 @@ def MGplot(MGdset, points, epoch, iteration, total_iter,seaborn=False):
     plt.scatter(MGdset.centers[:, 0], MGdset.centers[:, 1], s=100, c='g', alpha=0.5)
     plt.ylim(-5, 5)
     plt.xlim(-5, 5)
-    plt.savefig(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/GAN_MG_visualize',"ours_%06d.png" % idx))
+    plt.savefig(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MG_visualize_tanh',"ours_%06d.png" % idx))
     plt.close()
 
 class HMDB51_Dataloader(torch.utils.data.Dataset):
@@ -1214,8 +1222,6 @@ class encoder32x32(nn.Module):
             z = self.encoder(x)
             return z
 
-
-
 class decoder32x32(nn.Module):
     def __init__(self, num_in_channels=1, z_size=80):
         super().__init__()
@@ -1289,34 +1295,6 @@ class Discriminator32x32(nn.Module):
     def forward(self, x):
         d = self.discriminator(x)
         return d
-
-
-class siamese_network(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.fc1 = nn.Sequential(
-            nn.Linear(8 * 100 * 100, 500),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(500, 500),
-            nn.ReLU(inplace=True),
-
-            nn.Linear(500, 5))
-
-        self
-        # init weights
-        self.weight_init()
-    def forward_once(self, x):
-        output = x.view(x.size()[0], -1)
-        output = self.fc1(output)
-        return output
-    def forward(self, input1, input2):
-        output1 = self.forward_once(input1)
-        output2 = self.forward_once(input2)
-        return output1, output2
-
-    def weight_init(self):
-        self.fc1.apply(weight_init)
 
 class z_discriminator(nn.Module):
     def __init__(self, N=1000, z_dim=120):
@@ -1967,10 +1945,10 @@ def train():
     save_path = LJY_utils.make_dir(save_path)
     ep = options.pretrainedEpoch
     if ep != 0:
-        encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
-        decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+        #encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
+        #decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
         discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
-        z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
+        #z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
     if options.dataset == 'MNIST':
         dataloader = torch.utils.data.DataLoader(
             dset.MNIST(root='../../data', train=True, download=True,
@@ -2065,7 +2043,7 @@ def train():
         MGdset=data_generator()
         #MGdset.random_distribution()
         MGdset.uniform_distribution()
-        dataloader = torch.utils.data.DataLoader(MG_Dataloader(1024, MGdset),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+        dataloader = torch.utils.data.DataLoader(MG_Dataloader(512, MGdset),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
 
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
 
@@ -2406,8 +2384,9 @@ def train():
             spend_time = time_calc.simple_time_end()
             spend_time_log.append(spend_time)
 
-
-
+            if options.intergrationType == 'GANonly':
+                generator_grad_AE = 0
+            csv_saver.add_column([discriminator_grad, generator_grad_AE, generator_grad, 0])
             if options.display:
                 if options.dataset != 'MG':
                     if options.intergrationType == 'GANonly':
@@ -2609,6 +2588,7 @@ def train():
                                                                               'W_Critic',
                                                                               'zero'],
                                                                           0, epoch, 0)
+        csv_saver.save()
         time_calc.mean_calc()
 
         if options.nz == 2 and visualize_latent:
@@ -2654,7 +2634,8 @@ def train():
             plt.close()
 
         # do checkpointing
-        if epoch % options.save_tick == 0 or options.save:
+        if epoch % options.save_tick == 0 and options.save:
+
             torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
             torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
@@ -2773,12 +2754,13 @@ def test(modelname,ep):
     #plt.show()
 
 def visualize_latent_space_2d():
-    ep = 10
-    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    ep = 500
+    modelname = 'GAN_MNIST'
+    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5,), std=(0.5,))
     decoder.load_state_dict(
-        torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+        torch.load(os.path.join(options.modelOutFolder, modelname + "_decoder" + "_%d.pth" % ep)))
 
-    num_range = 20
+    num_range = 9
     x = range(-num_range, num_range)
     y = range(-num_range, num_range)
     image = torch.FloatTensor()
@@ -2799,7 +2781,8 @@ def visualize_latent_space_2d():
         else:
             image = torch.cat((image, x_image), 3)
     img = np.asarray(unorm(image.view(image.shape[2], image.shape[3])))
-    plt.imshow(img)
+    plt.axis('off')
+    plt.imshow(img, cmap = 'gray')
     plt.show()
 
 def visualize_latent_space():
@@ -2856,16 +2839,86 @@ def generate():
     toimg = transforms.ToPILImage()
 
     print("Generating Start!")
-    generate_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d"%(case,ep)
+    #generate_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d"%(case,ep)
+    generate_save_path ='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/latent_walk'
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
 
+    four_indeces = [939, 949, 2411, 7695]
+    four_zs = []
+    for i in range(4):
+        four_zs.append(np.load(os.path.join(generate_save_path,'%05d.npy')%four_indeces[i]))
+
+    latent_vectors = [[[] for _ in range(9)] for _ in range(9)]
+    latent_vectors[0][0] = four_zs[0]
+    latent_vectors[0][8] = four_zs[1]
+    latent_vectors[8][0] = four_zs[2]
+    latent_vectors[8][8] = four_zs[3]
+
+
+    latent_vectors[0][4] = (latent_vectors[0][0] + latent_vectors[0][8]) / 2
+
+    latent_vectors[0][2] = (latent_vectors[0][0] + latent_vectors[0][4]) / 2
+    latent_vectors[0][6] = (latent_vectors[0][4] + latent_vectors[0][8]) / 2
+
+    latent_vectors[0][1] = (latent_vectors[0][0] + latent_vectors[0][2]) / 2
+    latent_vectors[0][3] = (latent_vectors[0][2] + latent_vectors[0][4]) / 2
+    latent_vectors[0][5] = (latent_vectors[0][4] + latent_vectors[0][6]) / 2
+    latent_vectors[0][7] = (latent_vectors[0][6] + latent_vectors[0][8]) / 2
+
+    latent_vectors[8][4] = (latent_vectors[8][0] + latent_vectors[8][8]) / 2
+
+    latent_vectors[8][2] = (latent_vectors[8][0] + latent_vectors[8][4]) / 2
+    latent_vectors[8][6] = (latent_vectors[8][4] + latent_vectors[8][8]) / 2
+
+    latent_vectors[8][1] = (latent_vectors[8][0] + latent_vectors[8][2]) / 2
+    latent_vectors[8][3] = (latent_vectors[8][2] + latent_vectors[8][4]) / 2
+    latent_vectors[8][5] = (latent_vectors[8][4] + latent_vectors[8][6]) / 2
+    latent_vectors[8][7] = (latent_vectors[8][6] + latent_vectors[8][8]) / 2
+
+    for i in range(9):
+        latent_vectors[4][i] = (latent_vectors[0][i] + latent_vectors[8][i]) / 2
+
+        latent_vectors[2][i] = (latent_vectors[0][i] + latent_vectors[4][i]) / 2
+        latent_vectors[6][i] = (latent_vectors[4][i] + latent_vectors[8][i]) / 2
+
+        latent_vectors[1][i] = (latent_vectors[0][i] + latent_vectors[2][i]) / 2
+        latent_vectors[3][i] = (latent_vectors[2][i] + latent_vectors[4][i]) / 2
+        latent_vectors[5][i] = (latent_vectors[4][i] + latent_vectors[6][i]) / 2
+        latent_vectors[7][i] = (latent_vectors[6][i] + latent_vectors[8][i]) / 2
+
+    num_range = 9
+    image = torch.FloatTensor()
+    for i in range(num_range):
+        x_image = torch.FloatTensor()
+        for j in range(num_range):
+            z = latent_vectors[i][j]
+            z = Variable(torch.from_numpy(z)).cuda()
+            recon_x = decoder(z.view(z.shape[0], z.shape[1], 1, 1))
+            recon_x = unorm(recon_x.data)
+            if len(x_image) == 0:
+                x_image = recon_x
+            else:
+                x_image = torch.cat((x_image, recon_x), 2)
+        if len(image) == 0:
+            image = x_image
+        else:
+            image = torch.cat((image, x_image), 3)
+
+    img = np.asarray(unorm(image.view(image.shape[1],image.shape[2],image.shape[3]).permute(1,2,0)))
+    plt.axis('off')
+    plt.imshow(img)
+    plt.show()
+    '''
+    # generator(Vanilar)
     for i in range(num_gen):
         noise = Variable(torch.FloatTensor(1, nz)).cuda()
         noise.data.normal_(0, 1)
         generated_fake = decoder(noise.view(1, nz, 1, 1))
+        np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
+
         toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_path+"/%05d.png"%i)
         print('[%d/%d]'%(i, num_gen))
-
+    '''
     # real sample generator
     '''
     real_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_real_sample_%d"%(case,ep)
@@ -2977,9 +3030,3 @@ if __name__ == "__main__" :
     #tsne()
     #visualize_latent_space_2d()
     #generate()
-    #generate_MG()
-    #Wassesrstein_Critic()
-
-
-# Je Yeol. Lee \[T]/
-# Jolly Co-operation.tolist()
