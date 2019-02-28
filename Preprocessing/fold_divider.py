@@ -16,7 +16,7 @@ path_roots_to_divide = ['/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/dept
                    '/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train/img_ppm']
 save_path = '/media/leejeyeol/74B8D3C8B8D38750/Data/KITTI_train'
 num_fold = 10
-save_path = os.path.join(save_path, "fold_%d"%num_fold)
+save_path = os.path.join(save_path, "fold_%d" % num_fold)
 LJY_utils.make_dir(save_path)
 num_dataset = len(path_roots_to_divide)
 

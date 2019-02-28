@@ -20,11 +20,11 @@ my_xticks = ['DCGAN', 'Ours(*)', 'Ours+Reconstruction', 'Ours_AAE', 'alpha-GAN']
 '''
 
 #MS-SSIM
-data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/gans_9.npy')
-data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/ours_9.npy')
+data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic/Ours_9_36.npy')
+data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic/Base_9_36.npy')
 #data3=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/bases_9.npy')
-data = np.stack((data1,data2),1)
-my_xticks = ['DCGAN', 'Ours(*)']
+data = np.stack((-data1,-data2),1)
+my_xticks = ['Base', 'Ours(*)']
 
 
 '''
@@ -37,7 +37,7 @@ my_xticks = ['DCGAN', 'Ours(*)', 'alpha-GAN']
 '''
 plt.boxplot(data, notch=False, patch_artist=False, showmeans= True,showfliers=False)
 #plt.xlabel('methods')
-plt.ylabel('time per iteration (%)')
+plt.ylabel('w-critic')
 plt.xticks([i+1 for i in range(len(my_xticks))], my_xticks)
 plt.tight_layout()
 plt.show()

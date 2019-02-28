@@ -6,7 +6,7 @@ import numpy as np
 import math
 import time
 import csv
-
+import random
 class Deep_Learning_CSV_Saver():
     '''
     # Usage
@@ -262,3 +262,22 @@ def fold_loader(fold_num, root_path):
 
     val_paths = np.load(fold_list[fold_num])
     return train_paths, val_paths
+
+def tvt_divider(cur_file_paths, train_ratio = 4, val_ratio = 1, test_ratio = 1, seed = 1111):
+    #self.file_paths, self.val_paths, self.test_paths = LJY_utils.tvt_divider(cur_file_paths, train_ratio=4, val_ratio=1,test_ratio=1)
+    random.seed(seed)
+    random.shuffle(cur_file_paths)
+    num_dataset = len(cur_file_paths)
+    total_ratio = train_ratio + val_ratio + test_ratio
+
+    train_idx = int(num_dataset / total_ratio * train_ratio)
+    val_idx = train_idx + int(num_dataset / total_ratio * val_ratio)
+
+    return cur_file_paths[: train_idx], cur_file_paths[train_idx: val_idx], cur_file_paths[val_idx:]
+
+def cuda(xs):
+    if torch.cuda.is_available():
+        if not isinstance(xs, (list, tuple)):
+            return xs.cuda()
+        else:
+            return [x.cuda() for x in xs]

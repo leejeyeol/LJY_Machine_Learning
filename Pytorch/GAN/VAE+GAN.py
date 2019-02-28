@@ -37,19 +37,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
-parser.add_argument('--intergrationType', default='GANonly', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
-parser.add_argument('--autoencoderType', default='GAN', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
+parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
+parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
-parser.add_argument('--pretrainedEpoch', type=int, default=50, help="path of Decoder networks. '0' is training from scratch.")
+parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='Base_CelebA', help="path of Encoder networks.")
-parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/Final_exp', help="folder to model checkpoints. WC_lite_VAEGAN")
+parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic', help="folder to model checkpoints. WC_lite_VAEGAN")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--WassersteinCritic', default=False, help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--save', default=False, help='save options. default:False.')
+parser.add_argument('--save', default=True, help='save options. default:False.')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
@@ -245,7 +245,7 @@ class MG_Dataloader(torch.utils.data.Dataset):
 class custom_Dataloader(torch.utils.data.Dataset):
     def __init__(self, path, transform, type='train'):
         super().__init__()
-        self.type=type
+        self.type = type
         self.transform = transform
 
         assert os.path.exists(path)
@@ -253,13 +253,12 @@ class custom_Dataloader(torch.utils.data.Dataset):
 
         #self.mean_image = self.get_mean_image()
 
-        cur_file_paths = glob.glob(self.base_path + '/*.*')
+        cur_file_paths = glob.glob(self.base_path + '/*.png')
         cur_file_paths.sort()
-        self.file_paths = cur_file_paths[:-60000]
-        self.val_paths = cur_file_paths[-60000:-20000]
-        self.test_paths = cur_file_paths[-20000:]
 
-    def pil_loader(self,path):
+        self.file_paths, self.val_paths, self.test_paths = LJY_utils.tvt_divider(cur_file_paths, train_ratio=4, val_ratio=1, test_ratio=1)
+
+    def pil_loader(self, path):
         # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
         with open(path, 'rb') as f:
             with Image.open(f) as img:
@@ -1933,8 +1932,8 @@ if options.WassersteinCritic == True:
 
 # training start
 def train():
-    visualize_latent = True
-    recon_learn = False
+    visualize_latent = False
+    recon_learn = True
     cycle_learn = False
     recon_weight = 1.0
     encoder_weight = 1.0
@@ -1945,10 +1944,10 @@ def train():
     save_path = LJY_utils.make_dir(save_path)
     ep = options.pretrainedEpoch
     if ep != 0:
-        #encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
-        #decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+        encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
+        decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
         discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
-        #z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
+        z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
     if options.dataset == 'MNIST':
         dataloader = torch.utils.data.DataLoader(
             dset.MNIST(root='../../data', train=True, download=True,
@@ -2009,7 +2008,7 @@ def train():
                                   transforms.Scale((celebA_imgsize, celebA_imgsize)),
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
-                       ])),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+                       ]), type = 'train'),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
         if options.WassersteinCritic == True:
             WC_dataloader = torch.utils.data.DataLoader(
                 custom_Dataloader(path=options.dataroot,
