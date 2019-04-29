@@ -88,9 +88,13 @@ elif options.preset == 'ours' :
     recon_learn = False
     options.autoencoderType = 'VAE'
 
-elif options.preset == 'ours':
+elif options.preset == 'alpha-gan':
+    recon_learn = True
+    options.autoencoderType = 'VAE'
 
-elif options.preset == 'ours':
+elif options.preset == 'dcgan':
+    recon_learn = False
+    options.autoencoderType = 'GAN'
 else :
     print('wrong preset error')
     sys.exit(1)
