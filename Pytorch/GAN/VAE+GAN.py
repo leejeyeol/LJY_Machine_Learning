@@ -16,6 +16,7 @@ import numpy as np
 import copy
 import math
 import glob as glob
+import sys
 
 from PIL import Image
 from sklearn.manifold import TSNE
@@ -34,15 +35,16 @@ plt.style.use('ggplot')
 #=======================================================================================================================
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
+parser.add_argument('--preset', default='None', help='', choices=['None','ours','dcgan','alpha-gan'])
 parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
-parser.add_argument('--dataroot', default='/media/leejeyeol/74B8D3C8B8D38750/Data/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
+parser.add_argument('--dataroot', default='/home/mlpa/Workspace/dataset/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
 parser.add_argument('--autoencoderType', default='AAE', help='additional autoencoder type.',  choices=['AE', 'VAE', 'AAE', 'GAN', 'RAE'])
 parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder type. "GAN" use DCGAN only', choices=['DCGAN','small_D','NoiseGAN','InfoGAN'])
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='Base_CelebA', help="path of Encoder networks.")
-parser.add_argument('--modelOutFolder', default='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic', help="folder to model checkpoints. WC_lite_VAEGAN")
+parser.add_argument('--modelOutFolder', default='/home/mlpa/Workspace/experimental_result/LJY/VAEGAN', help="folder to model checkpoints. WC_lite_VAEGAN")
 parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
@@ -73,12 +75,34 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 options = parser.parse_args()
 print(options)
 
+visualize_latent = False
+recon_learn = True
+cycle_learn = False
+recon_weight = 1.0
+encoder_weight = 1.0
+decoder_weight = 1.0
+
+if options.preset == 'None':
+    pass
+elif options.preset == 'ours' :
+    recon_learn = False
+    options.autoencoderType = 'VAE'
+
+elif options.preset == 'ours':
+
+elif options.preset == 'ours':
+else :
+    print('wrong preset error')
+    sys.exit(1)
+
+
+
+
 if options.intergrationType == 'GANonly':
     csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_GAN_result.csv")
 else:
     csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_result.csv")
 csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'], save_path=csv_path)
-
 
 # criterion set
 BCE_loss = nn.BCELoss()
@@ -1507,7 +1531,6 @@ class Info_FrontEnd(nn.Module):
         output = self.main(x)
         return output
 
-
 class Info_D(nn.Module):
 
     def __init__(self):
@@ -1521,7 +1544,6 @@ class Info_D(nn.Module):
     def forward(self, x):
         output = self.main(x).view(-1, 1)
         return output
-
 
 class Info_Q(nn.Module):
 
@@ -1541,7 +1563,6 @@ class Info_Q(nn.Module):
         var = self.conv_var(y).squeeze().exp()
 
         return mu, var
-
 
 class Info_G(nn.Module):
 
@@ -1565,7 +1586,6 @@ class Info_G(nn.Module):
     def forward(self, x):
         output = self.main(x)
         return output
-
 
 class DCGAN_E_nobn(nn.Module):
     def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0, type = 'AE'):
@@ -1932,12 +1952,7 @@ if options.WassersteinCritic == True:
 
 # training start
 def train():
-    visualize_latent = False
-    recon_learn = True
-    cycle_learn = False
-    recon_weight = 1.0
-    encoder_weight = 1.0
-    decoder_weight = 1.0
+
     validation_path = os.path.join(os.path.dirname(options.modelOutFolder), '%s_%s_%s' % (options.dataset,options.intergrationType, options.autoencoderType))
     validation_path = LJY_utils.make_dir(validation_path, allow_duplication=True)
     save_path = os.path.join(options.modelOutFolder)
