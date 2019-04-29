@@ -22,7 +22,7 @@ from PIL import Image
 from sklearn.manifold import TSNE
 import seaborn as sns
 import matplotlib.pyplot as plt
-from Pytorch.GAN.mixture_gaussian import data_generator
+#from Pytorch.GAN.mixture_gaussian import data_generator
 
 import LJY_utils
 import LJY_visualize_tools
