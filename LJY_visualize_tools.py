@@ -54,11 +54,12 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
     # epoch * total_iter + iteration
 
     num_of_values = len(value_list)
-    value_list = np.asarray(value_list)
-    if str(type(value_list)) !="<class 'numpy.ndarray'>":
-        if value_list.is_cuda :
-            value_list = value_list.cpu()
-        np.asarray(value_list)
+    for (i, value_tensor) in  enumerate(value_list):
+        if value_tensor.is_cuda :
+            value_tensor = value_tensor.cpu()
+        np.asarray(value_tensor)
+        value_list[i] = value_tensor
+
     print(type(value_list))
     print(type(value_list[0]))
     if type(win_dict) == dict:
