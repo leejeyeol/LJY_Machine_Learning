@@ -56,6 +56,7 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
     num_of_values = len(value_list)
     print(type(value_list))
     print(type(value_list[0]))
+    print(value_list.is_cuda)
 
     for i in range(len(value_list)):
         if value_list[i].is_cuda :
