@@ -55,6 +55,8 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
 
     num_of_values = len(value_list)
     value_list = np.asarray(value_list)
+    if value_list.is_cuda :
+        value_list = value_list.cpu()
 
     if type(win_dict) == dict:
         # first. line plots
