@@ -89,14 +89,15 @@ if options.preset == 'None':
 elif options.preset == 'ours' :
     recon_learn = False
     options.autoencoderType = 'VAE'
-
+    pretrainedModelName = options.preset+'_'+options.dataset
 elif options.preset == 'alpha-gan':
     recon_learn = True
     options.autoencoderType = 'VAE'
-
+    pretrainedModelName = options.preset + '_' + options.dataset
 elif options.preset == 'dcgan':
     recon_learn = False
     options.autoencoderType = 'GAN'
+    pretrainedModelName = options.preset + '_' + options.dataset
 else :
     print('wrong preset error')
     sys.exit(1)
