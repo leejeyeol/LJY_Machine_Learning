@@ -38,7 +38,7 @@ plt.style.use('ggplot')
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--preset', default='None', help='', choices=['None','ours','dcgan','alpha-gan'])
-parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
+parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA','CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/home/mlpa/Workspace/dataset/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
 parser.add_argument('--intergrationType', default='intergration', help='additional autoencoder type.', choices=['AEonly', 'GANonly', 'intergration'])
