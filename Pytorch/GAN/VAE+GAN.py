@@ -19,8 +19,10 @@ import glob as glob
 import sys
 
 from PIL import Image
-from sklearn.manifold import TSNE
-import seaborn as sns
+
+#from sklearn.manifold import TSNE
+#import seaborn as sns
+
 import matplotlib.pyplot as plt
 #from Pytorch.GAN.mixture_gaussian import data_generator
 
