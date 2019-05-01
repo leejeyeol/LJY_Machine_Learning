@@ -59,6 +59,7 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
     print(value_list[0].is_cuda)
 
     for i in range(len(value_list)):
+        print(type(value_list[i]))
         if value_list[i].is_cuda :
             value_list[i] = value_list[i].cpu()
         np.asarray(value_list[i])
