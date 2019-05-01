@@ -57,7 +57,7 @@ def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, t
     print(type(value_list))
     print(type(value_list[0]))
 
-    for (i, value_tensor) in  enumerate(value_list):
+    for (value_tensor, i) in  enumerate(value_list):
 
         if value_tensor.is_cuda :
             value_tensor = value_tensor.cpu()
