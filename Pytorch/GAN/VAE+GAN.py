@@ -3065,7 +3065,8 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
 
     print("Test start")
-
+    correct = 0
+    total = 0
     for i, (data, _) in enumerate(dataloader, 0):
         real_cpu = data
         batch_size = real_cpu.size(0)
@@ -3080,7 +3081,12 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
         d_main_test = discriminator(input)
         d_ct_test = discriminator(disc_input)
+
         print(torch.round(d_ct_test))
+        total += real_label.size(0)
+        correct += (d_ct_test == real_label).sum().item()
+        print('Accuracy of the network on the 10000 test images: %d %%' % (
+                100 * correct / total))
 
         noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
         noise.data.normal_(0, 1)
