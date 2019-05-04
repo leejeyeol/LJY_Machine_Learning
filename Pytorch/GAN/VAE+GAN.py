@@ -2999,6 +2999,8 @@ def generate():
 
 
 def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
+    # https://arxiv.org/pdf/1602.05110.pdf%5D
+
     if comparison_model == 'ours':
         pretrainedModelName_ct = comparison_model + '_' + options.dataset
     elif comparison_model == 'alpha-gan':
@@ -3097,19 +3099,23 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
         total += real_label.size(0)
 
-        correct_main_real += (torch.round(d_main_real) == real_label).sum().item()
+        correct_main_real += (torch.round(d_main_real) != real_label).sum().item()
         print('main_real : %f %%' % (100 * correct_main_real / total))
-        correct_ct_real += (torch.round(d_ct_real) == real_label).sum().item()
+        correct_ct_real += (torch.round(d_ct_real) != real_label).sum().item()
         print('ct_real : %f %%' % (100 * correct_ct_real / total))
-        correct_main_swap += (torch.round(d_main_swap) == fake_label).sum().item()
+        correct_main_swap += (torch.round(d_main_swap) != fake_label).sum().item()
         print('main_swap : %f %%' % (100 * correct_main_swap / total))
-        correct_ct_swap += (torch.round(d_ct_swap) == fake_label).sum().item()
+        correct_ct_swap += (torch.round(d_ct_swap) != fake_label).sum().item()
         print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
 
         # visualize
         print('[%d/%d]'% (i, len(dataloader)))
     print('R_test : %f '%((correct_main_real / total)/(correct_ct_real / total) ))
     print('R_sample : %f'%((correct_main_swap / total)/(correct_ct_swap / total)))
+
+    # when R_test is close to 1 : this condition assures that none of the discriminator is overfitted more than the other.
+    # R_sample < 1 : main is better
+    # R_sample > 1 : comparison target is better
 
 
 
