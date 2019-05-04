@@ -3078,8 +3078,7 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
         fake_label.data.fill_(0)
 
 
-        optimizerDiscriminator.zero_grad()
-        d_main_test = discriminator()
+        d_main_test = discriminator(input)
         d_ct_test = discriminator(disc_input)
         print(d_main_swap)
 
