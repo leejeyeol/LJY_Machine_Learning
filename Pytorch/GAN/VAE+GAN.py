@@ -3169,7 +3169,7 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        GAM('GAN')
+        GAM('ours')
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
