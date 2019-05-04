@@ -93,7 +93,7 @@ if options.preset == 'None':
 elif options.preset == 'ours' :
     recon_learn = False
     options.autoencoderType = 'VAE'
-    options.pretrainedModelName = options.preset+'_'+options.dataset
+    options.pretrainedModelName = options.preset + '_' +options.dataset
 elif options.preset == 'alpha-gan':
     recon_learn = True
     options.autoencoderType = 'VAE'
@@ -1920,6 +1920,18 @@ def model_init(autoencoder_type):
         W_critic.apply(LJY_utils.weights_init)
         print(W_critic)
 
+    if options.cuda:
+        encoder.cuda()
+        decoder.cuda()
+        discriminator.cuda()
+        z_discriminator.cuda()
+        MSE_loss.cuda()
+        BCE_loss.cuda()
+
+        if options.WassersteinCritic == True:
+            W_critic.cuda()
+            optimizerW_critic = optim.Adam(W_critic.parameters(), betas=(0.5, 0.999), lr=0.00005)
+
     return  encoder, decoder,discriminator, z_discriminator
 #=======================================================================================================================
 # Data and Parameters
@@ -1960,18 +1972,6 @@ if options.ganType == 'NoiseGAN':
     optimizer_discriminator_2 = optim.Adam(discriminator_2.parameters(), betas=(0.5, 0.999), lr=2e-3)
 
 
-
-if options.cuda:
-    encoder.cuda()
-    decoder.cuda()
-    discriminator.cuda()
-    z_discriminator.cuda()
-    MSE_loss.cuda()
-    BCE_loss.cuda()
-
-if options.WassersteinCritic == True:
-    W_critic.cuda()
-    optimizerW_critic = optim.Adam(W_critic.parameters(), betas=(0.5, 0.999), lr=0.00005)
 
 
 # training start
@@ -2852,7 +2852,6 @@ def visualize_latent_space():
     plt.show()
 def generate():
     num_gen = 10000
-    
     celebA_imgsize = 64
     dataloader = torch.utils.data.DataLoader(
         custom_Dataloader(path=options.dataroot,
@@ -2999,10 +2998,19 @@ def generate():
     '''
 
 
-def GAM(comparison_target):
-    comparison_target = comparison_target
-    #load main models G and D(done.)
-    #load CT models G and D
+def GAM(comparison_model, comparision_epoch=options.epoch):
+    if comparison_model == 'ours':
+        pretrainedModelName_ct = comparison_model + '_' + options.dataset
+    elif comparison_model == 'alpha-gan':
+        pretrainedModelName_ct = comparison_model + '_' + options.dataset
+    elif options.preset == 'dcgan':
+        pretrainedModelName_ct = comparison_model + '_' + options.dataset
+    else:
+        print('wrong comparison_model error')
+        sys.exit(1)
+
+    _, decoder, discriminator, _ = model_init('GAN')
+    _, decoder_ct, discriminator_ct, _ = model_init('GAN')
 
     # label all 9
     # load test data
@@ -3014,8 +3022,78 @@ def GAM(comparison_target):
 
     # show table
     # show rate
+    save_path = os.path.join(options.modelOutFolder)
+    save_path = LJY_utils.make_dir(save_path)
+    ep = options.pretrainedEpoch
+    if ep != 0:
+        decoder.load_state_dict(
+            torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+        discriminator.load_state_dict(torch.load(
+            os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
+    if comparision_epoch != 0:
+        decoder_ct.load_state_dict(
+            torch.load(os.path.join(options.modelOutFolder, pretrainedModelName_ct+ "_decoder" + "_%d.pth" % comparision_epoch)))
+        discriminator_ct.load_state_dict(torch.load(
+            os.path.join(options.modelOutFolder,pretrainedModelName_ct + "_discriminator" + "_%d.pth" % comparision_epoch)))
+
+    #make dataloader
+    if options.dataset == 'MNIST':
+        dataloader = torch.utils.data.DataLoader(
+            dset.MNIST(root='../../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+            batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+
+    elif options.dataset == 'CelebA':
+        if options.img_size == 0:
+            celebA_imgsize = 64
+        else:
+            celebA_imgsize = options.img_size
+
+        dataloader = torch.utils.data.DataLoader(
+            custom_Dataloader(path=options.dataroot,
+                              transform=transforms.Compose([
+                                  transforms.CenterCrop(150),
+                                  transforms.Scale((celebA_imgsize, celebA_imgsize)),
+                                  transforms.ToTensor(),
+                                  transforms.Normalize((0.5,), (0.5,))
+                              ]), type='test'), batch_size=options.batchSize, shuffle=True,
+            num_workers=options.workers)
 
 
+
+    print("Test start")
+
+    for i, (data, _) in enumerate(dataloader, 0):
+        real_cpu = data
+        batch_size = real_cpu.size(0)
+        input = Variable(real_cpu).cuda()
+        disc_input = input.clone()
+
+        real_label = Variable(torch.FloatTensor(batch_size).cuda())
+        real_label.data.fill_(1)
+        fake_label = Variable(torch.FloatTensor(batch_size).cuda())
+        fake_label.data.fill_(0)
+
+
+        optimizerDiscriminator.zero_grad()
+        d_main_test = discriminator()
+        d_ct_test = discriminator(disc_input)
+        print(d_main_swap)
+
+        noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
+        noise.data.normal_(0, 1)
+        generated_fake_main = decoder(noise.view(batch_size, nz, 1, 1))
+        generated_fake_ct = decoder_ct(noise.view(batch_size, nz, 1, 1))
+        d_main_swap = discriminator(generated_fake_ct)
+        d_ct_swap = discriminator_ct(generated_fake_main)
+
+
+
+        # visualize
+        print('[%d/%d]'% (i, len(dataloader)))
 
 
 
@@ -3091,7 +3169,7 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        GAM('alpha-gan')
+        GAM('GAN')
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
