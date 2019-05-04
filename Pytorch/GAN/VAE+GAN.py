@@ -411,1346 +411,7 @@ def infogan_noise_sampler(con_c, noise):
     noise.data.uniform_(-1.0, 1.0)
     z = torch.cat([noise, con_c], 1).view(-1, 74, 1, 1)
     return z
-class encoder_freesize(nn.Module):
-    def __init__(self,  img_size = 224, num_in_channels=1, z_size=2, num_filters=64 ,type='AE'):
-        super().__init__()
-        self.type = type
-        self.sup_size = [224,112,56,28]
-        if img_size in self.sup_size:
-            if img_size == self.sup_size[0]:
-                self.encoder = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
-                )
-            if img_size == self.sup_size[1]:
-                self.encoder = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
-                )
-            if img_size == self.sup_size[2]:
-                self.encoder = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
-                )
-            if img_size == self.sup_size[3]:
-                self.encoder = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, z_size, 2, 2, 0, bias=False)
-                )
-        else :
-            print('img_size %d is not in sup_size'%img_size)
-            return None
-        if self.type == 'VAE':
-            self.fc_mu = nn.Conv2d(z_size, z_size, 1)
-            self.fc_sig = nn.Conv2d(z_size, z_size, 1)
-        # init weights
-        self.weight_init()
 
-    def forward(self, x):
-        if self.type == 'AE' or self.type == 'AAE':
-            #AE
-            z = self.encoder(x)
-            return z
-        elif self.type == 'VAE':
-            # VAE
-            z_ = self.encoder(x)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-        else :
-            print("autoencoder_type is %s, it is unknown." % self.type)
-
-
-    def weight_init(self):
-        self.encoder.apply(weight_init)
-
-class decoder_freesize(nn.Module):
-    def __init__(self, img_size = 224, num_in_channels=3, z_size=2, num_filters=64):
-        super().__init__()
-        self.sup_size = [224, 112, 56, 28]
-        if img_size in self.sup_size:
-            if img_size == self.sup_size[0]:
-                self.decoder = nn.Sequential(
-                    nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.ReLU(True),
-                    # state size. (ngf*8) x 4 x 4
-                    nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.ReLU(True),
-                    # state size. (ngf*4) x 8 x 8
-                    nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters*2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters*2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters*2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters*2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters),
-                    nn.ReLU(True),
-                    # state size. (ngf) x 32 x 32
-                    nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
-                    nn.Tanh()
-                )
-            if img_size == self.sup_size[1]:
-                self.decoder = nn.Sequential(
-                    nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.ReLU(True),
-                    # state size. (ngf*8) x 4 x 4
-                    nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.ReLU(True),
-                    # state size. (ngf*4) x 8 x 8
-                    nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters),
-                    nn.ReLU(True),
-                    # state size. (ngf) x 32 x 32
-                    nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
-                    nn.Tanh()
-                )
-            if img_size == self.sup_size[2]:
-                self.decoder = nn.Sequential(
-                    nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.ReLU(True),
-                    # state size. (ngf*8) x 4 x 4
-                    nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.ReLU(True),
-                    # state size. (ngf*4) x 8 x 8
-                    nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.ReLU(True),
-                    # state size. (ngf*2) x 16 x 16
-                    nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters),
-                    nn.ReLU(True),
-                    # state size. (ngf) x 32 x 32
-                    nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
-                    nn.Tanh()
-                )
-            if img_size == self.sup_size[3]:
-                self.decoder = nn.Sequential(
-                    nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.ReLU(True),
-                    # state size. (ngf*8) x 4 x 4
-                    nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.ReLU(True),
-                    # state size. (ngf*4) x 8 x 8
-                    nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.ReLU(True),
-                    # state size. (ngf) x 32 x 32
-                    nn.ConvTranspose2d(num_filters * 2, num_in_channels, 2, 2, 1, bias=False),
-                    nn.Tanh()
-                )
-        # init weights
-        self.weight_init()
-
-    def forward(self, z):
-        recon_x = self.decoder(z)
-        return recon_x
-
-    def weight_init(self):
-        self.decoder.apply(weight_init)
-
-class discriminator_freesize(nn.Module):
-    def __init__(self, img_size =224, num_in_channels=1,  num_filters=64):
-        super().__init__()
-        self.sup_size = [224, 112, 56, 28]
-        if img_size in self.sup_size:
-            if img_size == self.sup_size[0]:
-                self.discriminator = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
-                    nn.Sigmoid()
-                )
-            if img_size == self.sup_size[1]:
-                self.discriminator = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
-                    nn.Sigmoid()
-                )
-            if img_size == self.sup_size[2]:
-                self.discriminator = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 8),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
-                    nn.Sigmoid()
-                )
-            if img_size == self.sup_size[3]:
-                self.discriminator = nn.Sequential(
-                    nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 2),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
-                    nn.BatchNorm2d(num_filters * 4),
-                    nn.LeakyReLU(0.2, inplace=True),
-                    nn.Conv2d(num_filters * 4, 1, 2, 2, 0, bias=False),
-                    nn.Sigmoid()
-                )
-        # init weights
-        self.weight_init()
-
-    def forward(self, input):
-        output = self.discriminator(input)
-        return output.view(-1, 1).squeeze(1)
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
-
-class encoder224x224(nn.Module):
-    '''encoder'''
-
-    def __init__(self, nz, nc, type = 'VAE', large=False):
-        super(encoder224x224, self).__init__()
-        self.type = type
-        self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.relu1 = nn.LeakyReLU(0.1)
-
-        self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.relu2 = nn.LeakyReLU(0.1)
-
-        self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.relu3 = nn.LeakyReLU(0.1)
-
-        self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.relu4 = nn.LeakyReLU(0.1)
-
-        self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
-        self.bn5 = nn.BatchNorm2d(512)
-        self.relu5 = nn.LeakyReLU(0.1)
-
-        if large:
-            self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
-        else:
-            self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
-        self.bn6 = nn.BatchNorm2d(512)
-        self.relu6 = nn.LeakyReLU(0.1)
-
-        self.conv7 = nn.Conv2d(512, nz, 1, stride=1, padding=0, bias=False)
-
-        if self.type == 'VAE':
-            self.fc_mu = nn.Conv2d(nz, nz, 1)
-            self.fc_sig = nn.Conv2d(nz, nz, 1)
-
-        self._initialize_weights()
-
-    def forward(self, x):
-        h = x
-        h = self.conv1(h)
-        h = self.bn1(h)
-        h = self.relu1(h)  # 64,112,112 (if input is 224x224)
-
-        h = self.conv2(h)
-        h = self.bn2(h)
-        h = self.relu2(h)  # 128,56,56
-
-        h = self.conv3(h)  # 256,28,28
-        h = self.bn3(h)
-        h = self.relu3(h)
-
-        h = self.conv4(h)  # 512,14,14
-        h = self.bn4(h)
-        h = self.relu4(h)
-
-        h = self.conv5(h)  # 512,7,7
-        h = self.bn5(h)
-        h = self.relu5(h)
-
-        h = self.conv6(h)
-        h = self.bn6(h)
-        h = self.relu6(h)  # 512,1,1
-
-        h = self.conv7(h)
-        h = F.sigmoid(h)
-
-        if self.type == 'AE' or self.type == 'AAE':
-            return h
-        elif self.type == 'VAE':
-            # VAE
-            mu = self.fc_mu(h)
-            logvar = self.fc_sig(h)
-            return mu, logvar
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            if isinstance(m, nn.ConvTranspose2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-
-class decoder224x224(nn.Module):
-    '''Generator'''
-    def __init__(self, nz, nc):
-        super(decoder224x224, self).__init__()
-
-        self.deconv4 = nn.ConvTranspose2d(nz, 512, 3, stride=2, padding=0,  bias=False)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.relu4 = nn.ReLU()
-
-        self.deconv5 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0, bias=False)
-        self.bn5 = nn.BatchNorm2d(512)
-        self.relu5 = nn.ReLU()
-
-        self.deconv6 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0,  bias=False)
-        self.bn6 = nn.BatchNorm2d(512)
-        self.relu6 = nn.ReLU()
-
-        self.deconv7 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, bias=False)
-        self.bn7 = nn.BatchNorm2d(256)
-        self.relu7 = nn.ReLU()
-
-        self.deconv8 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, bias=False)
-        self.bn8 = nn.BatchNorm2d(128)
-        self.relu8 = nn.ReLU()
-
-        self.deconv9 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1,bias=False)
-        self.bn9 = nn.BatchNorm2d(64)
-        self.relu9 = nn.ReLU()
-
-        self.deconv10 = nn.ConvTranspose2d(64, nc, 2, stride=2, padding=1, bias=False)
-        self.bn10 = nn.BatchNorm2d(3)
-        self.relu10 = nn.ReLU()
-
-        self._initialize_weights()
-
-    def forward(self, x):
-        h = x
-        h = self.deconv4(h)
-        h = self.bn4(h)
-        h = self.relu4(h)  # 512,3,3
-
-        h = self.deconv5(h)
-        h = self.bn5(h)
-        h = self.relu5(h)  # 512,7,7
-
-        h = self.deconv6(h)
-        h = self.bn6(h)
-        h = self.relu6(h) # 512,14,14
-
-        h = self.deconv7(h)
-        h = self.bn7(h)
-        h = self.relu7(h) # 256,28,28
-
-        h = self.deconv8(h)
-        h = self.bn8(h)
-        h = self.relu8(h) # 128,56,56
-
-        h = self.deconv9(h)
-        h = self.bn9(h)
-        h = self.relu9(h) # 64,112,112
-
-        h = self.deconv10(h)
-        h = F.tanh(h) # 3,224,224
-
-        return h
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            if isinstance(m, nn.ConvTranspose2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-
-class discriminator224x224(nn.Module):
-    '''Discriminator'''
-    def __init__(self, nc, large=False):
-        super(discriminator224x224, self).__init__()
-
-        self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(64)
-        self.relu1 = nn.LeakyReLU(0.1)
-
-        self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(128)
-        self.relu2 = nn.LeakyReLU(0.1)
-
-        self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
-        self.bn3 = nn.BatchNorm2d(256)
-        self.relu3 = nn.LeakyReLU(0.1)
-
-        self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
-        self.bn4 = nn.BatchNorm2d(512)
-        self.relu4 = nn.LeakyReLU(0.1)
-
-        self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
-        self.bn5 = nn.BatchNorm2d(512)
-        self.relu5 = nn.LeakyReLU(0.1)
-
-        if large:
-            self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
-        else:
-            self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
-        self.bn6 = nn.BatchNorm2d(512)
-        self.relu6 = nn.LeakyReLU(0.1)
-
-        self.conv7 = nn.Conv2d(512, 1, 1, stride=1, padding=0, bias=False)
-
-        self._initialize_weights()
-
-    def forward(self, x):
-        h = x
-        h = self.conv1(h)
-        h = self.bn1(h)
-        h = self.relu1(h) # 64,112,112 (if input is 224x224)
-
-        h = self.conv2(h)
-        h = self.bn2(h)
-        h = self.relu2(h) # 128,56,56
-
-        h = self.conv3(h) # 256,28,28
-        h = self.bn3(h)
-        h = self.relu3(h)
-
-        h = self.conv4(h) # 512,14,14
-        h = self.bn4(h)
-        h = self.relu4(h)
-
-        h = self.conv5(h) # 512,7,7
-        h = self.bn5(h)
-        h = self.relu5(h)
-
-        h = self.conv6(h)
-        h = self.bn6(h)
-        h = self.relu6(h) # 512,1,1
-
-        h = self.conv7(h)
-        h = F.sigmoid(h)
-
-        return h
-
-    def _initialize_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-            if isinstance(m, nn.ConvTranspose2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
-
-class encoder64x64(nn.Module):
-    def __init__(self,  num_in_channels=1, z_size=2, num_filters=64 ,type='AE'):
-        super().__init__()
-        self.type = type
-        self.encoder = nn.Sequential(
-            nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_filters * 8, num_filters * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            nn.Conv2d(num_filters * 8, z_size, 4, 2, 1, bias=False),
-        )
-        if self.type == 'VAE':
-            self.fc_mu = nn.Conv2d(z_size, z_size, 1)
-            self.fc_sig = nn.Conv2d(z_size, z_size, 1)
-        # init weights
-        self.weight_init()
-
-    def forward(self, x):
-        if self.type == 'AE' or self.type == 'AAE':
-            #AE
-            z = self.encoder(x)
-            return z
-        elif self.type == 'VAE':
-            # VAE
-            z_ = self.encoder(x)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-        else :
-            print("autoencoder_type is %s, it is unknown."%self.type)
-
-
-    def weight_init(self):
-        self.encoder.apply(weight_init)
-
-class decoder64x64(nn.Module):
-    def __init__(self, num_in_channels=3, z_size=2, num_filters=64):
-        super().__init__()
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(z_size, num_filters * 8, 4, 1, 0, bias=False),
-            nn.BatchNorm2d(num_filters * 8),
-            nn.ReLU(True),
-            # state size. (ngf*8) x 4 x 4
-            nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 4),
-            nn.ReLU(True),
-            # state size. (ngf*4) x 8 x 8
-            nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 2),
-            nn.ReLU(True),
-            # state size. (ngf*2) x 16 x 16
-            nn.ConvTranspose2d(num_filters * 2, num_filters, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters),
-            nn.ReLU(True),
-            # state size. (ngf) x 32 x 32
-            nn.ConvTranspose2d(num_filters, num_in_channels, 4, 2, 1, bias=False),
-            nn.Tanh()
-        )
-
-        # init weights
-        self.weight_init()
-
-    def forward(self, z):
-        recon_x = self.decoder(z)
-        return recon_x
-
-    def weight_init(self):
-        self.decoder.apply(weight_init)
-
-class discriminator64x64(nn.Module):
-    def __init__(self, num_in_channels=1,  num_filters=64):
-        super(discriminator64x64, self).__init__()
-        self.ngpu = ngpu
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, input):
-        output = self.main(input)
-        return output.view(-1, 1).squeeze(1)
-    def weight_init(self):
-        self.main.apply(weight_init)
-
-
-class WCdiscriminator64x64(nn.Module):
-    def __init__(self, num_in_channels=1,  num_filters=64):
-        super(WCdiscriminator64x64, self).__init__()
-        self.ngpu = ngpu
-        self.main = nn.Sequential(
-            # input is (nc) x 64 x 64
-            nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf) x 32 x 32
-            nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 2),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*2) x 16 x 16
-            nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 4),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*4) x 8 x 8
-            nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(num_filters * 8),
-            nn.LeakyReLU(0.2, inplace=True),
-            # state size. (ndf*8) x 4 x 4
-            nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, input):
-        output = self.main(input)
-        return output.view(-1, 1).squeeze(1)
-    def weight_init(self):
-        self.main.apply(weight_init)
-
-class small_discriminator(nn.Module):
-    def __init__(self, nz=1):
-        super(small_discriminator, self).__init__()
-        self.nz= nz
-        self.ngpu = ngpu
-        self.main = nn.Sequential(
-            nn.Linear(nz, nz),
-            nn.BatchNorm1d(nz),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Linear(nz, nz),
-            nn.BatchNorm1d(nz),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            nn.Linear(nz, 1),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, input):
-        output = self.main(input.view(-1, self.nz))
-        return output.view(-1, 1).squeeze(1)
-
-    def weight_init(self):
-        self.main.apply(weight_init)
-
-class encoder(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80, num_filters=64 ,type='AE'):
-        super().__init__()
-        self.type = type
-        self.encoder = nn.Sequential(
-            nn.Conv2d(num_in_channels, 64, 5, 2, 1),
-            nn.BatchNorm2d(num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(2 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(4 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
-        )
-        self.fc_mu = nn.Conv2d(z_size, z_size, 1)
-        self.fc_sig = nn.Conv2d(z_size, z_size, 1)
-        # init weights
-        self.weight_init()
-
-    def forward(self, x):
-       if self.type == 'VAE':
-            # VAE
-            z_ = self.encoder(x)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-       else:
-            # AE
-            z = self.encoder(x)
-            return z
-
-    def weight_init(self):
-        self.encoder.apply(weight_init)
-
-class decoder(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80, num_filters=64):
-        super().__init__()
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(z_size, 256, 5, 1, 1),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(256, 128, 5, 1, 1),
-            nn.BatchNorm2d(2 * num_filters),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(128, 64, 5, 2, 0),
-            nn.BatchNorm2d(num_filters),
-            nn.ReLU(),
-
-            nn.ConvTranspose2d(num_filters, num_in_channels, 4, 2, 0),
-            nn.Tanh()
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, z):
-        recon_x = self.decoder(z)
-        return recon_x
-
-    def weight_init(self):
-        self.decoder.apply(weight_init)
-
-class Discriminator(nn.Module):
-    def __init__(self, num_in_channels=1,  num_filters=64):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-            nn.Conv2d(num_in_channels, 64, 5, 2, 1),
-            nn.BatchNorm2d(num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(2 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(4 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(4 * num_filters, 1, 3, 1, 0),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, x):
-        d = self.discriminator(x)
-        return d
-
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
-
-class encoder32x32(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80, type='AE'):
-        super().__init__()
-        self.type = type
-        self.encoder = nn.Sequential(
-            nn.Conv2d(num_in_channels, 64, 3, 1, 0),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(64, 128, 3, 1, 0),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(128, 256, 3, 2, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(256, 256, 3, 1, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(256, 512, 3, 1, 0),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(512, 512, 3, 2, 0),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(512, z_size, 4, 1, 0),
-
-        )
-        self.fc_mu = nn.Conv2d(z_size, z_size, 1)
-        self.fc_sig = nn.Conv2d(z_size, z_size, 1)
-
-    def forward(self, x):
-       if self.type == 'VAE':
-            # VAE
-            z_ = self.encoder(x)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-       else:
-            # AE
-            z = self.encoder(x)
-            return z
-
-class decoder32x32(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80):
-        super().__init__()
-
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(z_size, 512, 4, 1, 0),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(512, 512, 4, 2, 0),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(512, 256, 3, 1, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(256, 256, 4, 2, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(256, 128, 3, 1, 0),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(128, 64, 3, 1, 0),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, True),
-
-            nn.ConvTranspose2d(64, num_in_channels, 3, 1, 0),
-            nn.Tanh()
-
-        )
-
-
-    def forward(self, z):
-        recon_x = self.decoder(z)
-        return recon_x
-
-class Discriminator32x32(nn.Module):
-    def __init__(self, num_in_channels=1):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-            nn.Conv2d(num_in_channels, 64, 3, 1, 0),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(64, 128, 3, 1, 0),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(128, 256, 3, 2, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(256, 256, 3, 1, 0),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(256, 512, 3, 1, 0),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(512, 512, 3, 2, 0),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(512, 1, 4, 1, 0),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        d = self.discriminator(x)
-        return d
-
-class z_discriminator(nn.Module):
-    def __init__(self, N=1000, z_dim=120):
-        super().__init__()
-        self.discriminator = nn.Sequential(
-            nn.Linear(z_dim, N),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(N, N),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(N, 1),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-    def forward(self, z):
-        cls = self.discriminator(z)
-        return cls
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
-
-class encoder_MC(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80, num_filters=64 ,type='AE'):
-        super().__init__()
-        self.type = type
-        self.encoder = nn.Sequential(
-            nn.Conv2d(num_in_channels, 64, 5, 2, 1),
-            nn.BatchNorm2d(num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(2 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
-            nn.BatchNorm2d(4 * num_filters),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
-        )
-        self.fc_mu = nn.Conv2d(z_size, z_size, 1)
-        self.fc_sig = nn.Conv2d(z_size, z_size, 1)
-        # init weights
-        self.weight_init()
-
-    def forward(self, x):
-        if self.type == 'VAE':
-            # VAE
-            z_ = self.encoder(x)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-        else:
-            # AE
-            z = self.encoder(x)
-            return z
-
-    def weight_init(self):
-        self.encoder.apply(weight_init)
-
-class decoder_MC(nn.Module):
-    def __init__(self, num_in_channels=1, z_size=80, num_filters=64):
-        super().__init__()
-
-        self.decoder_fc = nn.Sequential(
-            nn.Linear(z_size, 1024),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(1024,1024),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(1024, 7*7*128),
-            nn.BatchNorm1d(7*7*128),
-            nn.LeakyReLU(0.2, True)
-        )
-        self.decoder_conv = nn.Sequential(
-            nn.ConvTranspose2d(128,128,5,bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2, True),
-            nn.ConvTranspose2d(128,1,5,bias=False)
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, z):
-        z = self.decoder_fc(z)
-        recon_x = self.decoder_conv(z)
-        return recon_x
-
-    def weight_init(self):
-        self.decoder.apply(weight_init)
-
-class discriminator_MC(nn.Module):
-    def __init__(self, num_in_channels=1,  num_filters=64):
-        super().__init__()
-        self.discriminator_conv = nn.Sequential(
-            nn.Conv2d(num_in_channels, 11, 2),
-            nn.BatchNorm2d(11),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Conv2d(11, 75, 2),
-            nn.BatchNorm2d(75),
-            nn.LeakyReLU(0.2, True))
-        self.discriminator_fc = nn.Sequential(
-            nn.Linear(75, 1024),
-            nn.BatchNorm1d(1024),
-            nn.LeakyReLU(0.2, True),
-
-            nn.Linear(1024, 1),
-            nn.Sigmoid()
-        )
-        # init weights
-        self.weight_init()
-
-    def forward(self, x):
-        d = self.discriminator(x)
-        return d
-
-    def weight_init(self):
-        self.discriminator.apply(weight_init)
-
-class MG_decoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(MG_decoder, self).__init__()
-        self.map1 = nn.Linear(input_size, hidden_size)
-        self.map2 = nn.Linear(hidden_size, hidden_size)
-        self.map3 = nn.Linear(hidden_size, output_size)
-        #self.activation_fn = nn.ReLU()
-        #self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
-        self.activation_fn = nn.Tanh()
-        #self.activation_fn = Swish()
-
-
-    def forward(self, x):
-        x = x.view(x.shape[0],x.shape[1])
-        x = self.activation_fn(self.map1(x))
-        x = self.activation_fn(self.map2(x))
-
-        return self.map3(x)
-
-class MG_encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, type):
-        super(MG_encoder, self).__init__()
-        self.map1 = nn.Linear(input_size, hidden_size)
-        self.map2 = nn.Linear(hidden_size, hidden_size)
-        self.map3 = nn.Linear(hidden_size, output_size)
-        #self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
-        self.activation_fn = F.relu
-        #self.final_activation_fn = nn.ReLU()
-        self.fc_mu = nn.Linear(output_size, output_size)
-        self.fc_sig = nn.Linear(output_size, output_size)
-        self.type = type
-
-    def forward(self, x):
-        if self.type == 'AE' or self.type == 'AAE':
-            # AE
-            x = self.activation_fn(self.map1(x))
-            x = self.activation_fn(self.map2(x))
-            #z = self.final_activation_fn(self.map3(x))
-            z =self.map3(x)
-
-            return z
-        elif self.type == 'VAE':
-            # VAE
-            x = self.activation_fn(self.map1(x))
-            x = self.activation_fn(self.map2(x))
-
-            #z_ = self.final_activation_fn(self.map3(x))
-            z_ = self.activation_fn(self.map3(x))
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-
-class MG_discriminator(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(MG_discriminator, self).__init__()
-        self.map1 = nn.Linear(input_size, hidden_size)
-        self.map2 = nn.Linear(hidden_size, hidden_size)
-        self.map3 = nn.Linear(hidden_size, output_size)
-        #self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
-        self.activation_fn = F.relu
-        self.final_activation_fn = F.sigmoid
-
-    def forward(self, x):
-        x = self.activation_fn(self.map1(x))
-        x = self.activation_fn(self.map2(x))
-
-        return self.final_activation_fn(self.map3(x))
-
-
-class Info_FrontEnd(nn.Module):
-    ''' front end part of discriminator and Q'''
-
-    def __init__(self):
-        super(Info_FrontEnd, self).__init__()
-
-        self.main = nn.Sequential(
-            nn.Conv2d(1, 64, 4, 2, 1),
-            nn.LeakyReLU(0.1, inplace=True),
-            nn.Conv2d(64, 128, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.1, inplace=True),
-            nn.Conv2d(128, 1024, 7, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.LeakyReLU(0.1, inplace=True),
-        )
-
-    def forward(self, x):
-        output = self.main(x)
-        return output
-
-class Info_D(nn.Module):
-
-    def __init__(self):
-        super(Info_D, self).__init__()
-
-        self.main = nn.Sequential(
-            nn.Conv2d(1024, 1, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        output = self.main(x).view(-1, 1)
-        return output
-
-class Info_Q(nn.Module):
-
-    def __init__(self):
-        super(Info_Q, self).__init__()
-
-        self.conv = nn.Conv2d(1024, 128, 1, bias=False)
-        self.bn = nn.BatchNorm2d(128)
-        self.lReLU = nn.LeakyReLU(0.1, inplace=True)
-        self.conv_mu = nn.Conv2d(128, 2, 1)
-        self.conv_var = nn.Conv2d(128, 2, 1)
-
-    def forward(self, x):
-        y = self.conv(x)
-
-        mu = self.conv_mu(y).squeeze()
-        var = self.conv_var(y).squeeze().exp()
-
-        return mu, var
-
-class Info_G(nn.Module):
-
-    def __init__(self):
-        super(Info_G, self).__init__()
-
-        self.main = nn.Sequential(
-            nn.ConvTranspose2d(74, 1024, 1, 1, bias=False),
-            nn.BatchNorm2d(1024),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(1024, 128, 7, 1, bias=False),
-            nn.BatchNorm2d(128),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
-            nn.BatchNorm2d(64),
-            nn.ReLU(True),
-            nn.ConvTranspose2d(64, 1, 4, 2, 1, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        output = self.main(x)
-        return output
-
-class DCGAN_E_nobn(nn.Module):
-    def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0, type = 'AE'):
-        super(DCGAN_D_nobn, self).__init__()
-        self.ngpu = ngpu
-        self.type
-        assert isize % 16 == 0, "isize has to be a multiple of 16"
-
-        main = nn.Sequential()
-        # input is nc x isize x isize
-        # input is nc x isize x isize
-        main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
-                        nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
-        main.add_module('initial.relu.{0}'.format(ndf),
-                        nn.LeakyReLU(0.2, inplace=True))
-        csize, cndf = isize / 2, ndf
-
-        # Extra layers
-        for t in range(n_extra_layers):
-            main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
-                            nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
-            main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
-                            nn.LeakyReLU(0.2, inplace=True))
-
-        while csize > 4:
-            in_feat = cndf
-            out_feat = cndf * 2
-            main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
-                            nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
-            main.add_module('pyramid.{0}.relu'.format(out_feat),
-                            nn.LeakyReLU(0.2, inplace=True))
-            cndf = cndf * 2
-            csize = csize / 2
-
-        # state size. K x 4 x 4
-        main.add_module('final.{0}-{1}.conv'.format(cndf, 1),
-                        nn.Conv2d(cndf, nz, 4, 1, 0, bias=False))
-        self.fc_mu = nn.Conv2d(nz, nz, 1)
-        self.fc_sig = nn.Conv2d(nz, nz, 1)
-        self.main = main
-
-    def forward(self, input):
-        if self.type == 'VAE':
-            z_ = self.encoder(input)
-            mu = self.fc_mu(z_)
-            logvar = self.fc_sig(z_)
-            return mu, logvar
-        else:
-            output = self.main(input)
-            return output
-
-class DCGAN_D_nobn(nn.Module):
-    def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0):
-        super(DCGAN_D_nobn, self).__init__()
-        self.ngpu = ngpu
-        assert isize % 16 == 0, "isize has to be a multiple of 16"
-
-        main = nn.Sequential()
-        # input is nc x isize x isize
-        # input is nc x isize x isize
-        main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
-                        nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
-        main.add_module('initial.relu.{0}'.format(ndf),
-                        nn.LeakyReLU(0.2, inplace=True))
-        csize, cndf = isize / 2, ndf
-
-        # Extra layers
-        for t in range(n_extra_layers):
-            main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
-                            nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
-            main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
-                            nn.LeakyReLU(0.2, inplace=True))
-
-        while csize > 4:
-            in_feat = cndf
-            out_feat = cndf * 2
-            main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
-                            nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
-            main.add_module('pyramid.{0}.relu'.format(out_feat),
-                            nn.LeakyReLU(0.2, inplace=True))
-            cndf = cndf * 2
-            csize = csize / 2
-
-        # state size. K x 4 x 4
-        main.add_module('final.{0}-{1}.conv'.format(cndf, 1),
-                        nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
-        self.main = main
-
-    def forward(self, input):
-        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-        else:
-            output = self.main(input)
-
-        output = output.mean(0)
-        return output.view(1)
-
-
-class DCGAN_G_nobn(nn.Module):
-    def __init__(self, isize, nz, nc, ngf, ngpu, n_extra_layers=0):
-        super(DCGAN_G_nobn, self).__init__()
-        self.ngpu = ngpu
-        assert isize % 16 == 0, "isize has to be a multiple of 16"
-
-        cngf, tisize = ngf // 2, 4
-        while tisize != isize:
-            cngf = cngf * 2
-            tisize = tisize * 2
-
-        main = nn.Sequential()
-        main.add_module('initial.{0}-{1}.convt'.format(nz, cngf),
-                        nn.ConvTranspose2d(nz, cngf, 4, 1, 0, bias=False))
-        main.add_module('initial.{0}.relu'.format(cngf),
-                        nn.ReLU(True))
-
-        csize, cndf = 4, cngf
-        while csize < isize // 2:
-            main.add_module('pyramid.{0}-{1}.convt'.format(cngf, cngf // 2),
-                            nn.ConvTranspose2d(cngf, cngf // 2, 4, 2, 1, bias=False))
-            main.add_module('pyramid.{0}.relu'.format(cngf // 2),
-                            nn.ReLU(True))
-            cngf = cngf // 2
-            csize = csize * 2
-
-        # Extra layers
-        for t in range(n_extra_layers):
-            main.add_module('extra-layers-{0}.{1}.conv'.format(t, cngf),
-                            nn.Conv2d(cngf, cngf, 3, 1, 1, bias=False))
-            main.add_module('extra-layers-{0}.{1}.relu'.format(t, cngf),
-                            nn.ReLU(True))
-
-        main.add_module('final.{0}-{1}.convt'.format(cngf, nc),
-                        nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
-        main.add_module('final.{0}.tanh'.format(nc),
-                        nn.Tanh())
-        self.main = main
-
-    def forward(self, input):
-        if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
-            output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
-        else:
-            output = self.main(input)
-        return output
-        # xavier_init
-def weight_init(module):
-    classname = module.__class__.__name__
-    if classname.find('Conv') != -1:
-        torch.nn.init.xavier_normal(module.weight.data)
-        # module.weight.data.normal_(0.0, 0.01)
-    elif classname.find('BatchNorm') != -1:
-        module.weight.data.normal_(1.0, 0.02)
-        module.bias.data.fill_(0)
-    elif classname.find('Linear') != -1:
-        torch.nn.init.normal(module.weight.data)
 
 # save directory make   ================================================================================================
 try:
@@ -1778,7 +439,1348 @@ if torch.cuda.is_available() and not options.cuda:
 
 
 def model_init(autoencoder_type):
-    ngpu = int(options.ngpu)
+    class encoder_freesize(nn.Module):
+        def __init__(self, img_size=224, num_in_channels=1, z_size=2, num_filters=64, type='AE'):
+            super().__init__()
+            self.type = type
+            self.sup_size = [224, 112, 56, 28]
+            if img_size in self.sup_size:
+                if img_size == self.sup_size[0]:
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
+                    )
+                if img_size == self.sup_size[1]:
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
+                    )
+                if img_size == self.sup_size[2]:
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
+                    )
+                if img_size == self.sup_size[3]:
+                    self.encoder = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, z_size, 2, 2, 0, bias=False)
+                    )
+            else:
+                print('img_size %d is not in sup_size' % img_size)
+                return None
+            if self.type == 'VAE':
+                self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+                self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            if self.type == 'AE' or self.type == 'AAE':
+                # AE
+                z = self.encoder(x)
+                return z
+            elif self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                print("autoencoder_type is %s, it is unknown." % self.type)
+
+        def weight_init(self):
+            self.encoder.apply(weight_init)
+
+    class decoder_freesize(nn.Module):
+        def __init__(self, img_size=224, num_in_channels=3, z_size=2, num_filters=64):
+            super().__init__()
+            self.sup_size = [224, 112, 56, 28]
+            if img_size in self.sup_size:
+                if img_size == self.sup_size[0]:
+                    self.decoder = nn.Sequential(
+                        nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.ReLU(True),
+                        # state size. (ngf*8) x 4 x 4
+                        nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.ReLU(True),
+                        # state size. (ngf*4) x 8 x 8
+                        nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters),
+                        nn.ReLU(True),
+                        # state size. (ngf) x 32 x 32
+                        nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
+                        nn.Tanh()
+                    )
+                if img_size == self.sup_size[1]:
+                    self.decoder = nn.Sequential(
+                        nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.ReLU(True),
+                        # state size. (ngf*8) x 4 x 4
+                        nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.ReLU(True),
+                        # state size. (ngf*4) x 8 x 8
+                        nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters),
+                        nn.ReLU(True),
+                        # state size. (ngf) x 32 x 32
+                        nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
+                        nn.Tanh()
+                    )
+                if img_size == self.sup_size[2]:
+                    self.decoder = nn.Sequential(
+                        nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.ReLU(True),
+                        # state size. (ngf*8) x 4 x 4
+                        nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.ReLU(True),
+                        # state size. (ngf*4) x 8 x 8
+                        nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf*2) x 16 x 16
+                        nn.ConvTranspose2d(num_filters * 2, num_filters, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters),
+                        nn.ReLU(True),
+                        # state size. (ngf) x 32 x 32
+                        nn.ConvTranspose2d(num_filters, num_in_channels, 2, 2, 1, bias=False),
+                        nn.Tanh()
+                    )
+                if img_size == self.sup_size[3]:
+                    self.decoder = nn.Sequential(
+                        nn.ConvTranspose2d(z_size, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.ReLU(True),
+                        # state size. (ngf*8) x 4 x 4
+                        nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.ReLU(True),
+                        # state size. (ngf*4) x 8 x 8
+                        nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.ReLU(True),
+                        # state size. (ngf) x 32 x 32
+                        nn.ConvTranspose2d(num_filters * 2, num_in_channels, 2, 2, 1, bias=False),
+                        nn.Tanh()
+                    )
+            # init weights
+            self.weight_init()
+
+        def forward(self, z):
+            recon_x = self.decoder(z)
+            return recon_x
+
+        def weight_init(self):
+            self.decoder.apply(weight_init)
+
+    class discriminator_freesize(nn.Module):
+        def __init__(self, img_size=224, num_in_channels=1, num_filters=64):
+            super().__init__()
+            self.sup_size = [224, 112, 56, 28]
+            if img_size in self.sup_size:
+                if img_size == self.sup_size[0]:
+                    self.discriminator = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
+                        nn.Sigmoid()
+                    )
+                if img_size == self.sup_size[1]:
+                    self.discriminator = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
+                        nn.Sigmoid()
+                    )
+                if img_size == self.sup_size[2]:
+                    self.discriminator = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 8),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
+                        nn.Sigmoid()
+                    )
+                if img_size == self.sup_size[3]:
+                    self.discriminator = nn.Sequential(
+                        nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 2),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
+                        nn.BatchNorm2d(num_filters * 4),
+                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.Conv2d(num_filters * 4, 1, 2, 2, 0, bias=False),
+                        nn.Sigmoid()
+                    )
+            # init weights
+            self.weight_init()
+
+        def forward(self, input):
+            output = self.discriminator(input)
+            return output.view(-1, 1).squeeze(1)
+
+        def weight_init(self):
+            self.discriminator.apply(weight_init)
+
+    class encoder224x224(nn.Module):
+        '''encoder'''
+
+        def __init__(self, nz, nc, type='VAE', large=False):
+            super(encoder224x224, self).__init__()
+            self.type = type
+            self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
+            self.bn1 = nn.BatchNorm2d(64)
+            self.relu1 = nn.LeakyReLU(0.1)
+
+            self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
+            self.bn2 = nn.BatchNorm2d(128)
+            self.relu2 = nn.LeakyReLU(0.1)
+
+            self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
+            self.bn3 = nn.BatchNorm2d(256)
+            self.relu3 = nn.LeakyReLU(0.1)
+
+            self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
+            self.bn4 = nn.BatchNorm2d(512)
+            self.relu4 = nn.LeakyReLU(0.1)
+
+            self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
+            self.bn5 = nn.BatchNorm2d(512)
+            self.relu5 = nn.LeakyReLU(0.1)
+
+            if large:
+                self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
+            else:
+                self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
+            self.bn6 = nn.BatchNorm2d(512)
+            self.relu6 = nn.LeakyReLU(0.1)
+
+            self.conv7 = nn.Conv2d(512, nz, 1, stride=1, padding=0, bias=False)
+
+            if self.type == 'VAE':
+                self.fc_mu = nn.Conv2d(nz, nz, 1)
+                self.fc_sig = nn.Conv2d(nz, nz, 1)
+
+            self._initialize_weights()
+
+        def forward(self, x):
+            h = x
+            h = self.conv1(h)
+            h = self.bn1(h)
+            h = self.relu1(h)  # 64,112,112 (if input is 224x224)
+
+            h = self.conv2(h)
+            h = self.bn2(h)
+            h = self.relu2(h)  # 128,56,56
+
+            h = self.conv3(h)  # 256,28,28
+            h = self.bn3(h)
+            h = self.relu3(h)
+
+            h = self.conv4(h)  # 512,14,14
+            h = self.bn4(h)
+            h = self.relu4(h)
+
+            h = self.conv5(h)  # 512,7,7
+            h = self.bn5(h)
+            h = self.relu5(h)
+
+            h = self.conv6(h)
+            h = self.bn6(h)
+            h = self.relu6(h)  # 512,1,1
+
+            h = self.conv7(h)
+            h = F.sigmoid(h)
+
+            if self.type == 'AE' or self.type == 'AAE':
+                return h
+            elif self.type == 'VAE':
+                # VAE
+                mu = self.fc_mu(h)
+                logvar = self.fc_sig(h)
+                return mu, logvar
+
+        def _initialize_weights(self):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+                if isinstance(m, nn.ConvTranspose2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+
+    class decoder224x224(nn.Module):
+        '''Generator'''
+
+        def __init__(self, nz, nc):
+            super(decoder224x224, self).__init__()
+
+            self.deconv4 = nn.ConvTranspose2d(nz, 512, 3, stride=2, padding=0, bias=False)
+            self.bn4 = nn.BatchNorm2d(512)
+            self.relu4 = nn.ReLU()
+
+            self.deconv5 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0, bias=False)
+            self.bn5 = nn.BatchNorm2d(512)
+            self.relu5 = nn.ReLU()
+
+            self.deconv6 = nn.ConvTranspose2d(512, 512, 3, stride=2, padding=0, bias=False)
+            self.bn6 = nn.BatchNorm2d(512)
+            self.relu6 = nn.ReLU()
+
+            self.deconv7 = nn.ConvTranspose2d(512, 256, 3, stride=2, padding=1, bias=False)
+            self.bn7 = nn.BatchNorm2d(256)
+            self.relu7 = nn.ReLU()
+
+            self.deconv8 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1, bias=False)
+            self.bn8 = nn.BatchNorm2d(128)
+            self.relu8 = nn.ReLU()
+
+            self.deconv9 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1, bias=False)
+            self.bn9 = nn.BatchNorm2d(64)
+            self.relu9 = nn.ReLU()
+
+            self.deconv10 = nn.ConvTranspose2d(64, nc, 2, stride=2, padding=1, bias=False)
+            self.bn10 = nn.BatchNorm2d(3)
+            self.relu10 = nn.ReLU()
+
+            self._initialize_weights()
+
+        def forward(self, x):
+            h = x
+            h = self.deconv4(h)
+            h = self.bn4(h)
+            h = self.relu4(h)  # 512,3,3
+
+            h = self.deconv5(h)
+            h = self.bn5(h)
+            h = self.relu5(h)  # 512,7,7
+
+            h = self.deconv6(h)
+            h = self.bn6(h)
+            h = self.relu6(h)  # 512,14,14
+
+            h = self.deconv7(h)
+            h = self.bn7(h)
+            h = self.relu7(h)  # 256,28,28
+
+            h = self.deconv8(h)
+            h = self.bn8(h)
+            h = self.relu8(h)  # 128,56,56
+
+            h = self.deconv9(h)
+            h = self.bn9(h)
+            h = self.relu9(h)  # 64,112,112
+
+            h = self.deconv10(h)
+            h = F.tanh(h)  # 3,224,224
+
+            return h
+
+        def _initialize_weights(self):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+                if isinstance(m, nn.ConvTranspose2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+
+    class discriminator224x224(nn.Module):
+        '''Discriminator'''
+
+        def __init__(self, nc, large=False):
+            super(discriminator224x224, self).__init__()
+
+            self.conv1 = nn.Conv2d(nc, 64, 3, stride=2, padding=1, bias=False)
+            self.bn1 = nn.BatchNorm2d(64)
+            self.relu1 = nn.LeakyReLU(0.1)
+
+            self.conv2 = nn.Conv2d(64, 128, 3, stride=2, padding=1, bias=False)
+            self.bn2 = nn.BatchNorm2d(128)
+            self.relu2 = nn.LeakyReLU(0.1)
+
+            self.conv3 = nn.Conv2d(128, 256, 3, stride=2, padding=1, bias=False)
+            self.bn3 = nn.BatchNorm2d(256)
+            self.relu3 = nn.LeakyReLU(0.1)
+
+            self.conv4 = nn.Conv2d(256, 512, 3, stride=2, padding=1, bias=False)
+            self.bn4 = nn.BatchNorm2d(512)
+            self.relu4 = nn.LeakyReLU(0.1)
+
+            self.conv5 = nn.Conv2d(512, 512, 3, stride=2, padding=1, bias=False)
+            self.bn5 = nn.BatchNorm2d(512)
+            self.relu5 = nn.LeakyReLU(0.1)
+
+            if large:
+                self.conv6 = nn.Conv2d(512, 512, 15, stride=1, padding=0, bias=False)
+            else:
+                self.conv6 = nn.Conv2d(512, 512, 7, stride=1, padding=0, bias=False)
+            self.bn6 = nn.BatchNorm2d(512)
+            self.relu6 = nn.LeakyReLU(0.1)
+
+            self.conv7 = nn.Conv2d(512, 1, 1, stride=1, padding=0, bias=False)
+
+            self._initialize_weights()
+
+        def forward(self, x):
+            h = x
+            h = self.conv1(h)
+            h = self.bn1(h)
+            h = self.relu1(h)  # 64,112,112 (if input is 224x224)
+
+            h = self.conv2(h)
+            h = self.bn2(h)
+            h = self.relu2(h)  # 128,56,56
+
+            h = self.conv3(h)  # 256,28,28
+            h = self.bn3(h)
+            h = self.relu3(h)
+
+            h = self.conv4(h)  # 512,14,14
+            h = self.bn4(h)
+            h = self.relu4(h)
+
+            h = self.conv5(h)  # 512,7,7
+            h = self.bn5(h)
+            h = self.relu5(h)
+
+            h = self.conv6(h)
+            h = self.bn6(h)
+            h = self.relu6(h)  # 512,1,1
+
+            h = self.conv7(h)
+            h = F.sigmoid(h)
+
+            return h
+
+        def _initialize_weights(self):
+            for m in self.modules():
+                if isinstance(m, nn.Conv2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+                if isinstance(m, nn.ConvTranspose2d):
+                    n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                    m.weight.data.normal_(0, math.sqrt(2. / n))
+
+    class encoder64x64(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=2, num_filters=64, type='AE'):
+            super().__init__()
+            self.type = type
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 2),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 4),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 8),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(num_filters * 8, num_filters * 8, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 8),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Conv2d(num_filters * 8, z_size, 4, 2, 1, bias=False),
+            )
+            if self.type == 'VAE':
+                self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+                self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            if self.type == 'AE' or self.type == 'AAE':
+                # AE
+                z = self.encoder(x)
+                return z
+            elif self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                print("autoencoder_type is %s, it is unknown." % self.type)
+
+        def weight_init(self):
+            self.encoder.apply(weight_init)
+
+    class decoder64x64(nn.Module):
+        def __init__(self, num_in_channels=3, z_size=2, num_filters=64):
+            super().__init__()
+
+            self.decoder = nn.Sequential(
+                nn.ConvTranspose2d(z_size, num_filters * 8, 4, 1, 0, bias=False),
+                nn.BatchNorm2d(num_filters * 8),
+                nn.ReLU(True),
+                # state size. (ngf*8) x 4 x 4
+                nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 4),
+                nn.ReLU(True),
+                # state size. (ngf*4) x 8 x 8
+                nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 2),
+                nn.ReLU(True),
+                # state size. (ngf*2) x 16 x 16
+                nn.ConvTranspose2d(num_filters * 2, num_filters, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters),
+                nn.ReLU(True),
+                # state size. (ngf) x 32 x 32
+                nn.ConvTranspose2d(num_filters, num_in_channels, 4, 2, 1, bias=False),
+                nn.Tanh()
+            )
+
+            # init weights
+            self.weight_init()
+
+        def forward(self, z):
+            recon_x = self.decoder(z)
+            return recon_x
+
+        def weight_init(self):
+            self.decoder.apply(weight_init)
+
+    class discriminator64x64(nn.Module):
+        def __init__(self, num_in_channels=1, num_filters=64):
+            super(discriminator64x64, self).__init__()
+            self.ngpu = ngpu
+            self.main = nn.Sequential(
+                # input is (nc) x 64 x 64
+                nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf) x 32 x 32
+                nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 2),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*2) x 16 x 16
+                nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 4),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*4) x 8 x 8
+                nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 8),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*8) x 4 x 4
+                nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
+                nn.Sigmoid()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, input):
+            output = self.main(input)
+            return output.view(-1, 1).squeeze(1)
+
+        def weight_init(self):
+            self.main.apply(weight_init)
+
+    class WCdiscriminator64x64(nn.Module):
+        def __init__(self, num_in_channels=1, num_filters=64):
+            super(WCdiscriminator64x64, self).__init__()
+            self.ngpu = ngpu
+            self.main = nn.Sequential(
+                # input is (nc) x 64 x 64
+                nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf) x 32 x 32
+                nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 2),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*2) x 16 x 16
+                nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 4),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*4) x 8 x 8
+                nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(num_filters * 8),
+                nn.LeakyReLU(0.2, inplace=True),
+                # state size. (ndf*8) x 4 x 4
+                nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, input):
+            output = self.main(input)
+            return output.view(-1, 1).squeeze(1)
+
+        def weight_init(self):
+            self.main.apply(weight_init)
+
+    class small_discriminator(nn.Module):
+        def __init__(self, nz=1):
+            super(small_discriminator, self).__init__()
+            self.nz = nz
+            self.ngpu = ngpu
+            self.main = nn.Sequential(
+                nn.Linear(nz, nz),
+                nn.BatchNorm1d(nz),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Linear(nz, nz),
+                nn.BatchNorm1d(nz),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Linear(nz, 1),
+                nn.Sigmoid()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, input):
+            output = self.main(input.view(-1, self.nz))
+            return output.view(-1, 1).squeeze(1)
+
+        def weight_init(self):
+            self.main.apply(weight_init)
+
+    class encoder(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80, num_filters=64, type='AE'):
+            super().__init__()
+            self.type = type
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_in_channels, 64, 5, 2, 1),
+                nn.BatchNorm2d(num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(2 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(4 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
+            )
+            self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+            self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            if self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                # AE
+                z = self.encoder(x)
+                return z
+
+        def weight_init(self):
+            self.encoder.apply(weight_init)
+
+    class decoder(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80, num_filters=64):
+            super().__init__()
+
+            self.decoder = nn.Sequential(
+                nn.ConvTranspose2d(z_size, 256, 5, 1, 1),
+                nn.ReLU(),
+
+                nn.ConvTranspose2d(256, 128, 5, 1, 1),
+                nn.BatchNorm2d(2 * num_filters),
+                nn.ReLU(),
+
+                nn.ConvTranspose2d(128, 64, 5, 2, 0),
+                nn.BatchNorm2d(num_filters),
+                nn.ReLU(),
+
+                nn.ConvTranspose2d(num_filters, num_in_channels, 4, 2, 0),
+                nn.Tanh()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, z):
+            recon_x = self.decoder(z)
+            return recon_x
+
+        def weight_init(self):
+            self.decoder.apply(weight_init)
+
+    class Discriminator(nn.Module):
+        def __init__(self, num_in_channels=1, num_filters=64):
+            super().__init__()
+            self.discriminator = nn.Sequential(
+                nn.Conv2d(num_in_channels, 64, 5, 2, 1),
+                nn.BatchNorm2d(num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(2 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(4 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(4 * num_filters, 1, 3, 1, 0),
+                nn.Sigmoid()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            d = self.discriminator(x)
+            return d
+
+        def weight_init(self):
+            self.discriminator.apply(weight_init)
+
+    class encoder32x32(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80, type='AE'):
+            super().__init__()
+            self.type = type
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_in_channels, 64, 3, 1, 0),
+                nn.BatchNorm2d(64),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(64, 128, 3, 1, 0),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(128, 256, 3, 2, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(256, 256, 3, 1, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(256, 512, 3, 1, 0),
+                nn.BatchNorm2d(512),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(512, 512, 3, 2, 0),
+                nn.BatchNorm2d(512),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(512, z_size, 4, 1, 0),
+
+            )
+            self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+            self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+
+        def forward(self, x):
+            if self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                # AE
+                z = self.encoder(x)
+                return z
+
+    class decoder32x32(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80):
+            super().__init__()
+
+            self.decoder = nn.Sequential(
+                nn.ConvTranspose2d(z_size, 512, 4, 1, 0),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(512, 512, 4, 2, 0),
+                nn.BatchNorm2d(512),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(512, 256, 3, 1, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(256, 256, 4, 2, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(256, 128, 3, 1, 0),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(128, 64, 3, 1, 0),
+                nn.BatchNorm2d(64),
+                nn.LeakyReLU(0.2, True),
+
+                nn.ConvTranspose2d(64, num_in_channels, 3, 1, 0),
+                nn.Tanh()
+
+            )
+
+        def forward(self, z):
+            recon_x = self.decoder(z)
+            return recon_x
+
+    class Discriminator32x32(nn.Module):
+        def __init__(self, num_in_channels=1):
+            super().__init__()
+            self.discriminator = nn.Sequential(
+                nn.Conv2d(num_in_channels, 64, 3, 1, 0),
+                nn.BatchNorm2d(64),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(64, 128, 3, 1, 0),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(128, 256, 3, 2, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(256, 256, 3, 1, 0),
+                nn.BatchNorm2d(256),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(256, 512, 3, 1, 0),
+                nn.BatchNorm2d(512),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(512, 512, 3, 2, 0),
+                nn.BatchNorm2d(512),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(512, 1, 4, 1, 0),
+                nn.Sigmoid()
+            )
+
+        def forward(self, x):
+            d = self.discriminator(x)
+            return d
+
+    class z_discriminator(nn.Module):
+        def __init__(self, N=1000, z_dim=120):
+            super().__init__()
+            self.discriminator = nn.Sequential(
+                nn.Linear(z_dim, N),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Linear(N, N),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Linear(N, 1),
+                nn.Sigmoid()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, z):
+            cls = self.discriminator(z)
+            return cls
+
+        def weight_init(self):
+            self.discriminator.apply(weight_init)
+
+    class encoder_MC(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80, num_filters=64, type='AE'):
+            super().__init__()
+            self.type = type
+            self.encoder = nn.Sequential(
+                nn.Conv2d(num_in_channels, 64, 5, 2, 1),
+                nn.BatchNorm2d(num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(2 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
+                nn.BatchNorm2d(4 * num_filters),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
+            )
+            self.fc_mu = nn.Conv2d(z_size, z_size, 1)
+            self.fc_sig = nn.Conv2d(z_size, z_size, 1)
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            if self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                # AE
+                z = self.encoder(x)
+                return z
+
+        def weight_init(self):
+            self.encoder.apply(weight_init)
+
+    class decoder_MC(nn.Module):
+        def __init__(self, num_in_channels=1, z_size=80, num_filters=64):
+            super().__init__()
+
+            self.decoder_fc = nn.Sequential(
+                nn.Linear(z_size, 1024),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Linear(1024, 1024),
+                nn.BatchNorm1d(1024),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Linear(1024, 7 * 7 * 128),
+                nn.BatchNorm1d(7 * 7 * 128),
+                nn.LeakyReLU(0.2, True)
+            )
+            self.decoder_conv = nn.Sequential(
+                nn.ConvTranspose2d(128, 128, 5, bias=False),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.2, True),
+                nn.ConvTranspose2d(128, 1, 5, bias=False)
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, z):
+            z = self.decoder_fc(z)
+            recon_x = self.decoder_conv(z)
+            return recon_x
+
+        def weight_init(self):
+            self.decoder.apply(weight_init)
+
+    class discriminator_MC(nn.Module):
+        def __init__(self, num_in_channels=1, num_filters=64):
+            super().__init__()
+            self.discriminator_conv = nn.Sequential(
+                nn.Conv2d(num_in_channels, 11, 2),
+                nn.BatchNorm2d(11),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Conv2d(11, 75, 2),
+                nn.BatchNorm2d(75),
+                nn.LeakyReLU(0.2, True))
+            self.discriminator_fc = nn.Sequential(
+                nn.Linear(75, 1024),
+                nn.BatchNorm1d(1024),
+                nn.LeakyReLU(0.2, True),
+
+                nn.Linear(1024, 1),
+                nn.Sigmoid()
+            )
+            # init weights
+            self.weight_init()
+
+        def forward(self, x):
+            d = self.discriminator(x)
+            return d
+
+        def weight_init(self):
+            self.discriminator.apply(weight_init)
+
+    class MG_decoder(nn.Module):
+        def __init__(self, input_size, hidden_size, output_size):
+            super(MG_decoder, self).__init__()
+            self.map1 = nn.Linear(input_size, hidden_size)
+            self.map2 = nn.Linear(hidden_size, hidden_size)
+            self.map3 = nn.Linear(hidden_size, output_size)
+            # self.activation_fn = nn.ReLU()
+            # self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
+            self.activation_fn = nn.Tanh()
+            # self.activation_fn = Swish()
+
+        def forward(self, x):
+            x = x.view(x.shape[0], x.shape[1])
+            x = self.activation_fn(self.map1(x))
+            x = self.activation_fn(self.map2(x))
+
+            return self.map3(x)
+
+    class MG_encoder(nn.Module):
+        def __init__(self, input_size, hidden_size, output_size, type):
+            super(MG_encoder, self).__init__()
+            self.map1 = nn.Linear(input_size, hidden_size)
+            self.map2 = nn.Linear(hidden_size, hidden_size)
+            self.map3 = nn.Linear(hidden_size, output_size)
+            # self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
+            self.activation_fn = F.relu
+            # self.final_activation_fn = nn.ReLU()
+            self.fc_mu = nn.Linear(output_size, output_size)
+            self.fc_sig = nn.Linear(output_size, output_size)
+            self.type = type
+
+        def forward(self, x):
+            if self.type == 'AE' or self.type == 'AAE':
+                # AE
+                x = self.activation_fn(self.map1(x))
+                x = self.activation_fn(self.map2(x))
+                # z = self.final_activation_fn(self.map3(x))
+                z = self.map3(x)
+
+                return z
+            elif self.type == 'VAE':
+                # VAE
+                x = self.activation_fn(self.map1(x))
+                x = self.activation_fn(self.map2(x))
+
+                # z_ = self.final_activation_fn(self.map3(x))
+                z_ = self.activation_fn(self.map3(x))
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+
+    class MG_discriminator(nn.Module):
+        def __init__(self, input_size, hidden_size, output_size):
+            super(MG_discriminator, self).__init__()
+            self.map1 = nn.Linear(input_size, hidden_size)
+            self.map2 = nn.Linear(hidden_size, hidden_size)
+            self.map3 = nn.Linear(hidden_size, output_size)
+            # self.activation_fn = nn.LeakyReLU(0.2, inplace=True)
+            self.activation_fn = F.relu
+            self.final_activation_fn = F.sigmoid
+
+        def forward(self, x):
+            x = self.activation_fn(self.map1(x))
+            x = self.activation_fn(self.map2(x))
+
+            return self.final_activation_fn(self.map3(x))
+
+    class Info_FrontEnd(nn.Module):
+        ''' front end part of discriminator and Q'''
+
+        def __init__(self):
+            super(Info_FrontEnd, self).__init__()
+
+            self.main = nn.Sequential(
+                nn.Conv2d(1, 64, 4, 2, 1),
+                nn.LeakyReLU(0.1, inplace=True),
+                nn.Conv2d(64, 128, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(128),
+                nn.LeakyReLU(0.1, inplace=True),
+                nn.Conv2d(128, 1024, 7, bias=False),
+                nn.BatchNorm2d(1024),
+                nn.LeakyReLU(0.1, inplace=True),
+            )
+
+        def forward(self, x):
+            output = self.main(x)
+            return output
+
+    class Info_D(nn.Module):
+
+        def __init__(self):
+            super(Info_D, self).__init__()
+
+            self.main = nn.Sequential(
+                nn.Conv2d(1024, 1, 1),
+                nn.Sigmoid()
+            )
+
+        def forward(self, x):
+            output = self.main(x).view(-1, 1)
+            return output
+
+    class Info_Q(nn.Module):
+
+        def __init__(self):
+            super(Info_Q, self).__init__()
+
+            self.conv = nn.Conv2d(1024, 128, 1, bias=False)
+            self.bn = nn.BatchNorm2d(128)
+            self.lReLU = nn.LeakyReLU(0.1, inplace=True)
+            self.conv_mu = nn.Conv2d(128, 2, 1)
+            self.conv_var = nn.Conv2d(128, 2, 1)
+
+        def forward(self, x):
+            y = self.conv(x)
+
+            mu = self.conv_mu(y).squeeze()
+            var = self.conv_var(y).squeeze().exp()
+
+            return mu, var
+
+    class Info_G(nn.Module):
+
+        def __init__(self):
+            super(Info_G, self).__init__()
+
+            self.main = nn.Sequential(
+                nn.ConvTranspose2d(74, 1024, 1, 1, bias=False),
+                nn.BatchNorm2d(1024),
+                nn.ReLU(True),
+                nn.ConvTranspose2d(1024, 128, 7, 1, bias=False),
+                nn.BatchNorm2d(128),
+                nn.ReLU(True),
+                nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(64),
+                nn.ReLU(True),
+                nn.ConvTranspose2d(64, 1, 4, 2, 1, bias=False),
+                nn.Sigmoid()
+            )
+
+        def forward(self, x):
+            output = self.main(x)
+            return output
+
+    class DCGAN_E_nobn(nn.Module):
+        def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0, type='AE'):
+            super(DCGAN_D_nobn, self).__init__()
+            self.ngpu = ngpu
+            self.type
+            assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+            main = nn.Sequential()
+            # input is nc x isize x isize
+            # input is nc x isize x isize
+            main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
+                            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+            main.add_module('initial.relu.{0}'.format(ndf),
+                            nn.LeakyReLU(0.2, inplace=True))
+            csize, cndf = isize / 2, ndf
+
+            # Extra layers
+            for t in range(n_extra_layers):
+                main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
+                                nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
+                main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
+                                nn.LeakyReLU(0.2, inplace=True))
+
+            while csize > 4:
+                in_feat = cndf
+                out_feat = cndf * 2
+                main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
+                                nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
+                main.add_module('pyramid.{0}.relu'.format(out_feat),
+                                nn.LeakyReLU(0.2, inplace=True))
+                cndf = cndf * 2
+                csize = csize / 2
+
+            # state size. K x 4 x 4
+            main.add_module('final.{0}-{1}.conv'.format(cndf, 1),
+                            nn.Conv2d(cndf, nz, 4, 1, 0, bias=False))
+            self.fc_mu = nn.Conv2d(nz, nz, 1)
+            self.fc_sig = nn.Conv2d(nz, nz, 1)
+            self.main = main
+
+        def forward(self, input):
+            if self.type == 'VAE':
+                z_ = self.encoder(input)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                output = self.main(input)
+                return output
+
+    class DCGAN_D_nobn(nn.Module):
+        def __init__(self, isize, nz, nc, ndf, ngpu, n_extra_layers=0):
+            super(DCGAN_D_nobn, self).__init__()
+            self.ngpu = ngpu
+            assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+            main = nn.Sequential()
+            # input is nc x isize x isize
+            # input is nc x isize x isize
+            main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
+                            nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
+            main.add_module('initial.relu.{0}'.format(ndf),
+                            nn.LeakyReLU(0.2, inplace=True))
+            csize, cndf = isize / 2, ndf
+
+            # Extra layers
+            for t in range(n_extra_layers):
+                main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
+                                nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
+                main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
+                                nn.LeakyReLU(0.2, inplace=True))
+
+            while csize > 4:
+                in_feat = cndf
+                out_feat = cndf * 2
+                main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
+                                nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
+                main.add_module('pyramid.{0}.relu'.format(out_feat),
+                                nn.LeakyReLU(0.2, inplace=True))
+                cndf = cndf * 2
+                csize = csize / 2
+
+            # state size. K x 4 x 4
+            main.add_module('final.{0}-{1}.conv'.format(cndf, 1),
+                            nn.Conv2d(cndf, 1, 4, 1, 0, bias=False))
+            self.main = main
+
+        def forward(self, input):
+            if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
+                output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+            else:
+                output = self.main(input)
+
+            output = output.mean(0)
+            return output.view(1)
+
+    class DCGAN_G_nobn(nn.Module):
+        def __init__(self, isize, nz, nc, ngf, ngpu, n_extra_layers=0):
+            super(DCGAN_G_nobn, self).__init__()
+            self.ngpu = ngpu
+            assert isize % 16 == 0, "isize has to be a multiple of 16"
+
+            cngf, tisize = ngf // 2, 4
+            while tisize != isize:
+                cngf = cngf * 2
+                tisize = tisize * 2
+
+            main = nn.Sequential()
+            main.add_module('initial.{0}-{1}.convt'.format(nz, cngf),
+                            nn.ConvTranspose2d(nz, cngf, 4, 1, 0, bias=False))
+            main.add_module('initial.{0}.relu'.format(cngf),
+                            nn.ReLU(True))
+
+            csize, cndf = 4, cngf
+            while csize < isize // 2:
+                main.add_module('pyramid.{0}-{1}.convt'.format(cngf, cngf // 2),
+                                nn.ConvTranspose2d(cngf, cngf // 2, 4, 2, 1, bias=False))
+                main.add_module('pyramid.{0}.relu'.format(cngf // 2),
+                                nn.ReLU(True))
+                cngf = cngf // 2
+                csize = csize * 2
+
+            # Extra layers
+            for t in range(n_extra_layers):
+                main.add_module('extra-layers-{0}.{1}.conv'.format(t, cngf),
+                                nn.Conv2d(cngf, cngf, 3, 1, 1, bias=False))
+                main.add_module('extra-layers-{0}.{1}.relu'.format(t, cngf),
+                                nn.ReLU(True))
+
+            main.add_module('final.{0}-{1}.convt'.format(cngf, nc),
+                            nn.ConvTranspose2d(cngf, nc, 4, 2, 1, bias=False))
+            main.add_module('final.{0}.tanh'.format(nc),
+                            nn.Tanh())
+            self.main = main
+
+        def forward(self, input):
+            if isinstance(input.data, torch.cuda.FloatTensor) and self.ngpu > 1:
+                output = nn.parallel.data_parallel(self.main, input, range(self.ngpu))
+            else:
+                output = self.main(input)
+            return output
+            # xavier_init
+
+    def weight_init(module):
+        classname = module.__class__.__name__
+        if classname.find('Conv') != -1:
+            torch.nn.init.xavier_normal(module.weight.data)
+            # module.weight.data.normal_(0.0, 0.01)
+        elif classname.find('BatchNorm') != -1:
+            module.weight.data.normal_(1.0, 0.02)
+            module.bias.data.fill_(0)
+        elif classname.find('Linear') != -1:
+            torch.nn.init.normal(module.weight.data)
+
     nz = int(options.nz)
     autoencoder_type = autoencoder_type
     if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
@@ -1914,6 +1916,11 @@ def model_init(autoencoder_type):
     z_discriminator.apply(LJY_utils.weights_init)
     print(z_discriminator)
 
+    if options.WassersteinCritic == True:
+        W_critic = WCdiscriminator64x64(num_in_channels=3, num_filters=64)
+        W_critic.apply(LJY_utils.weights_init)
+        print(W_critic)
+
     return  encoder, decoder,discriminator, z_discriminator
 #=======================================================================================================================
 # Data and Parameters
@@ -1923,10 +1930,6 @@ def model_init(autoencoder_type):
 
 encoder, decoder, discriminator, z_discriminator = model_init(options.autoencoderType)
 
-if options.WassersteinCritic == True:
-    W_critic = WCdiscriminator64x64(num_in_channels=3, num_filters=64)
-    W_critic.apply(LJY_utils.weights_init)
-    print(W_critic)
 
 #=======================================================================================================================
 # Training
