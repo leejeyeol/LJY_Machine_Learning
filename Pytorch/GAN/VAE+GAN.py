@@ -3065,8 +3065,13 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
 
     print("Test start")
-    correct = 0
+
     total = 0
+    correct_main_real = 0
+    correct_ct_real = 0
+    correct_main_swap = 0
+    correct_ct_swap = 0
+
     for i, (data, _) in enumerate(dataloader, 0):
         real_cpu = data
         batch_size = real_cpu.size(0)
@@ -3079,16 +3084,9 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
         fake_label.data.fill_(0)
 
 
-        d_main_test = discriminator(input)
-        d_ct_test = discriminator(disc_input)
+        d_main_real = discriminator(input)
+        d_ct_real = discriminator_ct(disc_input)
 
-        print(real_label)
-        print(torch.round(d_ct_test))
-        print(torch.round(d_ct_test) == real_label)
-        total += real_label.size(0)
-        correct += (torch.round(d_ct_test) == real_label).sum().item()
-        print('Accuracy of the network on the 10000 test images: %d %%' % (
-                100 * correct / total))
 
         noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
         noise.data.normal_(0, 1)
@@ -3097,10 +3095,21 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
         d_main_swap = discriminator(generated_fake_ct)
         d_ct_swap = discriminator_ct(generated_fake_main)
 
+        total += real_label.size(0)
 
+        correct_main_real += (torch.round(d_main_real) == real_label).sum().item()
+        print('main_real : %f %%' % (100 * correct_main_real / total))
+        correct_ct_real += (torch.round(d_ct_real) == real_label).sum().item()
+        print('ct_real : %f %%' % (100 * correct_ct_real / total))
+        correct_main_swap += (torch.round(d_main_swap) == fake_label).sum().item()
+        print('main_swap : %f %%' % (100 * correct_main_swap / total))
+        correct_ct_swap += (torch.round(d_ct_swap) == fake_label).sum().item()
+        print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
 
         # visualize
         print('[%d/%d]'% (i, len(dataloader)))
+    print('R_test : %f '%((correct_main_real / total)/(correct_ct_real / total) ))
+    print('R_sample : %f'%((correct_main_swap / total)/(correct_ct_swap / total)))
 
 
 
