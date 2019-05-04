@@ -1782,7 +1782,6 @@ def model_init(autoencoder_type):
             torch.nn.init.normal(module.weight.data)
 
     nz = int(options.nz)
-    autoencoder_type = autoencoder_type
     if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
 
         encoder = encoder(num_in_channels=1, z_size=nz, num_filters=64, type=autoencoder_type)
@@ -1927,8 +1926,10 @@ def model_init(autoencoder_type):
 #=======================================================================================================================
 
 # MNIST call and load   ================================================================================================
-
-encoder, decoder, discriminator, z_discriminator = model_init(options.autoencoderType)
+autoencoder_type=options.autoencoderType
+nz = options.nz
+ngpu = options.ngpu
+encoder, decoder, discriminator, z_discriminator = model_init(autoencoder_type)
 
 
 #=======================================================================================================================
