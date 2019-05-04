@@ -38,6 +38,7 @@ plt.style.use('ggplot')
 parser = argparse.ArgumentParser()
 # Options for path =====================================================================================================
 parser.add_argument('--preset', default='None', help='', choices=['None','ours','dcgan','alpha-gan'])
+parser.add_argument('--runfunc', default='Train', help='', choices=['Train','Generate','GAM','alpha-gan'])
 parser.add_argument('--dataset', default='CelebA', help='what is dataset? MG : Mixtures of Gaussian', choices=['CelebA','CelebA_base', 'MNIST', 'biasedMNIST', 'MNIST_MC', 'MG','CIFAR10'])
 parser.add_argument('--dataroot', default='/home/mlpa/Workspace/dataset/CelebA/Img/img_anlign_celeba_png.7z/img_align_celeba_png', help='path to dataset')
 parser.add_argument('--img_size', type=int, default=0, help='0 is default of dataset. 224,112,56,28')
@@ -76,6 +77,9 @@ parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution n
 
 options = parser.parse_args()
 print(options)
+
+print("#####################################")
+
 
 visualize_latent = False
 recon_learn = True
@@ -1770,72 +1774,86 @@ cudnn.benchmark = True
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
-#=======================================================================================================================
-# Data and Parameters
-#=======================================================================================================================
 
-# MNIST call and load   ================================================================================================
 
-ngpu = int(options.ngpu)
-nz = int(options.nz)
-autoencoder_type = options.autoencoderType
-if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
-    encoder = encoder(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
-    encoder.apply(LJY_utils.weights_init)
-    print(encoder)
 
-    decoder = decoder(num_in_channels=1, z_size=nz, num_filters=64)
-    decoder.apply(LJY_utils.weights_init)
-    print(decoder)
+def model_init(autoencoder_type):
+    ngpu = int(options.ngpu)
+    nz = int(options.nz)
+    autoencoder_type = autoencoder_type
+    if options.dataset == 'MNIST' or options.dataset == 'biasedMNIST':
 
-    if autoencoder_type == 'RAE':
-        Recon_discriminator = Discriminator(num_in_channels=1, num_filters=64)
-        Recon_discriminator.apply(LJY_utils.weights_init)
-        print(Recon_discriminator)
-        Recon_discriminator.cuda()
-
-    if options.ganType == 'small_D':
-        discriminator = small_discriminator(nz=nz)
-        discriminator.apply(LJY_utils.weights_init)
-        print(discriminator)
-    elif options.ganType == 'DCGAN':
-        discriminator = Discriminator(num_in_channels=1, num_filters=64)
-        discriminator.apply(LJY_utils.weights_init)
-        print(discriminator)
-    elif options.ganType == 'NoiseGAN':
-        discriminator = Discriminator(num_in_channels=1, num_filters=64)
-        discriminator.apply(LJY_utils.weights_init)
-        print(discriminator)
-
-        discriminator_2 = Discriminator(num_in_channels=1, num_filters=64)
-        discriminator_2.apply(LJY_utils.weights_init)
-        print(discriminator_2)
-        discriminator_2.cuda()
-
-elif options.dataset == 'CelebA':
-    if options.img_size == 0:
-        encoder = encoder64x64(num_in_channels=3, z_size=nz, num_filters=64,type=autoencoder_type)
+        encoder = encoder(num_in_channels=1, z_size=nz, num_filters=64, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
 
-        decoder = decoder64x64(num_in_channels=3, z_size=nz, num_filters=64)
+        decoder = decoder(num_in_channels=1, z_size=nz, num_filters=64)
         decoder.apply(LJY_utils.weights_init)
         print(decoder)
 
-        discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
-        discriminator.apply(LJY_utils.weights_init)
-        print(discriminator)
-        if options.ganType == 'NoiseGAN':
-            discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
+        if autoencoder_type == 'RAE':
+            Recon_discriminator = Discriminator(num_in_channels=1, num_filters=64)
+            Recon_discriminator.apply(LJY_utils.weights_init)
+            print(Recon_discriminator)
+            Recon_discriminator.cuda()
+
+        if options.ganType == 'small_D':
+            discriminator = small_discriminator(nz=nz)
+            discriminator.apply(LJY_utils.weights_init)
+            print(discriminator)
+        elif options.ganType == 'DCGAN':
+            discriminator = Discriminator(num_in_channels=1, num_filters=64)
+            discriminator.apply(LJY_utils.weights_init)
+            print(discriminator)
+        elif options.ganType == 'NoiseGAN':
+            discriminator = Discriminator(num_in_channels=1, num_filters=64)
             discriminator.apply(LJY_utils.weights_init)
             print(discriminator)
 
-            discriminator_2 = discriminator64x64(num_in_channels=3, num_filters=64)
+            discriminator_2 = Discriminator(num_in_channels=1, num_filters=64)
             discriminator_2.apply(LJY_utils.weights_init)
             print(discriminator_2)
             discriminator_2.cuda()
-    else:
-        encoder = encoder_freesize(img_size=options.img_size, num_in_channels=3, z_size=nz, num_filters=64, type=autoencoder_type)
+
+    elif options.dataset == 'CelebA':
+        if options.img_size == 0:
+            encoder = encoder64x64(num_in_channels=3, z_size=nz, num_filters=64, type=autoencoder_type)
+            encoder.apply(LJY_utils.weights_init)
+            print(encoder)
+
+            decoder = decoder64x64(num_in_channels=3, z_size=nz, num_filters=64)
+            decoder.apply(LJY_utils.weights_init)
+            print(decoder)
+
+            discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
+            discriminator.apply(LJY_utils.weights_init)
+            print(discriminator)
+            if options.ganType == 'NoiseGAN':
+                discriminator = discriminator64x64(num_in_channels=3, num_filters=64)
+                discriminator.apply(LJY_utils.weights_init)
+                print(discriminator)
+
+                discriminator_2 = discriminator64x64(num_in_channels=3, num_filters=64)
+                discriminator_2.apply(LJY_utils.weights_init)
+                print(discriminator_2)
+                discriminator_2.cuda()
+        else:
+            encoder = encoder_freesize(img_size=options.img_size, num_in_channels=3, z_size=nz, num_filters=64,
+                                       type=autoencoder_type)
+            encoder.apply(LJY_utils.weights_init)
+            print(encoder)
+
+            decoder = decoder_freesize(img_size=options.img_size, num_in_channels=3, z_size=nz, num_filters=64)
+            decoder.apply(LJY_utils.weights_init)
+            print(decoder)
+
+            discriminator = discriminator_freesize(img_size=options.img_size, num_in_channels=3, num_filters=64)
+            discriminator.apply(LJY_utils.weights_init)
+            print(discriminator)
+
+    elif options.dataset == 'CelebA_base':
+        '''
+        encoder = DCGAN_E_nobn(isize, nz, nc, ndf, ngpu, n_extra_layers=0 type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
 
@@ -1846,74 +1864,69 @@ elif options.dataset == 'CelebA':
         discriminator = discriminator_freesize(img_size=options.img_size, num_in_channels=3, num_filters=64)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
+        '''
+    elif options.dataset == 'HMDB51':
+        encoder = encoder64x64(num_in_channels=1, z_size=nz, num_filters=64, type=autoencoder_type)
+        encoder.apply(LJY_utils.weights_init)
+        print(encoder)
 
-elif options.dataset == 'CelebA_base':
-    '''
-    encoder = DCGAN_E_nobn(isize, nz, nc, ndf, ngpu, n_extra_layers=0 type=autoencoder_type)
-    encoder.apply(LJY_utils.weights_init)
-    print(encoder)
+        decoder = decoder64x64(num_in_channels=1, z_size=nz, num_filters=64)
+        decoder.apply(LJY_utils.weights_init)
+        print(decoder)
 
-    decoder = decoder_freesize(img_size=options.img_size,num_in_channels=3, z_size=nz, num_filters=64)
-    decoder.apply(LJY_utils.weights_init)
-    print(decoder)
+        discriminator = discriminator64x64(num_in_channels=1, num_filters=64)
+        discriminator.apply(LJY_utils.weights_init)
+        print(discriminator)
+    elif options.dataset == 'HMDB51_224':
+        encoder = encoder224x224(options.nz, options.nc)
+        print(encoder)
 
-    discriminator = discriminator_freesize(img_size=options.img_size, num_in_channels=3, num_filters=64)
-    discriminator.apply(LJY_utils.weights_init)
-    print(discriminator)
-    '''
-elif options.dataset == 'HMDB51':
-    encoder = encoder64x64(num_in_channels=1, z_size=nz, num_filters=64,type=autoencoder_type)
-    encoder.apply(LJY_utils.weights_init)
-    print(encoder)
+        decoder = decoder224x224(options.nz, options.nc)
+        print(decoder)
 
-    decoder = decoder64x64(num_in_channels=1, z_size=nz, num_filters=64)
-    decoder.apply(LJY_utils.weights_init)
-    print(decoder)
+        discriminator = discriminator224x224(1)
+        print(discriminator)
+    elif options.dataset == 'CIFAR10':
+        encoder = encoder32x32(num_in_channels=3, z_size=nz, type=autoencoder_type)
+        encoder.apply(LJY_utils.weights_init)
+        print(encoder)
 
-    discriminator = discriminator64x64(num_in_channels=1, num_filters=64)
-    discriminator.apply(LJY_utils.weights_init)
-    print(discriminator)
-elif options.dataset == 'HMDB51_224':
-    encoder = encoder224x224(options.nz, options.nc)
-    print(encoder)
+        decoder = decoder32x32(num_in_channels=3, z_size=nz)
+        decoder.apply(LJY_utils.weights_init)
+        print(decoder)
 
-    decoder = decoder224x224(options.nz,  options.nc)
-    print(decoder)
+        discriminator = Discriminator32x32(num_in_channels=3)
+        discriminator.apply(LJY_utils.weights_init)
+        print(discriminator)
+    elif options.dataset == 'MG':
+        encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
+        encoder.apply(LJY_utils.weights_init)
+        print(encoder)
 
-    discriminator = discriminator224x224(1)
-    print(discriminator)
-elif options.dataset == 'CIFAR10':
-    encoder = encoder32x32(num_in_channels=3, z_size=nz,type=autoencoder_type)
-    encoder.apply(LJY_utils.weights_init)
-    print(encoder)
+        decoder = MG_decoder(input_size=nz, hidden_size=128, output_size=2)
+        decoder.apply(LJY_utils.weights_init)
+        print(decoder)
 
-    decoder = decoder32x32(num_in_channels=3, z_size=nz)
-    decoder.apply(LJY_utils.weights_init)
-    print(decoder)
+        discriminator = MG_discriminator(input_size=2, hidden_size=128, output_size=1)
+        discriminator.apply(LJY_utils.weights_init)
+        print(discriminator)
+    z_discriminator = z_discriminator(N=750, z_dim=nz)
+    z_discriminator.apply(LJY_utils.weights_init)
+    print(z_discriminator)
 
-    discriminator = Discriminator32x32(num_in_channels=3)
-    discriminator.apply(LJY_utils.weights_init)
-    print(discriminator)
-elif options.dataset == 'MG':
-    encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
-    encoder.apply(LJY_utils.weights_init)
-    print(encoder)
+    return  encoder, decoder,discriminator, z_discriminator
+#=======================================================================================================================
+# Data and Parameters
+#=======================================================================================================================
 
-    decoder = MG_decoder(input_size=nz, hidden_size=128, output_size=2)
-    decoder.apply(LJY_utils.weights_init)
-    print(decoder)
+# MNIST call and load   ================================================================================================
 
-    discriminator = MG_discriminator(input_size=2, hidden_size=128, output_size=1)
-    discriminator.apply(LJY_utils.weights_init)
-    print(discriminator)
-z_discriminator = z_discriminator(N=750, z_dim=nz)
-z_discriminator.apply(LJY_utils.weights_init)
-print(z_discriminator)
+encoder, decoder, discriminator, z_discriminator = model_init(options.autoencoderType)
 
 if options.WassersteinCritic == True:
     W_critic = WCdiscriminator64x64(num_in_channels=3, num_filters=64)
     W_critic.apply(LJY_utils.weights_init)
-    print(discriminator)
+    print(W_critic)
 
 #=======================================================================================================================
 # Training
@@ -2982,6 +2995,27 @@ def generate():
     '''
 
 
+def GAM(comparison_target):
+    comparison_target = comparison_target
+    #load main models G and D(done.)
+    #load CT models G and D
+
+    # label all 9
+    # load test data
+    # discriminator classifying
+
+    # label all 1
+    # generate data
+    # swap discriminator and classifying
+
+    # show table
+    # show rate
+
+
+
+
+
+
 
 
 def generate_MG():
@@ -3044,10 +3078,19 @@ def Wassesrstein_Critic():
     np.save('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_WC/%s_%d.npy'%(case,ep), np.asarray(W_distances))
 
 
+
+
 if __name__ == "__main__" :
-    train()
+    if options.runfunc == 'Train':
+        print("triaining")
+        train()
+    elif options.runfunc == 'Generate':
+        generate()
+    elif options.runfunc == 'GAM':
+        GAM('alpha-gan')
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
     #visualize_latent_space_2d()
     #generate()
+
