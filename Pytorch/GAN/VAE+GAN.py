@@ -3082,9 +3082,11 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
         d_main_test = discriminator(input)
         d_ct_test = discriminator(disc_input)
 
+        print(real_label)
         print(torch.round(d_ct_test))
+        print(torch.round(d_ct_test) == real_label)
         total += real_label.size(0)
-        correct += (d_ct_test == real_label).sum().item()
+        correct += (torch.round(d_ct_test) == real_label).sum().item()
         print('Accuracy of the network on the 10000 test images: %d %%' % (
                 100 * correct / total))
 
