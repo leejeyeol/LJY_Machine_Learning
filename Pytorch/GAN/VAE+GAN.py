@@ -3080,7 +3080,7 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
         d_main_test = discriminator(input)
         d_ct_test = discriminator(disc_input)
-        print(d_main_swap)
+        print(d_ct_test)
 
         noise = Variable(torch.FloatTensor(batch_size, nz)).cuda()
         noise.data.normal_(0, 1)
