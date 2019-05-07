@@ -9,7 +9,8 @@ import csv
 import random
 class Deep_Learning_CSV_Saver():
     '''
-    # Usage
+    # Usage example : saving random int
+
     import random
     csv_saver = Deep_Learning_CSV_Saver(rows=['a', 'b', 'c', 'd'], save_path='output.csv')
     for i in range(0, 100):

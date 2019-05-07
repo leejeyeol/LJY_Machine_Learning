@@ -3118,11 +3118,16 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
     print('------------------------------')
     print('R_test : %f '%((correct_main_real/correct_ct_real )))
     print('R_sample : %f'%((correct_main_swap/correct_ct_swap )))
+    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['main_real', 'ct_real', 'main_swap', 'ct_swap','R_test','R_sample'],
+                                        save_path='%s.csv' % options.preset)
+    iteration_result = [(100 * correct_main_real / total),(100 * correct_ct_real / total),(100 * correct_main_swap / total),(100 * correct_ct_swap / total),(correct_main_real/correct_ct_real ),(correct_main_swap/correct_ct_swap )]
+    csv_saver.add_column(iteration_result)
+    csv_saver.save()
 
     # when R_test is close to 1 : this condition assures that none of the discriminator is overfitted more than the other.
     # R_sample < 1 : main is better
     # R_sample > 1 : comparison target is better
-
+    options.preset
 
 
 
