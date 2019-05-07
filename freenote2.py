@@ -11,12 +11,15 @@ class Deep_Learning_CSV_Saver():
             csv_saver.add_column(iteration_result)
         csv_saver.save()
     '''
-    def __init__(self, rows=['1', '2', '3', '4'], load_path=None, save_path='output.csv'):
+    def __init__(self, rows=None, load_path=None, save_path='output.csv'):
         self.results = []
         self.rows = rows
         self.len_rows = len(self.rows)
         self.load_path = load_path
         self.save_path = save_path
+        # row exmple ['1', '2', '3', '4']
+        if self.rows is None:
+            self.rows_write =True
         self.rows_write = False
         if self.load_path is None:
             self.load_path = self.save_path

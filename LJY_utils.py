@@ -19,25 +19,29 @@ class Deep_Learning_CSV_Saver():
             csv_saver.add_column(iteration_result)
         csv_saver.save()
     '''
-    def __init__(self, rows=['1', '2', '3', '4'], save_path='output.csv'):
+    def __init__(self, rows=None, load_path=None, save_path='output.csv'):
         self.results = []
         self.rows = rows
         self.len_rows = len(self.rows)
+        self.load_path = load_path
         self.save_path = save_path
-        with open(self.save_path, 'a') as outcsv:
-            # configure writer to write standard csv file
-            writer = csv.writer(outcsv, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-            writer.writerow(self.rows)
-
+        # row exmple ['1', '2', '3', '4']
+        if self.rows is None:
+            self.rows_write =True
+        self.rows_write = False
+        if self.load_path is None:
+            self.load_path = self.save_path
 
     def add_column(self, data_list):
-        assert len(data_list) == self.len_rows, 'length of input is not same to length of row. %d != %d' % (len(data_list), self.len_rows)
         self.results.append(data_list)
 
     def save(self):
-        with open(self.save_path, 'a') as outcsv:
+        with open(self.load_path, 'a') as outcsv:
             # configure writer to write standard csv file
             writer = csv.writer(outcsv, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
+            if not self.rows_write:
+                writer.writerow(self.rows)
+                self.rows_write = True
             for item in self.results:
                 # Write item to outcsv
                 print(item)
