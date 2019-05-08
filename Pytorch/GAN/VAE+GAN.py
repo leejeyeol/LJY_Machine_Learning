@@ -3109,7 +3109,7 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
         #print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
 
         # visualize
-        print('[%d/%d]'% (i, len(dataloader)))
+        print('%s : [%d][%d/%d]'% (options.preset, options.pretrainedEpoch,i, len(dataloader)))
 
     print('main_real : %f %%' % (100 * correct_main_real / total))
     print('ct_real : %f %%' % (100 * correct_ct_real / total))

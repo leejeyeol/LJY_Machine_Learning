@@ -1,52 +1,20 @@
-import csv
-import random
-class Deep_Learning_CSV_Saver():
-    '''
-    # Usage
-    import random
-    csv_saver = Deep_Learning_CSV_Saver(rows=['a', 'b', 'c', 'd'], save_path='output.csv')
-    for i in range(0, 100):
-        for j in range(0, 100):
-            iteration_result = [random.randint(0, 10), random.randint(0, 10), random.randint(0, 10), random.randint(0, 10)]
-            csv_saver.add_column(iteration_result)
-        csv_saver.save()
-    '''
-    def __init__(self, rows=None, load_path=None, save_path='output.csv'):
-        self.results = []
-        self.rows = rows
-        self.load_path = load_path
-        self.save_path = save_path
-        # row exmple ['1', '2', '3', '4']
-        if self.rows is None:
-            self.rows_write =True
-        else :
-            self.len_rows = len(self.rows)
-            self.rows_write = False
-        if self.load_path is None:
-            self.load_path = self.save_path
+import matplotlib as plt
+import numpy as np
+import os
 
-    def add_column(self, data_list):
-        self.results.append(data_list)
+alpha_gan = np.genfromtxt(os.path.abspath(r'C:\Users\rnt\Desktop\alpha-gan.csv'), delimiter=',')
+ours = np.genfromtxt(r'C:\Users\rnt\Desktop\ours.csv', delimiter=',')
 
-    def save(self):
-        with open(self.load_path, 'a') as outcsv:
-            # configure writer to write standard csv file
-            writer = csv.writer(outcsv, delimiter=',', quotechar='|', quoting=csv.QUOTE_MINIMAL, lineterminator='\n')
-            if not self.rows_write:
-                writer.writerow(self.rows)
-                self.rows_write = True
-            for item in self.results:
-                # Write item to outcsv
-                print(item)
-                writer.writerow([item[0], item[1], item[2], item[3]])
-            self.results = []
+data = alpha_gan
+data=np.column_stack([data[:,0], data[:,2]])
+
+plt.plot(data)
+#plt.legend(['gradient of discriminator','gradient of decoder', 'gradient of generator'])
+plt.legend(['gradient of discriminator', 'gradient of generator'])
+
+plt.xlabel('Iteration')
+plt.ylabel('Norm of Gradient')
+plt.show()
+print(1)
 
 
-import random
-
-csv_saver = Deep_Learning_CSV_Saver(rows=['a', 'b', 'c', 'd'], save_path='output.csv')
-for i in range(0, 100):
-    for j in range(0, 100):
-        iteration_result = [random.randint(0, 10), random.randint(0, 10), random.randint(0, 10), random.randint(0, 10)]
-        csv_saver.add_column(iteration_result)
-    csv_saver.save()

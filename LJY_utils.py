@@ -46,7 +46,7 @@ class Deep_Learning_CSV_Saver():
             for item in self.results:
                 # Write item to outcsv
                 print(item)
-                writer.writerow([item[0], item[1], item[2], item[3]])
+                writer.writerow(item)
             self.results = []
 
 
