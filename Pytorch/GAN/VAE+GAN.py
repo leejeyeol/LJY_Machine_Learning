@@ -3002,11 +3002,11 @@ def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
     # https://arxiv.org/pdf/1602.05110.pdf%5D
 
     #todo for test
-    if options.pretrainedModelName == 'ours':
+    if options.preset == 'ours':
         comparison_model = 'alpha-gan'
-    elif options.pretrainedModelName == 'alpha-gan':
+    elif options.preset == 'alpha-gan':
         comparison_model = 'ours'
-
+    print
     print(comparison_model)
     if comparison_model == 'ours':
         pretrainedModelName_ct = comparison_model + '_' + options.dataset
