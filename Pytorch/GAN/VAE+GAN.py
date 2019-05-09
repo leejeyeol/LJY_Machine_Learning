@@ -76,8 +76,8 @@ parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution networks.(to continue training)")
 
 options = parser.parse_args()
-print(options)
 
+print(options)
 print("#####################################")
 
 
@@ -2998,8 +2998,15 @@ def generate():
     '''
 
 
-def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
+def GAM(comparison_model=None, comparision_epoch=options.pretrainedEpoch):
     # https://arxiv.org/pdf/1602.05110.pdf%5D
+
+    #todo for test
+    if options.pretrainedModelName == 'ours':
+        comparison_model = 'alpha-gan'
+    elif options.pretrainedModelName == 'alpha-gan':
+        comparison_model = 'ours'
+
 
     if comparison_model == 'ours':
         pretrainedModelName_ct = comparison_model + '_' + options.dataset
@@ -3113,13 +3120,22 @@ def GAM(comparison_model, comparision_epoch=options.pretrainedEpoch):
 
     print('main_real : %f %%' % (100 * correct_main_real / total))
     print('ct_real : %f %%' % (100 * correct_ct_real / total))
+
     print('main_swap : %f %%' % (100 * correct_main_swap / total))
     print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
     print('------------------------------')
+    if correct_main_real == 0:
+        correct_main_real = 0.000001
+    if correct_ct_real == 0:
+        correct_ct_real = 0.000001
+    if correct_main_swap == 0:
+        correct_main_swap = 0.000001
+    if correct_ct_swap == 0:
+        correct_ct_swap = 0.000001
     print('R_test : %f '%((correct_main_real/correct_ct_real )))
     print('R_sample : %f'%((correct_main_swap/correct_ct_swap )))
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path='%s.csv' % options.preset)
-    iteration_result = [(100 * correct_main_real / total),(100 * correct_ct_real / total),(100 * correct_main_swap / total),(100 * correct_ct_swap / total),(correct_main_real/correct_ct_real ),(correct_main_swap/correct_ct_swap )]
+    iteration_result = [(100 * correct_main_real / total),(100 * correct_ct_real / total),(100 * correct_main_swap / total),(100 * correct_ct_swap / total),(correct_main_real/correct_ct_real),(correct_main_swap/correct_ct_swap )]
     csv_saver.add_column(iteration_result)
     csv_saver.save()
 
@@ -3201,7 +3217,7 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        GAM('ours')
+        GAM()
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
