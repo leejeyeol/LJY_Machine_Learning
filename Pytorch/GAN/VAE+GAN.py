@@ -2998,7 +2998,7 @@ def generate():
     '''
 
 
-def GAM(comparison_model=None, comparision_epoch=options.pretrainedEpoch):
+def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
     # https://arxiv.org/pdf/1602.05110.pdf%5D
 
     #todo for test
@@ -3007,7 +3007,7 @@ def GAM(comparison_model=None, comparision_epoch=options.pretrainedEpoch):
     elif options.pretrainedModelName == 'alpha-gan':
         comparison_model = 'ours'
 
-
+    print(comparison_model)
     if comparison_model == 'ours':
         pretrainedModelName_ct = comparison_model + '_' + options.dataset
     elif comparison_model == 'alpha-gan':
