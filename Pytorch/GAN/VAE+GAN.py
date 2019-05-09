@@ -3076,10 +3076,10 @@ def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
     print("Test start")
 
     total = 0
-    correct_main_real = 0
-    correct_ct_real = 0
-    correct_main_swap = 0
-    correct_ct_swap = 0
+    main_real = 0
+    ct_real = 0
+    main_swap = 0
+    ct_swap = 0
 
     for i, (data, _) in enumerate(dataloader, 0):
         real_cpu = data
@@ -3106,36 +3106,33 @@ def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
 
         total += real_label.size(0)
 
-        correct_main_real += (torch.round(d_main_real) != real_label).sum().item()
-        #print('main_real : %f %%' % (100 * correct_main_real / total))
-        correct_ct_real += (torch.round(d_ct_real) != real_label).sum().item()
-        #print('ct_real : %f %%' % (100 * correct_ct_real / total))
-        correct_main_swap += (torch.round(d_main_swap) != fake_label).sum().item()
-        #print('main_swap : %f %%' % (100 * correct_main_swap / total))
-        correct_ct_swap += (torch.round(d_ct_swap) != fake_label).sum().item()
-        #print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
+        # count error
+        main_real += (torch.round(d_main_real) != real_label).sum().item()
+        ct_real += (torch.round(d_ct_real) != real_label).sum().item()
+        main_swap += (torch.round(d_main_swap) != fake_label).sum().item()
+        ct_swap += (torch.round(d_ct_swap) != fake_label).sum().item()
 
         # visualize
         print('%s : [%d][%d/%d]'% (options.preset, options.pretrainedEpoch,i, len(dataloader)))
 
-    print('main_real : %f %%' % (100 * correct_main_real / total))
-    print('ct_real : %f %%' % (100 * correct_ct_real / total))
+    print('main_real : %f %%' % (100 * main_real / total))
+    print('ct_real : %f %%' % (100 * ct_real / total))
 
-    print('main_swap : %f %%' % (100 * correct_main_swap / total))
-    print('ct_swap : %f %%' % (100 * correct_ct_swap / total))
+    print('main_swap : %f %%' % (100 * main_swap / total))
+    print('ct_swap : %f %%' % (100 * ct_swap / total))
     print('------------------------------')
-    if correct_main_real == 0:
-        correct_main_real = 0.000001
-    if correct_ct_real == 0:
-        correct_ct_real = 0.000001
-    if correct_main_swap == 0:
-        correct_main_swap = 0.000001
-    if correct_ct_swap == 0:
-        correct_ct_swap = 0.000001
-    print('R_test : %f '%((correct_main_real/correct_ct_real )))
-    print('R_sample : %f'%((correct_main_swap/correct_ct_swap )))
+    if main_real == 0:
+        main_real = 0.000001
+    if ct_real == 0:
+        ct_real = 0.000001
+    if main_swap == 0:
+        main_swap= 0.000001
+    if ct_swap == 0:
+        ct_swap = 0.000001
+    print('R_test : %f '%((main_real/ct_real )))
+    print('R_sample : %f'%((main_swap/ct_swap )))
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path='%s.csv' % options.preset)
-    iteration_result = [(100 * correct_main_real / total),(100 * correct_ct_real / total),(100 * correct_main_swap / total),(100 * correct_ct_swap / total),(correct_main_real/correct_ct_real),(correct_main_swap/correct_ct_swap )]
+    iteration_result = [(100 * main_real / total),(100 * ct_real / total),(100 * main_swap / total),(100 * ct_swap / total),(main_real/ct_real),(main_swap/ct_swap )]
     csv_saver.add_column(iteration_result)
     csv_saver.save()
 
