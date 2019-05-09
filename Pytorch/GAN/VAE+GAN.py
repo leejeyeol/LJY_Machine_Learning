@@ -2861,36 +2861,108 @@ def generate():
                        transforms.ToTensor(),
                        transforms.Normalize((0.5,), (0.5,))
                    ])),batch_size=1, shuffle=True, num_workers=options.workers)
-    case = 'ours'
-    ep = 9
-    #generate_path = os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN',
-    #                               '%s_WC_decoder_%d' % ('ours', ep))
-    #generate_path = LJY_utils.make_dir(generate_path, allow_duplication=True)
 
-    #encoder.load_state_dict(
-    #    torch.load("/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST/CelebA_Test1000_recon_encoder_48.pth"))
     decoder.load_state_dict(
-        torch.load(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN',
-                                   '%s_WC_decoder_%d.pth' % (case, ep))))
+        torch.load(os.path.join(options.modelOutFolder, options.preset + "_decoder" + "_%d.pth" % options.pretrainedEpoch)))
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     toimg = transforms.ToPILImage()
 
     print("Generating Start!")
-    #generate_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d"%(case,ep)
-    generate_save_path ='/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/latent_walk'
+    generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+options.pretrainedEpoch)
+    LJY_utils.make_dir(generate_save_path, allow_duplication=True)
+    generate_save_fake_path =os.path.join(generate_save_path, 'fake')
+    LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
+    generate_save_real_path =os.path.join(generate_save_path, 'real')
+    LJY_utils.make_dir(generate_save_real_path, allow_duplication=True)
+
+    # generator(Vanilar)
+    for i in range(num_gen):
+        noise = Variable(torch.FloatTensor(1, nz)).cuda()
+        noise.data.normal_(0, 1)
+        generated_fake = decoder(noise.view(1, nz, 1, 1))
+        np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
+
+        toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
+        print('[%d/%d]'%(i, num_gen))
+
+    # real sample generator
+    for i, (data, _) in enumerate(dataloader, 0):
+        input = Variable(data).cuda()
+        toimg(unorm(input.data[0]).cpu()).save(generate_save_real_path + "/%05d.png" % i)
+        print('[%d/%d]' % (i, num_gen))
+        if i == num_gen:
+            break
+
+    #reconstruction generator
+    '''
+    for i, (data, _) in enumerate(dataloader, 0):
+        input = Variable(data).cuda()
+
+        if i <= num_gen:
+            generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon"
+            original_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon_original"
+
+            if autoencoder_type == 'VAE':
+                mu, logvar = encoder(input)
+                std = torch.exp(0.5 * logvar)
+                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
+                z = eps.mul(std).add_(mu)
+            else:
+                z = encoder(input)
+            x_recon = decoder(z.view(1, nz, 1, 1))
+            toimg(unorm(x_recon.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
+            toimg(unorm(input.data[0]).cpu()).save(original_path + "/%05d.png" % i)
+
+            print('[%d/%d]' % (i, num_gen))
+        else:
+            if i <= num_gen*2:
+                generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_real_sample"
+                toimg(unorm(input.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
+                print('[%d/%d]' % (i, num_gen))
+            else:
+                break
+    '''
+def generate_4axis():
+
+    num_gen = 10000
+    celebA_imgsize = 64
+    dataloader = torch.utils.data.DataLoader(
+        custom_Dataloader(path=options.dataroot,
+                          transform=transforms.Compose([
+                              transforms.CenterCrop(150),
+                              transforms.Scale((celebA_imgsize, celebA_imgsize)),
+                              transforms.ToTensor(),
+                              transforms.Normalize((0.5,), (0.5,))
+                          ])), batch_size=1, shuffle=True, num_workers=options.workers)
+    case = 'ours'
+    ep = 9
+    # generate_path = os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN',
+    #                               '%s_WC_decoder_%d' % ('ours', ep))
+    # generate_path = LJY_utils.make_dir(generate_path, allow_duplication=True)
+
+    # encoder.load_state_dict(
+    #    torch.load("/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/MNIST/CelebA_Test1000_recon_encoder_48.pth"))
+    decoder.load_state_dict(
+        torch.load(os.path.join('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN',
+                                '%s_WC_decoder_%d.pth' % (case, ep))))
+    unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
+    toimg = transforms.ToPILImage()
+
+    print("Generating Start!")
+    # generate_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d"%(case,ep)
+    generate_save_path = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/latent_walk'
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
 
     four_indeces = [939, 949, 2411, 7695]
     four_zs = []
     for i in range(4):
-        four_zs.append(np.load(os.path.join(generate_save_path,'%05d.npy')%four_indeces[i]))
+        four_zs.append(np.load(os.path.join(generate_save_path, '%05d.npy') % four_indeces[i]))
 
     latent_vectors = [[[] for _ in range(9)] for _ in range(9)]
     latent_vectors[0][0] = four_zs[0]
     latent_vectors[0][8] = four_zs[1]
     latent_vectors[8][0] = four_zs[2]
     latent_vectors[8][8] = four_zs[3]
-
 
     latent_vectors[0][4] = (latent_vectors[0][0] + latent_vectors[0][8]) / 2
 
@@ -2941,62 +3013,10 @@ def generate():
         else:
             image = torch.cat((image, x_image), 3)
 
-    img = np.asarray(unorm(image.view(image.shape[1],image.shape[2],image.shape[3]).permute(1,2,0)))
+    img = np.asarray(unorm(image.view(image.shape[1], image.shape[2], image.shape[3]).permute(1, 2, 0)))
     plt.axis('off')
     plt.imshow(img)
     plt.show()
-    '''
-    # generator(Vanilar)
-    for i in range(num_gen):
-        noise = Variable(torch.FloatTensor(1, nz)).cuda()
-        noise.data.normal_(0, 1)
-        generated_fake = decoder(noise.view(1, nz, 1, 1))
-        np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
-
-        toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_path+"/%05d.png"%i)
-        print('[%d/%d]'%(i, num_gen))
-    '''
-    # real sample generator
-    '''
-    real_save_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_real_sample_%d"%(case,ep)
-    LJY_utils.make_dir(real_save_path, allow_duplication=True)
-    for i, (data, _) in enumerate(dataloader, 0):
-        input = Variable(data).cuda()
-        toimg(unorm(input.data[0]).cpu()).save(real_save_path + "/%05d.png" % i)
-        print('[%d/%d]' % (i, num_gen))
-        if i == numgen:
-            break
-    '''
-    #reconstruction generator
-    '''
-    for i, (data, _) in enumerate(dataloader, 0):
-        input = Variable(data).cuda()
-
-        if i <= num_gen:
-            generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon"
-            original_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_recon_original"
-
-            if autoencoder_type == 'VAE':
-                mu, logvar = encoder(input)
-                std = torch.exp(0.5 * logvar)
-                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
-                z = eps.mul(std).add_(mu)
-            else:
-                z = encoder(input)
-            x_recon = decoder(z.view(1, nz, 1, 1))
-            toimg(unorm(x_recon.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
-            toimg(unorm(input.data[0]).cpu()).save(original_path + "/%05d.png" % i)
-
-            print('[%d/%d]' % (i, num_gen))
-        else:
-            if i <= num_gen*2:
-                generate_path = "/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/generated/1000recon_real_sample"
-                toimg(unorm(input.data[0]).cpu()).save(generate_path + "/%05d.png" % i)
-                print('[%d/%d]' % (i, num_gen))
-            else:
-                break
-    '''
-
 
 def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
     # https://arxiv.org/pdf/1602.05110.pdf%5D
@@ -3221,3 +3241,4 @@ if __name__ == "__main__" :
     #visualize_latent_space_2d()
     #generate()
 
+GL
