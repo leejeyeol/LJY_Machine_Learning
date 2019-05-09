@@ -2869,7 +2869,7 @@ def generate():
     toimg = transforms.ToPILImage()
 
     print("Generating Start!")
-    generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+options.pretrainedEpoch)
+    generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+str(options.pretrainedEpoch))
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')
     LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
