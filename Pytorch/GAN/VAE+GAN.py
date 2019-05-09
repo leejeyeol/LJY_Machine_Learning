@@ -2863,7 +2863,8 @@ def generate():
                    ])),batch_size=1, shuffle=True, num_workers=options.workers)
 
     decoder.load_state_dict(
-        torch.load(os.path.join(options.modelOutFolder, options.preset + "_decoder" + "_%d.pth" % options.pretrainedEpoch)))
+        torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % options.pretrainedEpoch)))
+
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     toimg = transforms.ToPILImage()
 

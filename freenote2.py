@@ -4,7 +4,7 @@ import os
 
 alpha_gan = np.genfromtxt(os.path.abspath(r'C:\Users\rnt\Desktop\alpha-gan.csv'), delimiter=',')
 
-'''
+
 raw_data = alpha_gan
 condition_idx = np.where((np.abs(raw_data[:,4]-1)<0.2) & ((raw_data[:,0]-1)<5) & ((raw_data[:,1]-1) < 5))
 data = raw_data[condition_idx][:-1]
@@ -21,7 +21,7 @@ plt.xticks(np.arange(len(condition_idx[0][:-1])),condition_idx[0][:-1])
 plt.xlabel('epoch')
 plt.ylabel('error_rate')
 plt.show()
-print(1
+print(1)
 
 '''
 alpha_gan_acc = alpha_gan[:,0]
@@ -31,4 +31,4 @@ ours_acc = alpha_gan[:,1]
 for i in alpha_gan_acc:
     for j in ours_acc:
         abs(i - j)
-
+'''
