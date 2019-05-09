@@ -74,7 +74,7 @@ parser.add_argument('--seed', type=int, help='manual seed')
 
 # custom options
 parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution networks.(to continue training)")
-
+parser.add.argument('--GAM_ct_pretrainedEpoch', type=int, default= 0, help='GAM ct epoch')
 options = parser.parse_args()
 
 print(options)
@@ -3019,7 +3019,7 @@ def generate_4axis():
     plt.imshow(img)
     plt.show()
 
-def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
+def GAM( comparision_epoch=options.pretrainedEpoch,comparison_model = None):
     # https://arxiv.org/pdf/1602.05110.pdf%5D
 
     #todo for test
@@ -3027,7 +3027,7 @@ def GAM(comparison_model = None, comparision_epoch=options.pretrainedEpoch):
         comparison_model = 'alpha-gan'
     elif options.preset == 'alpha-gan':
         comparison_model = 'ours'
-    print
+
     print(comparison_model)
     if comparison_model == 'ours':
         pretrainedModelName_ct = comparison_model + '_' + options.dataset
@@ -3235,7 +3235,7 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        GAM()
+        GAM(comparision_epoch=)
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
