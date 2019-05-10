@@ -25,7 +25,7 @@ if __name__ == '__main__':
       case = cases[i]
       ep = eps[i]
 
-      img_folder = os.path('/home/mlpa/Workspace/github/LJY_Machine_Learning/Pytorch/results', case+'_' +str(ep))
+      img_folder = os.path.join('/home/mlpa/Workspace/github/LJY_Machine_Learning/Pytorch/results', case+'_' +str(ep))
       img_folder1 = os.path.join(img_folder, 'real')
       img_folder2 = os.path.join(img_folder, 'fake')
       imgs1 = sorted(glob.glob(os.path.join(img_folder1, "*")))
