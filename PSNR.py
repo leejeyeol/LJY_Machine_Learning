@@ -55,5 +55,5 @@ if __name__ == '__main__':
             result_data.append(result_mean)
       np_PSNR_data = np.asarray(result_data)
 
-      np.save('~/data_ssd/workspace/experimental_result/LJY/VAEGAN_measure_results/%s_%d.npy'%(case,ep), np_PSNR_data)
+      np.save('/home/mlpa/data_ssd/workspace/experimental_result/LJY/VAEGAN_measure_results/%s_%d.npy'%(case,ep), np_PSNR_data)
       print('mean is %f' % result_mean)
