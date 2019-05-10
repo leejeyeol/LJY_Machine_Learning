@@ -3238,7 +3238,11 @@ if __name__ == "__main__" :
         if options.GAM_ct_pretrainedEpoch != 0:
             GAM(comparision_epoch=options.GAM_ct_pretrainedEpoch)
         else:
-            GAM()
+            alpha_ep = [25,37,64,73,79,90,104,191,207,211,215,216,222]
+            ours_ep = [171,173,190,170,117,171,176,190,190,190,190,190,190]
+            for i in range(13):
+                options.pretrainedEpoch = alpha_ep[i]
+                GAM(comparision_epoch=ours_ep[i])
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
