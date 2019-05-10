@@ -3236,7 +3236,7 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        if options.GAM_ct_pretrainedEpoch != 0:
+        if options.GAMpretrainedEpoch != 0:
             GAM(comparision_epoch=options.GAMpretrainedEpoch)
         else:
             alpha_ep = [25,37,64,73,79,90,104,191,207,211,215,216,222]
