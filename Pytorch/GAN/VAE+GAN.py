@@ -74,7 +74,7 @@ parser.add_argument('--seed', type=int, help='manual seed')
 
 # custom options
 parser.add_argument('--netQ', default='', help="path of Auxiliaty distribution networks.(to continue training)")
-parser.add.argument('--GAM_ct_pretrainedEpoch', type=int, default= 0, help='GAM ct epoch')
+
 options = parser.parse_args()
 
 print(options)
