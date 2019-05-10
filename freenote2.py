@@ -36,10 +36,14 @@ for idx,i in enumerate(alpha_gan_acc):
     print('[%d]'%idx)
     if len(max_idx) == 1:
         if tmp[int(max_idx)] <= 1:
-            result.append([idx, int(max_idx), tmp[int(max_idx)], alpha_gan_acc[int(max_idx)]])
+            if alpha_gan_acc[int(max_idx)] < 5:
+                result.append([idx, int(max_idx), tmp[int(max_idx)], alpha_gan_acc[int(max_idx)]])
     elif len(max_idx) > 1:
         for k in range(len(max_idx)):
             if tmp[int(max_idx[k])] <= 1:
-                result.append([idx, int(max_idx[k]), tmp[int(max_idx[k])], alpha_gan_acc[int(max_idx[k])]])
+                if alpha_gan_acc[int(max_idx[k])] < 5:
+                    result.append([idx, int(max_idx[k]), tmp[int(max_idx[k])], alpha_gan_acc[int(max_idx[k])]])
+print(result)
 
-print(np.asarray(result)[np.where(min(np.asarray(result)[:,3]) == np.asarray(result)[:,3])[0]])
+print(list(np.int_(np.asarray(result)[:,0])))
+print(list(np.int_(np.asarray(result)[:,1])))
