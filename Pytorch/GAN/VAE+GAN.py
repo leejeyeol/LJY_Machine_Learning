@@ -3235,7 +3235,10 @@ if __name__ == "__main__" :
     elif options.runfunc == 'Generate':
         generate()
     elif options.runfunc == 'GAM':
-        GAM(comparision_epoch=)
+        if options.GAM_ct_pretrainedEpoch != 0:
+            GAM(comparision_epoch=options.GAM_ct_pretrainedEpoch)
+        else:
+            GAM()
     #classifier()
     #test('MNIST_AAEGAN',100)
     #tsne()
