@@ -2882,7 +2882,7 @@ def generate():
         noise = Variable(torch.FloatTensor(1, nz)).cuda()
         noise.data.normal_(0, 1)
         generated_fake = decoder(noise.view(1, nz, 1, 1))
-        np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
+        #np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
 
         toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
         print('[%d/%d]'%(i, num_gen))
