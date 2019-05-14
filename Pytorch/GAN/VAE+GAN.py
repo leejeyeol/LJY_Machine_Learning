@@ -3159,8 +3159,8 @@ def GAM( comparision_epoch=options.pretrainedEpoch,comparison_model = None):
     csv_saver.save()
 
     # when R_test is close to 1 : this condition assures that none of the discriminator is overfitted more than the other.
-    # R_sample < 1 : main is better
-    # R_sample > 1 : comparison target is better
+    # R_sample 이 1보다 작은 경우 : main is better
+    # R_sample 이 1보다 큰 경우 : comparison target is better
     options.preset
 
 
@@ -3234,7 +3234,22 @@ if __name__ == "__main__" :
         print("triaining")
         train()
     elif options.runfunc == 'Generate':
-        generate()
+        #generate()
+        alpha_ep = [4, 5, 8, 10, 13, 15, 16, 19, 21, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 39, 40, 41, 43, 44,
+                    51, 54, 55, 57, 59, 61, 66, 69, 72, 74, 75, 76, 78, 79, 82, 83, 85, 86, 87, 90, 92, 93, 94, 97, 99,
+                    103, 104, 105, 106, 107, 109, 110, 111, 112, 113, 118, 119, 120, 122, 131]
+        ours_ep = [84, 13, 74, 57, 75, 57, 21, 54, 11, 16, 57, 106, 100, 97, 47, 57, 63, 47, 37, 123, 24, 57, 123, 28,
+                   78, 64, 93, 100, 73, 75, 40, 73, 23, 35, 34, 54, 123, 35, 24, 14, 24, 73, 43, 41, 77, 106, 118, 21,
+                   106, 49, 47, 43, 63, 22, 118, 123, 74, 21, 23, 13, 63, 22, 17, 84, 63, 15]
+        if options.preset == 'alpha-gan':
+            for i in range(len(alpha_ep)):
+                options.pretrainedEpoch = alpha_ep[i]
+                generate()
+        elif options.preset == 'ours':
+            for i in range(len(ours_ep)):
+                options.pretrainedEpoch = ours_ep[i]
+                generate()
+
     elif options.runfunc == 'GAM':
         if options.GAMpretrainedEpoch != 0:
             GAM(comparision_epoch=options.GAMpretrainedEpoch)

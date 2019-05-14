@@ -1,5 +1,6 @@
 import numpy as np
-
+import os
+import glob
 import matplotlib.pyplot as plt
 # time
 
@@ -20,11 +21,17 @@ my_xticks = ['DCGAN', 'Ours(*)', 'Ours+Reconstruction', 'Ours_AAE', 'alpha-GAN']
 '''
 
 #MS-SSIM
-data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic/Ours_9_36.npy')
-data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/W_Critic/Base_9_36.npy')
-#data3=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/bases_9.npy')
-data = np.stack((-data1,-data2),1)
-my_xticks = ['Base', 'Ours(*)']
+ori_path = r'C:\Users\rnt\Desktop\VAEGAN_measure_results'
+paths = sorted(glob.glob(os.path.join(ori_path, '*')))
+data = []
+label = []
+for i in range(len(paths)):
+    data.append(np.load(paths[i]))
+    label.append(os.path.basename(paths[i]))
+
+data = np.stack(data,1)
+my_xticks = label
+
 
 
 '''
@@ -37,7 +44,7 @@ my_xticks = ['DCGAN', 'Ours(*)', 'alpha-GAN']
 '''
 plt.boxplot(data, notch=False, patch_artist=False, showmeans= True,showfliers=False)
 #plt.xlabel('methods')
-plt.ylabel('w-critic')
+plt.ylabel('PSNR')
 plt.xticks([i+1 for i in range(len(my_xticks))], my_xticks)
 plt.tight_layout()
 plt.show()
