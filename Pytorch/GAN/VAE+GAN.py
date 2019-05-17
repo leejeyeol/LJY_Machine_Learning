@@ -2871,6 +2871,7 @@ def generate():
 
     print("Generating Start!")
     generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+str(options.pretrainedEpoch))
+    print(generate_save_path)
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')
     LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
@@ -2885,13 +2886,13 @@ def generate():
         #np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
 
         toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
-        print('[%d/%d]'%(i, num_gen))
+        #print('[%d/%d]'%(i, num_gen))
 
     # real sample generator
     for i, (data, _) in enumerate(dataloader, 0):
         input = Variable(data).cuda()
         toimg(unorm(input.data[0]).cpu()).save(generate_save_real_path + "/%05d.png" % i)
-        print('[%d/%d]' % (i, num_gen))
+        #print('[%d/%d]' % (i, num_gen))
         if i == num_gen:
             break
 

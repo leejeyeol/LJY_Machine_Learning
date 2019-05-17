@@ -52,6 +52,7 @@ def draw_images_to_windict(win_dict, image_list, name_list = None):
 
 def draw_lines_to_windict(win_dict, value_list, legend_list, epoch, iteration, total_iter):
     # epoch * total_iter + iteration
+    # no epoch 0,i,0
 
     num_of_values = len(value_list)
     for i in range(len(value_list)):
