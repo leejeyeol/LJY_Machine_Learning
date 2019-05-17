@@ -48,7 +48,7 @@ parser.add_argument('--ganType',  default='DCGAN', help='additional autoencoder 
 parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Decoder networks. '0' is training from scratch.")
 parser.add_argument('--pretrainedModelName', default='Base_CelebA', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/home/mlpa/Workspace/experimental_result/LJY/VAEGAN', help="folder to model checkpoints. WC_lite_VAEGAN")
-parser.add_argument('--resultOutFolder', default='./results', help="folder to test results")
+parser.add_argument('--resultOutFolder', default='/home/mlpa/data_4T/experiment_results/ljy/results', help="folder to test results")
 parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
