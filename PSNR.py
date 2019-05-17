@@ -36,7 +36,7 @@ if __name__ == '__main__':
              93, 100, 73, 75, 40, 73, 23, 35, 34, 54, 123, 35, 24, 14, 24, 73, 43, 41, 77, 106, 118, 21, 106, 49, 47,
              43, 63, 22, 118, 123, 74, 21, 23, 13, 63, 22, 17, 84, 63, 15]
 
-    cases = [preset for _ in range(len(preset))]
+    cases = [preset for _ in range(len(alpha_ep))]
 
     for i in range(len(cases)):
         supplementNaN = True
@@ -77,5 +77,5 @@ if __name__ == '__main__':
                 result_data.append(result_mean)
 
         np_PSNR_data = np.asarray(result_data)
-        np.save('/home/mlpa/data_ssd/workspace/experimental_result/LJY/VAEGAN_measure_results/%s_%d.npy'%(case,ep), np_PSNR_data)
+        np.save('/home/mlpa/data_ssd/workspace/experimental_result/LJY/VAEGAN_measure_results/%s_%d.npy'%(case,ep), np_PSNR_data, )
         print('mean is %f' % result_mean)
