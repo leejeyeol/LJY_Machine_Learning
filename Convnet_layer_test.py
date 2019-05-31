@@ -37,9 +37,9 @@ if not tranposed:
 else:
     #decoder
     out_channel = [512,256,256,128,64]
-    kernel_size = [4,4,3,3,3]
+    kernel_size = [3,3,3,3,3]
     stride = [2,2,2,2,1] #default 1
-    padding = [0,0,0,0,0] # default 0
+    padding = [1,1,1,1,0] # default 0
     layers = []
 
 '''

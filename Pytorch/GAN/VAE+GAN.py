@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 
 import LJY_utils
 import LJY_visualize_tools
+import Pytorch.Models.cifar10_resnet_AAE as cifar10_resnet_AAE
 time_calc = LJY_utils.Time_calculator()
 
 plt.style.use('ggplot')
@@ -435,7 +436,8 @@ torch.backends.cudnn.benchmark = True
 cudnn.benchmark = True
 if torch.cuda.is_available() and not options.cuda:
     print("WARNING: You have a CUDA device, so you should probably run with --cuda")
-
+else :
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 
@@ -1889,6 +1891,7 @@ def model_init(autoencoder_type):
         discriminator = discriminator224x224(1)
         print(discriminator)
     elif options.dataset == 'CIFAR10':
+        '''
         encoder = encoder32x32(num_in_channels=3, z_size=nz, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
@@ -1900,6 +1903,14 @@ def model_init(autoencoder_type):
         discriminator = Discriminator32x32(num_in_channels=3)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
+        '''
+        decoder = cifar10_resnet_AAE.Cifar10_resnet_G(cifar10_resnet_AAE.ResidualBlock_Reverse, [2,2,2], options.nz).to(device)
+        decoder.apply(LJY_utils.weights_init)
+        encoder = cifar10_resnet_AAE.Cifar10_resnet_E(cifar10_resnet_AAE.ResidualBlock_Reverse, [2,2,2],options.nz, options.autoencoderType).to(device)
+        encoder.apply(LJY_utils.weights_init)
+        discriminator = cifar10_resnet_AAE.Cifar10_resnet_D(cifar10_resnet_AAE.ResidualBlock, [2,2,2]).to(device)
+        discriminator.apply(LJY_utils.weights_init)
+
     elif options.dataset == 'MG':
         encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
