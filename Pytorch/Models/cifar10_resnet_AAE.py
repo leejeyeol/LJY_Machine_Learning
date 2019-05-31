@@ -44,6 +44,7 @@ class Cifar10_resnet_D(nn.Module):
         self.conv = conv3x3(3, self.channels)
         self.bn = nn.BatchNorm2d(self.channels)
         self.relu = nn.ReLU(inplace=True)
+        self.sigmoid = nn.Sigmoid()
 
         self.layer1 = self.make_layer(residualblock, self.channels, layers[0])
         self.layer2 = self.make_layer(residualblock, self.channels, layers[1], 2)
@@ -82,6 +83,7 @@ class Cifar10_resnet_D(nn.Module):
         out = out.view(out.size(0), -1) # vectorize
         out = self.fc(out)
         #print(out.shape)
+        out = self.sigmoid(out)
         return  out
 
 class Cifar10_resnet_E(nn.Module):
