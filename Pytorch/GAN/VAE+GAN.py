@@ -1904,11 +1904,11 @@ def model_init(autoencoder_type):
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
         '''
-        decoder = cifar10_resnet_AAE.Cifar10_resnet_G(cifar10_resnet_AAE.ResidualBlock_Reverse, [2,2,2], options.nz).to(device)
+        decoder = cifar10_resnet_AAE.Cifar10_resnet_G(cifar10_resnet_AAE.ResidualBlock_Reverse, [2,2,2], options.nz)
         decoder.apply(LJY_utils.weights_init)
-        encoder = cifar10_resnet_AAE.Cifar10_resnet_E(cifar10_resnet_AAE.ResidualBlock, [2,2,2],options.nz, options.autoencoderType).to(device)
+        encoder = cifar10_resnet_AAE.Cifar10_resnet_E(cifar10_resnet_AAE.ResidualBlock, [2,2,2],options.nz, options.autoencoderType)
         encoder.apply(LJY_utils.weights_init)
-        discriminator = cifar10_resnet_AAE.Cifar10_resnet_D(cifar10_resnet_AAE.ResidualBlock, [2,2,2]).to(device)
+        discriminator = cifar10_resnet_AAE.Cifar10_resnet_D(cifar10_resnet_AAE.ResidualBlock, [2,2,2])
         discriminator.apply(LJY_utils.weights_init)
 
     elif options.dataset == 'MG':
