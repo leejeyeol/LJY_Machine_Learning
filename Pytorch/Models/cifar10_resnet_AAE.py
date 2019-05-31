@@ -193,7 +193,7 @@ class Cifar10_resnet_G(nn.Module):
     def forward(self,x):
         x = x.view(x.size(0), x.size(1))
         out = self.fcn(x)
-        out = out.view(out.size(0), x.size(1), 4, 4)
+        out = out.view(out.size(0), self.channels, 4, 4)
         #print(out.shape)
         out = self.layer1(out)
         #print(out.shape)
