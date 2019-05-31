@@ -66,22 +66,22 @@ class Cifar10_resnet_D(nn.Module):
         return nn.Sequential(*maked_layers)
 
     def forward(self,x):
-        print(x.shape)
+        #print(x.shape)
         out = self.conv(x)
         out = self.bn(out)
         out = self.relu(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer1(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer2(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer3(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.avg_pool(out)
-        print(out.shape)
+        #print(out.shape)
         out = out.view(out.size(0), -1) # vectorize
         out = self.fc(out)
-        print(out.shape)
+        #print(out.shape)
         return  out
 
 class Cifar10_resnet_E(nn.Module):
@@ -123,15 +123,15 @@ class Cifar10_resnet_E(nn.Module):
         out = self.conv(x)
         out = self.bn(out)
         out = self.relu(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer1(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer2(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer3(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.avg_pool(out)
-        print(out.shape)
+        #print(out.shape)
         out = out.view(out.size(0), -1) # vectorize
         out = self.fc(out)
         if self.type == 'VAE':
@@ -172,7 +172,7 @@ class Cifar10_resnet_G(nn.Module):
         self.fcn = nn.Linear(nz, self.channels*4*4)
         self.upsample = nn.UpsamplingNearest2d(scale_factor=2)
 
-        print(1)
+
         self.layer1 = self.make_layer(residualblock, self.channels, layers[0], 2, self.upsample)
         self.layer2 = self.make_layer(residualblock, self.channels, layers[1], 2, self.upsample)
         self.layer3 = self.make_layer(residualblock, self.channels, layers[2], 2, self.upsample)
@@ -194,56 +194,59 @@ class Cifar10_resnet_G(nn.Module):
         x = x.view(x.size(0), x.size(1))
         out = self.fcn(x)
         out = out.view(out.size(0), x.size(1), 4, 4)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer1(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer2(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.layer3(out)
-        print(out.shape)
+        #print(out.shape)
         out = self.conv(out)
         out = self.tanh(out)
-        print(out.shape)
+        #print(out.shape)
 
         return  out
 
-transform = transforms.Compose([
-    transforms.Pad(4),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomCrop(32),
-    transforms.ToTensor()])
-batch_size = 16
-nz = 128
-train_dataset = torchvision.datasets.CIFAR10(root=r'C:\Users\rnt\Desktop\V',
-                                             train=True,
-                                             transform=transform,
-                                             download=True)
-train_loader = torch.utils.data.DataLoader(dataset = train_dataset , batch_size = batch_size, shuffle=True)
-
-model_D = Cifar10_resnet_D(ResidualBlock, [2,2,2]).to(device)
-model_G = Cifar10_resnet_G(ResidualBlock_Reverse, [2,2,2], nz).to(device)
-model_E = Cifar10_resnet_E(ResidualBlock, [2,2,2],nz,'VAE').to(device)
-
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model_D.parameters(), lr=0.0002)
-
-for i ,(images,labels) in enumerate(train_loader):
-    images = images.to(device)
-    labels = labels.to(device)
-    output = model_D(images)
-
-    print('generator')
-
-    fixed_noise_128 = torch.randn(batch_size, nz,1,1)
-    fixed_noise_128 = fixed_noise_128.to(device)
-    noisev = fixed_noise_128
-    samples = model_G(noisev)
-
-    print('encoder')
-    mu, sig = model_E(images)
 
 
+if __name__ == '__main__':
+    transform = transforms.Compose([
+        transforms.Pad(4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomCrop(32),
+        transforms.ToTensor()])
+    batch_size = 16
+    nz = 128
+    train_dataset = torchvision.datasets.CIFAR10(root=r'C:\Users\rnt\Desktop\V',
+                                                 train=True,
+                                                 transform=transform,
+                                                 download=True)
+    train_loader = torch.utils.data.DataLoader(dataset = train_dataset , batch_size = batch_size, shuffle=True)
 
+    model_D = Cifar10_resnet_D(ResidualBlock, [2,2,2]).to(device)
+    model_G = Cifar10_resnet_G(ResidualBlock_Reverse, [2,2,2], nz).to(device)
+    model_E = Cifar10_resnet_E(ResidualBlock, [2,2,2],nz,'VAE').to(device)
+
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model_D.parameters(), lr=0.0002)
+
+    for i ,(images,labels) in enumerate(train_loader):
+        images = images.to(device)
+        labels = labels.to(device)
+        output = model_D(images)
+
+        #print('generator')
+
+        fixed_noise_128 = torch.randn(batch_size, nz,1,1)
+        fixed_noise_128 = fixed_noise_128.to(device)
+        noisev = fixed_noise_128
+        samples = model_G(noisev)
+
+        #print('encoder')
+        mu, sig = model_E(images)
+
+
+
+        print(1)
     print(1)
-print(1)
 

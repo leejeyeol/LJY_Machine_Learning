@@ -98,7 +98,7 @@ elif options.preset == 'ours' :
     options.pretrainedModelName = options.preset + '_' +options.dataset
 elif options.preset == 'alpha-gan':
     recon_learn = True
-    options.autoencoderType = 'VAE'
+    options.autoencoderType = 'AAE'
     options.pretrainedModelName = options.preset + '_' + options.dataset
 elif options.preset == 'dcgan':
     recon_learn = False
