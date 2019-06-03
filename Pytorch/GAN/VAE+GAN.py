@@ -2864,15 +2864,25 @@ def visualize_latent_space():
     plt.show()
 def generate():
     num_gen = 10000
-    celebA_imgsize = 64
-    dataloader = torch.utils.data.DataLoader(
-        custom_Dataloader(path=options.dataroot,
-                          transform=transforms.Compose([
-                              transforms.CenterCrop(150),
-                              transforms.Scale((celebA_imgsize, celebA_imgsize)),
-                       transforms.ToTensor(),
-                       transforms.Normalize((0.5,), (0.5,))
-                   ])),batch_size=1, shuffle=True, num_workers=options.workers)
+
+    if options.dataset == 'CIFAR10':
+        dataloader = torch.utils.data.DataLoader(
+            dset.CIFAR10(root='../../data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),
+            batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    if options.dataset  =='CelebA':
+        celebA_imgsize = 64
+        dataloader = torch.utils.data.DataLoader(
+            custom_Dataloader(path=options.dataroot,
+                              transform=transforms.Compose([
+                                  transforms.CenterCrop(150),
+                                  transforms.Scale((celebA_imgsize, celebA_imgsize)),
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.5,), (0.5,))
+                       ])),batch_size=1, shuffle=True, num_workers=options.workers)
 
     decoder.load_state_dict(
         torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % options.pretrainedEpoch)))
@@ -2906,6 +2916,7 @@ def generate():
         #print('[%d/%d]' % (i, num_gen))
         if i == num_gen:
             break
+    print(os.path.abspath(generate_save_path))
 
     #reconstruction generator
     '''
@@ -3246,7 +3257,9 @@ if __name__ == "__main__" :
         print("triaining")
         train()
     elif options.runfunc == 'Generate':
-        #generate()
+        generate()
+
+        '''
         alpha_ep = [4, 5, 8, 10, 13, 15, 16, 19, 21, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 35, 36, 39, 40, 41, 43, 44,
                     51, 54, 55, 57, 59, 61, 66, 69, 72, 74, 75, 76, 78, 79, 82, 83, 85, 86, 87, 90, 92, 93, 94, 97, 99,
                     103, 104, 105, 106, 107, 109, 110, 111, 112, 113, 118, 119, 120, 122, 131]
@@ -3261,6 +3274,7 @@ if __name__ == "__main__" :
             for i in range(len(ours_ep)):
                 options.pretrainedEpoch = ours_ep[i]
                 generate()
+        '''
 
     elif options.runfunc == 'GAM':
         if options.GAMpretrainedEpoch != 0:
