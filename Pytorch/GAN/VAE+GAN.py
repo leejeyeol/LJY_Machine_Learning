@@ -1891,7 +1891,7 @@ def model_init(autoencoder_type):
         discriminator = discriminator224x224(1)
         print(discriminator)
     elif options.dataset == 'CIFAR10':
-        '''
+
         encoder = encoder32x32(num_in_channels=3, z_size=nz, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
@@ -1910,6 +1910,7 @@ def model_init(autoencoder_type):
         encoder.apply(LJY_utils.weights_init)
         discriminator = cifar10_resnet_AAE.Cifar10_resnet_D(cifar10_resnet_AAE.ResidualBlock, [2,2,2])
         discriminator.apply(LJY_utils.weights_init)
+        '''
 
     elif options.dataset == 'MG':
         encoder = MG_encoder(input_size=2, hidden_size=128, output_size=nz, type=autoencoder_type)
