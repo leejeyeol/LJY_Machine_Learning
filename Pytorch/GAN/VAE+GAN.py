@@ -2864,7 +2864,7 @@ def visualize_latent_space():
     plt.imshow(img)
     plt.show()
 def generate():
-    num_gen = 10000
+    num_gen = 20000
 
     if options.dataset == 'CIFAR10':
         dataloader = torch.utils.data.DataLoader(
