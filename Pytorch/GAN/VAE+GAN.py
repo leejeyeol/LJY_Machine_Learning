@@ -87,8 +87,8 @@ visualize_latent = False
 recon_learn = True
 cycle_learn = False
 recon_weight = 1.0
-encoder_weight = 1.0
-decoder_weight = 1.0
+encoder_weight = 10.0
+decoder_weight = 10.0
 
 if options.preset == 'None':
     pass
