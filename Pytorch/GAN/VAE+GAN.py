@@ -72,6 +72,7 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
+parser.add_argument('--CSVsave', default=False, help='save csv')
 
 # custom options
 parser.add_argument('--GAMpretrainedEpoch', type=int, default=0, help='GAM ct epoch')
@@ -110,12 +111,12 @@ else :
 
 
 
-
-if options.intergrationType == 'GANonly':
-    csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_GAN_result.csv")
-else:
-    csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_result.csv")
-csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'], save_path=csv_path)
+if options.CSVsave :
+    if options.intergrationType == 'GANonly':
+        csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_GAN_result.csv")
+    else:
+        csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_result.csv")
+    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'], save_path=csv_path)
 
 # criterion set
 BCE_loss = nn.BCELoss()
@@ -2437,7 +2438,8 @@ def train():
 
             if options.intergrationType == 'GANonly':
                 generator_grad_AE = 0
-            csv_saver.add_column([discriminator_grad, generator_grad_AE, generator_grad, 0])
+            if options.CSVsave:
+                csv_saver.add_column([discriminator_grad, generator_grad_AE, generator_grad, 0])
             if options.display:
                 if options.dataset != 'MG':
                     if options.intergrationType == 'GANonly':
@@ -2639,7 +2641,8 @@ def train():
                                                                               'W_Critic',
                                                                               'zero'],
                                                                           0, epoch, 0)
-        csv_saver.save()
+        if options.CSVsave:
+            csv_saver.save()
         time_calc.mean_calc()
 
         if options.nz == 2 and visualize_latent:
@@ -3177,6 +3180,7 @@ def GAM( comparision_epoch=options.pretrainedEpoch,comparison_model = None):
         ct_swap = 0.000001
     print('R_test : %f '%((main_real/ct_real )))
     print('R_sample : %f'%((main_swap/ct_swap )))
+
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path='%s.csv' % options.preset)
     iteration_result = [(100 * main_real / total),(100 * ct_real / total),(100 * main_swap / total),(100 * ct_swap / total),(main_real/ct_real),(main_swap/ct_swap )]
     csv_saver.add_column(iteration_result)
