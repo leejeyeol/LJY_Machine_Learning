@@ -2899,9 +2899,10 @@ def generate():
     print(os.path.abspath(generate_save_path))
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')
+    LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
+
     '''
     tmp
-    LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
     generate_save_real_path =os.path.join(generate_save_path, 'real')
     LJY_utils.make_dir(generate_save_real_path, allow_duplication=True)
     '''
