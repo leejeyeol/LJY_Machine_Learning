@@ -2895,13 +2895,17 @@ def generate():
     toimg = transforms.ToPILImage()
 
     print("Generating Start!")
-    generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+str(options.pretrainedEpoch))
+    #generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+str(options.pretrainedEpoch))
+    generate_save_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/images'
     print(os.path.abspath(generate_save_path))
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')
+    '''
+    tmp
     LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
     generate_save_real_path =os.path.join(generate_save_path, 'real')
     LJY_utils.make_dir(generate_save_real_path, allow_duplication=True)
+    '''
 
     # generator(Vanilar)
     for i in range(num_gen):
@@ -2913,6 +2917,8 @@ def generate():
         toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
         #print('[%d/%d]'%(i, num_gen))
 
+    '''
+    tmp
     # real sample generator
     for i, (data, _) in enumerate(dataloader, 0):
         input = Variable(data).cuda()
@@ -2921,7 +2927,7 @@ def generate():
         if i == num_gen:
             break
     print(os.path.abspath(generate_save_path))
-
+    '''
     #reconstruction generator
     '''
     for i, (data, _) in enumerate(dataloader, 0):

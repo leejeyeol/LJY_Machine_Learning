@@ -9,12 +9,6 @@ import torch.optim as optim
 import LJY_utils
 import LJY_visualize_tools
 
-
-def basic_policy(state):
-    #random policy
-    angle = state[2]
-    return 0 if angle < 0 else 1
-
 class NN_approximator():
     def __init__(self):
         class Policy_network(nn.Module):
@@ -95,10 +89,6 @@ class NN_approximator():
         self.optimizer.step()
         #print(loss.data)
         return loss.data
-
-
-
-
 
 env = gym.make("CartPole-v0")
 observed_state = env.reset()
