@@ -116,7 +116,7 @@ def exp(data_path):
     # print (inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=32, resize=True, splits=10))
     result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=8, resize=True, splits=10)
 
-    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['1', '2'], save_path='/home/mlpa/data_4T/experiment_results/LJY_inception_score/result.csv')
+    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path='/home/mlpa/data_4T/experiment_results/LJY_inception_score/result.csv')
     csv_saver.add_column([result[0], result[1]])
     csv_saver.save()
     try:
