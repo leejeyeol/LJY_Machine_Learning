@@ -55,9 +55,9 @@ parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--WassersteinCritic', action='store_false', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--no_save', action='store_true', help='save options. default:False.')
-parser.add_argument('--no_display', action='store_true', help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--WassersteinCritic', action='store_true', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
+parser.add_argument('--no_save', action='store_false', help='save options. default:False.')
+parser.add_argument('--no_display', action='store_false', help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=255, help='number of epochs to train for')
@@ -73,8 +73,8 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--CSVsave', action='store_false', help='save csv')
-parser.add_argument('--inception_score', action='store_false', help='inception score calculated after the end of each epoch')
+parser.add_argument('--CSVsave', action='store_true', help='save csv')
+parser.add_argument('--inception_score', action='store_true', help='inception score calculated after the end of each epoch')
 parser.add_argument('--inception_score_path', default='/home/mlpa/data_4T/experiment_results/LJY_inception_score',help = 'path of things of inception score')
 
 # custom options
@@ -2163,7 +2163,7 @@ def train():
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ]), type = 'train'),batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-        if options.WassersteinCritic == True:
+        if options.WassersteinCritic :
             WC_dataloader = torch.utils.data.DataLoader(
                 custom_Dataloader(path=options.dataroot,
                                   transform=transforms.Compose([
