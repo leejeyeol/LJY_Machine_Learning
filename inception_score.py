@@ -90,7 +90,7 @@ def exp(data_path,save_path):
         def __len__(self):
             return len(self.orig)
 
-
+    '''
     cifar = dset.CIFAR10(root=r'../../data', download=True,
                          transform=transforms.Compose([
                              transforms.Resize(32),
@@ -100,19 +100,19 @@ def exp(data_path,save_path):
                          )
 
     IgnoreLabelDataset(cifar)
+    '''
     transform_cifar = transforms.Compose([
         transforms.Resize(32),
         transforms.ToTensor(),
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    #dataloader = torchvision.datasets.ImageFolder(data_path, transform_cifar)
+    dataloader = torchvision.datasets.ImageFolder(data_path, transform_cifar)
 
-    #print("Calculating Inception Score...")
+    print("Calculating Inception Score...")
 
-    result = inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=4, resize=True, splits=10)
-    #result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=8, resize=True, splits=10)
-    print(result)
+    #result = inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=4, resize=True, splits=10)
+    result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=64, resize=True, splits=10)
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path=save_path)
     csv_saver.add_column([result[0], result[1]])
     csv_saver.save()
