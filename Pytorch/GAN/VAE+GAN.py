@@ -2797,6 +2797,7 @@ def train():
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
             torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
         print(options.inception_score)
+        print(type(options.inception_score))
         print(options.inception_score is True)
         print(options.inception_score == True)
         if options.inception_score == True:
