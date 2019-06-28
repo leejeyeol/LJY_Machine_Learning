@@ -55,9 +55,9 @@ parser.add_argument('--save_tick', type=int, default=1, help='save tick')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--WassersteinCritic', default=False, help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--save', default=True, help='save options. default:False.')
-parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--WassersteinCritic', action='store_false', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
+parser.add_argument('--no_save', action='store_true', help='save options. default:False.')
+parser.add_argument('--no_display', action='store_true', help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=255, help='number of epochs to train for')
@@ -73,8 +73,8 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--CSVsave', default=False, help='save csv')
-parser.add_argument('--inception_score', default=False, help='inception score calculated after the end of each epoch')
+parser.add_argument('--CSVsave', action='store_false', help='save csv')
+parser.add_argument('--inception_score', action='store_false', help='inception score calculated after the end of each epoch')
 parser.add_argument('--inception_score_path', default='/home/mlpa/data_4T/experiment_results/LJY_inception_score',help = 'path of things of inception score')
 
 # custom options
@@ -2212,8 +2212,6 @@ def train():
 
     for epoch in range(options.epoch):
         for i, (data, _) in enumerate(dataloader, 0):
-            if i >10:
-                break
             real_cpu = data
             batch_size = real_cpu.size(0)
             input = Variable(real_cpu).cuda()
@@ -2644,7 +2642,7 @@ def train():
                                                                                       'loss',
                                                                                       'zero'],
                                                                                   epoch, i, len(dataloader))
-            if options.WassersteinCritic == True:
+            if options.WassersteinCritic :
                 WC_win_dict = LJY_visualize_tools.draw_lines_to_windict(WC_win_dict,
                                                                         [
                                                                             visual_W_Distance,
@@ -2796,11 +2794,8 @@ def train():
             torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
             torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
-        print(options.inception_score)
-        print(type(options.inception_score))
-        print(options.inception_score is True)
-        print(options.inception_score == True)
-        if options.inception_score == True:
+
+        if options.inception_score :
             print("Generating Start!")
             toimg = transforms.ToPILImage()
 
