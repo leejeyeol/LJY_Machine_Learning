@@ -1991,7 +1991,7 @@ def model_init(autoencoder_type):
         decoder = Decoder32x32_age(nc=3,nz=nz,ngf=64)
         decoder.apply(LJY_utils.weights_init)
         print(decoder)
-        discriminator = Discriminator32x32_age(nc=1,ndf=64,nz=nz)
+        discriminator = Discriminator32x32_age(nc=3,ndf=64,nz=nz)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
         '''
