@@ -1985,7 +1985,7 @@ def model_init(autoencoder_type):
         discriminator = discriminator224x224(1)
         print(discriminator)
     elif options.dataset == 'CIFAR10':
-        encoder = Encoder32x32_age(nc=3,nz=nz,ndf=64,type='VAE')
+        encoder = Encoder32x32_age(nc=3,nz=nz,ndf=64,type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
         decoder = Decoder32x32_age(nc=3,nz=nz,ngf=64)
