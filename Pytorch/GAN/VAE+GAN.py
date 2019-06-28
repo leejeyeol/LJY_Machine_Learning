@@ -56,8 +56,8 @@ parser.add_argument('--display_type', default='per_iter', help='displat tick',ch
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--WassersteinCritic', action='store_true', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--no_save', action='store_false', help='save options. default:False.')
-parser.add_argument('--no_display', action='store_false', help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--save', action='store_true', help='save options. default:False.')
+parser.add_argument('--display', action='store_true', help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=255, help='number of epochs to train for')
