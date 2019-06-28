@@ -18,10 +18,7 @@ from torchvision.models.inception import inception_v3
 import numpy as np
 from scipy.stats import entropy
 
-parser = argparse.ArgumentParser()
-# Options for path =====================================================================================================
-parser.add_argument('--image_path', default='..\data', help='path to image')
-options = parser.parse_args()
+
 
 def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
     """Computes the inception score of the generated images imgs
@@ -130,6 +127,11 @@ def exp(data_path,save_path):
             raise
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    # Options for path =====================================================================================================
+    parser.add_argument('--image_path', default='..\data', help='path to image')
+    options = parser.parse_args()
+
     data_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/images'
     save_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/inception_score.csv'
     exp(data_path,save_path)
