@@ -1400,7 +1400,7 @@ def model_init(autoencoder_type):
                 z = self.encoder(x)
                 return z
 
-    class Eecoder32x32_age(nn.Module):  # generator
+    class Decoder32x32_age(nn.Module):  # generator
         def __init__(self, nc=3, nz=80, ngf=64):
             super().__init__()
 
