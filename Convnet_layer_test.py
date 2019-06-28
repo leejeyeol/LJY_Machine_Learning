@@ -29,7 +29,7 @@ layers = []
 
 if tranposed is False:
     #encoder
-    out_channel = [64, 128, 256, 20]
+    out_channel = [64, 128, 256, 64]
     kernel_size = [4, 4, 4, 4]
     stride = [2, 2, 2, 2]  # default 1
     padding = [1, 1, 1, 1]  # default 0
@@ -71,8 +71,6 @@ if tranposed is False:
 
 
 else:
-
-
     for i in range(len(out_channel)):
 
         layers.append(nn.ConvTranspose2d(in_channel, out_channel[i], kernel_size[i], stride[i], padding[i]))

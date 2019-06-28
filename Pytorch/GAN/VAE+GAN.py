@@ -1420,7 +1420,6 @@ def model_init(autoencoder_type):
                 nn.ConvTranspose2d(ngf * 2, ngf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 2),
                 nn.ReLU(True),
-
                 nn.Conv2d(ngf * 2, nc, 1, bias=True),
                 nn.Tanh()
 
@@ -1445,7 +1444,7 @@ def model_init(autoencoder_type):
                 nn.BatchNorm2d(ndf * 4),
                 nn.LeakyReLU(0.2, inplace=True),
 
-                nn.Conv2d(ndf * 4, nz, 4, 2, 1, bias=True),
+                nn.Conv2d(ndf * 4, 1, 4, 2, 1, bias=True),
                 nn.AvgPool2d(2),
                 nn.Sigmoid()
             )
