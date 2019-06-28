@@ -2799,7 +2799,7 @@ def train():
             print("Generating Start!")
             toimg = transforms.ToPILImage()
 
-            generate_save_path = os.path.join(options.inception_score_path,'images')
+            generate_save_path = os.path.join(options.inception_score_path,options.pretrainedModelName +'_images')
             print(os.path.abspath(generate_save_path))
             LJY_utils.make_dir(generate_save_path, allow_duplication=True)
             generate_save_fake_path = os.path.join(generate_save_path, 'fake')
