@@ -60,7 +60,7 @@ parser.add_argument('--save', default=True, help='save options. default:False.')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
-parser.add_argument('--epoch', type=int, default=100000, help='number of epochs to train for')
+parser.add_argument('--epoch', type=int, default=255, help='number of epochs to train for')
 
 # these options are saved for testing
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
@@ -2212,6 +2212,8 @@ def train():
 
     for epoch in range(options.epoch):
         for i, (data, _) in enumerate(dataloader, 0):
+            if i >10:
+                break
             real_cpu = data
             batch_size = real_cpu.size(0)
             input = Variable(real_cpu).cuda()
@@ -2342,8 +2344,7 @@ def train():
 
                     generator_grad_AE += LJY_utils.torch_model_gradient(decoder.parameters())
                     optimizerE.step()
-                    print('AAE         z_real : %.4f   z_fake : %.4f    z_fake_2 : %.4f'    % (z_d_real.view(-1).data.mean(), z_d_fake.view(-1).data.mean(),
-                                                                                   z_d_fake_2.view(-1).data.mean()))
+                    #print('AAE         z_real : %.4f   z_fake : %.4f    z_fake_2 : %.4f'    % (z_d_real.view(-1).data.mean(), z_d_fake.view(-1).data.mean(), z_d_fake_2.view(-1).data.mean()))
                 #print('[%d/%d][%d/%d] recon_error : %.4f'
                  #     % (epoch, options.epoch, i, len(dataloader), err.mean()))
 
@@ -2790,12 +2791,12 @@ def train():
 
         # do checkpointing
         if epoch % options.save_tick == 0 and options.save:
-
+            print("saving models")
             torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
             torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
             torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
-
+        print(options.inception_score)
         if options.inception_score is True:
             print("Generating Start!")
             toimg = transforms.ToPILImage()
