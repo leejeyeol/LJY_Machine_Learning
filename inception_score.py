@@ -112,7 +112,7 @@ def exp(data_path,save_path):
     print("Calculating Inception Score...")
 
     #result = inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=4, resize=True, splits=10)
-    result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=64, resize=True, splits=10)
+    result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=8, resize=True, splits=10)
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path=save_path)
     csv_saver.add_column([result[0], result[1]])
     csv_saver.save()
