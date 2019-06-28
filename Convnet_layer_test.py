@@ -4,7 +4,7 @@ from torch.autograd import Variable
 
 # test input
 
-tranposed = True
+tranposed = False
 
 
 if tranposed is False:
@@ -27,12 +27,12 @@ layers = []
 '''
 
 
-if not tranposed:
+if tranposed is False:
     #encoder
     out_channel = [64, 128, 256, 20]
     kernel_size = [4, 4, 4, 4]
-    stride = [1, 2, 2, 2]  # default 1
-    padding = [0, 0, 0, 0]  # default 0
+    stride = [2, 2, 2, 2]  # default 1
+    padding = [1, 1, 1, 1]  # default 0
     layers = []
 else:
     #decoder
@@ -55,7 +55,7 @@ print(test_input.size())
 size = test_input.size()
 print("===============")
 
-if tranposed == False:
+if tranposed is False:
 
     for i in range(len(out_channel)):
         layers.append(nn.Conv2d(in_channel, out_channel[i], kernel_size[i], stride[i], padding[i]))

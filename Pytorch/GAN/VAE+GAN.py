@@ -17,6 +17,7 @@ import copy
 import math
 import glob as glob
 import sys
+import inception_score
 
 from PIL import Image
 
@@ -73,6 +74,8 @@ parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
 parser.add_argument('--CSVsave', default=False, help='save csv')
+parser.add_argument('--inception_score', default=False, help='inception score calculated after the end of each epoch')
+parser.add_argument('--inception_score_path', default='/home/mlpa/data_4T/experiment_results/LJY_inception_score',help = 'path of things of inception score')
 
 # custom options
 parser.add_argument('--GAMpretrainedEpoch', type=int, default=0, help='GAM ct epoch')
@@ -1290,7 +1293,7 @@ def model_init(autoencoder_type):
                 z = self.encoder(x)
                 return z
 
-    class decoder32x32(nn.Module):
+    class decoder32x32(nn.Module):#generator
         def __init__(self, num_in_channels=1, z_size=80):
             super().__init__()
 
@@ -1363,8 +1366,96 @@ def model_init(autoencoder_type):
             d = self.discriminator(x)
             return d
 
+    class Encoder32x32_age(nn.Module):
+        def __init__(self, nc=1, nz=80,ndf=64, type='AE'):
+            super().__init__()
+            self.type = type
+            self.encoder = nn.Sequential(
+                nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf * 2),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf * 4),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf * 4, nz, 4, 2, 1, bias=True),
+                nn.AvgPool2d(2),
+            )
+            self.fc_mu = nn.Conv2d(nz, nz, 1)
+            self.fc_sig = nn.Conv2d(nz, nz, 1)
+
+        def forward(self, x):
+            if self.type == 'VAE':
+                # VAE
+                z_ = self.encoder(x)
+                mu = self.fc_mu(z_)
+                logvar = self.fc_sig(z_)
+                return mu, logvar
+            else:
+                # AE
+                z = self.encoder(x)
+                return z
+
+    class Eecoder32x32_age(nn.Module):  # generator
+        def __init__(self, nc=3, nz=80, ngf=64):
+            super().__init__()
+
+            self.decoder = nn.Sequential(
+                nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
+                nn.BatchNorm2d(ngf * 8),
+                nn.ReLU(True),
+                # state size. (ngf*8) x 4 x 4
+                nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ngf * 4),
+                nn.ReLU(True),
+                # state size. (ngf*4) x 8 x 8
+                nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ngf * 2),
+                nn.ReLU(True),
+                # state size. (ngf*2) x 16 x 16
+                nn.ConvTranspose2d(ngf * 2, ngf * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ngf * 2),
+                nn.ReLU(True),
+
+                nn.Conv2d(ngf * 2, nc, 1, bias=True),
+                nn.Tanh()
+
+            )
+
+        def forward(self, z):
+            recon_x = self.decoder(z)
+            return recon_x
+
+    class Discriminator32x32_age(nn.Module):
+        def __init__(self, nc=1,ndf=64,nz=80):
+            super().__init__()
+            self.discriminator = nn.Sequential(
+                nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf * 2),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
+                nn.BatchNorm2d(ndf * 4),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                nn.Conv2d(ndf * 4, nz, 4, 2, 1, bias=True),
+                nn.AvgPool2d(2),
+                nn.Sigmoid()
+            )
+
+        def forward(self, x):
+            d = self.discriminator(x)
+            return d
+
     class z_discriminator(nn.Module):
-        def __init__(self, N=1000, z_dim=120):
+        def __init__(self, N=750, z_dim=120):
             super().__init__()
             self.discriminator = nn.Sequential(
                 nn.Linear(z_dim, N),
@@ -1385,6 +1476,8 @@ def model_init(autoencoder_type):
 
         def weight_init(self):
             self.discriminator.apply(weight_init)
+
+
 
     class encoder_MC(nn.Module):
         def __init__(self, num_in_channels=1, z_size=80, num_filters=64, type='AE'):
@@ -1892,7 +1985,16 @@ def model_init(autoencoder_type):
         discriminator = discriminator224x224(1)
         print(discriminator)
     elif options.dataset == 'CIFAR10':
-
+        encoder = Encoder32x32_age(nc=3,nz=nz,ndf=64,type='VAE')
+        encoder.apply(LJY_utils.weights_init)
+        print(encoder)
+        decoder = Decoder32x32_age(nc=3,nz=nz,ngf=64)
+        decoder.apply(LJY_utils.weights_init)
+        print(decoder)
+        discriminator = Discriminator32x32_age(nc=1,ndf=64,nz=nz)
+        discriminator.apply(LJY_utils.weights_init)
+        print(discriminator)
+        '''
         encoder = encoder32x32(num_in_channels=3, z_size=nz, type=autoencoder_type)
         encoder.apply(LJY_utils.weights_init)
         print(encoder)
@@ -1904,7 +2006,7 @@ def model_init(autoencoder_type):
         discriminator = Discriminator32x32(num_in_channels=3)
         discriminator.apply(LJY_utils.weights_init)
         print(discriminator)
-        '''
+      
         decoder = cifar10_resnet_AAE.Cifar10_resnet_G(cifar10_resnet_AAE.ResidualBlock_Reverse, [2,2,2], options.nz)
         decoder.apply(LJY_utils.weights_init)
         encoder = cifar10_resnet_AAE.Cifar10_resnet_E(cifar10_resnet_AAE.ResidualBlock, [2,2,2],options.nz, options.autoencoderType)
@@ -2694,6 +2796,25 @@ def train():
             torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
             torch.save(z_discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % (epoch+ep)))
+
+        if options.inception_score is True:
+            print("Generating Start!")
+            toimg = transforms.ToPILImage()
+
+            generate_save_path = os.path.join(options.inception_score_path,'images')
+            print(os.path.abspath(generate_save_path))
+            LJY_utils.make_dir(generate_save_path, allow_duplication=True)
+            generate_save_fake_path = os.path.join(generate_save_path, 'fake')
+            LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
+            # generator(Vanilar)
+            for i in range(20000):
+                noise = Variable(torch.FloatTensor(1, nz)).cuda()
+                noise.data.normal_(0, 1)
+                generated_fake = decoder(noise.view(1, nz, 1, 1))
+                toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path + "/%05d.png" % i)
+
+            inception_score.exp(generate_save_path, os.path.join(options.inception_score_path,options.pretrainedModelName + '_inception_score.csv'))
+
         if options.WassersteinCritic == True:
             torch.save(W_critic.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_WassersteinCritic" + "_%d.pth" % (epoch+ep)))
 
@@ -2866,9 +2987,13 @@ def visualize_latent_space():
     img = np.asarray(unorm(image.view(image.shape[2], image.shape[3])))
     plt.imshow(img)
     plt.show()
-def generate():
+def generate(epoch=None):
+    if epoch is None :
+        pretrained_epoch = options.pretrainedEpoch
+    else:
+        pretrained_epoch = epoch
     num_gen = 20000
-
+    '''
     if options.dataset == 'CIFAR10':
         dataloader = torch.utils.data.DataLoader(
             dset.CIFAR10(root='../../data', train=True, download=True,
@@ -2887,9 +3012,9 @@ def generate():
                            transforms.ToTensor(),
                            transforms.Normalize((0.5,), (0.5,))
                        ])),batch_size=1, shuffle=True, num_workers=options.workers)
-
+    '''
     decoder.load_state_dict(
-        torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % options.pretrainedEpoch)))
+        torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % pretrained_epoch)))
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
     toimg = transforms.ToPILImage()
 

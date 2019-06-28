@@ -81,8 +81,7 @@ def inception_score(imgs, cuda=True, batch_size=32, resize=False, splits=1):
 
     return np.mean(split_scores), np.std(split_scores)
 
-def exp(data_path):
-    data_path = data_path
+def exp(data_path,save_path):
 
     class IgnoreLabelDataset(torch.utils.data.Dataset):
         def __init__(self, orig):
@@ -110,13 +109,14 @@ def exp(data_path):
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    dataloader = torchvision.datasets.ImageFolder(data_path, transform_cifar)
+    #dataloader = torchvision.datasets.ImageFolder(data_path, transform_cifar)
 
     #print("Calculating Inception Score...")
-    # print (inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=32, resize=True, splits=10))
-    result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=8, resize=True, splits=10)
 
-    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path='/home/mlpa/data_4T/experiment_results/LJY_inception_score/result.csv')
+    result = inception_score(IgnoreLabelDataset(cifar), cuda=True, batch_size=4, resize=True, splits=10)
+    #result = inception_score(IgnoreLabelDataset(dataloader), cuda=True, batch_size=8, resize=True, splits=10)
+    print(result)
+    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path=save_path)
     csv_saver.add_column([result[0], result[1]])
     csv_saver.save()
     try:
@@ -131,4 +131,5 @@ def exp(data_path):
 
 if __name__ == '__main__':
     data_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/images'
-    exp(data_path)
+    save_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/inception_score.csv'
+    exp(data_path,save_path)
