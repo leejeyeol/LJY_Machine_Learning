@@ -131,7 +131,10 @@ if __name__ == '__main__':
     # Options for path =====================================================================================================
     parser.add_argument('--image_path', default='..\data', help='path to image')
     options = parser.parse_args()
-
+    '''
     data_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/images'
     save_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/inception_score.csv'
+    '''
+    data_path = r'C:\Users\rnt\Git\pytorch-gan-pretrained\cifar10_dcgan\results'
+    save_path = r'C:\Users\rnt\Desktop\is.csv'
     exp(data_path,save_path)

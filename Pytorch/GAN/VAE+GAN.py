@@ -66,7 +66,7 @@ parser.add_argument('--epoch', type=int, default=255, help='number of epochs to 
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
 parser.add_argument('--model', type=str, default='pretrained_model', help='Model name')
 parser.add_argument('--nc', type=int, default=1, help='number of input channel.')
-parser.add_argument('--nz', type=int, default=64, help='number of input channel.')
+parser.add_argument('--nz', type=int, default=100, help='number of input channel.')
 parser.add_argument('--ngf', type=int, default=64, help='number of generator filters.')
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
@@ -2067,9 +2067,9 @@ encoder, decoder, discriminator, z_discriminator = model_init(autoencoder_type)
 
 # setup optimizer   ====================================================================================================
 # todo add betas=(0.5, 0.999),
-optimizerD = optim.Adam(decoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerE = optim.Adam(encoder.parameters(), betas=(0.5, 0.999), lr=2e-4)
-optimizerDiscriminator = optim.Adam(discriminator.parameters(), betas=(0.5, 0.999), lr=2e-3)
+optimizerD = optim.Adam(decoder.parameters(), betas=(0.5, 0.9), lr= 0.0001)
+optimizerE = optim.Adam(encoder.parameters(), betas=(0.5, 0.9), lr= 0.0005)
+optimizerDiscriminator = optim.Adam(discriminator.parameters(), betas=(0.5, 0.9), lr= 0.0005)
 
 #optimizerD = optim.RMSprop(decoder.parameters(), lr=2e-4)
 #optimizerE = optim.RMSprop(encoder.parameters(), lr=2e-4)
@@ -2252,7 +2252,7 @@ def train():
                         std = torch.exp(0.5 * logvar)
                         eps = Variable(torch.randn(std.size()), requires_grad=False).cuda()
                         z_recon = eps.mul(std).add_(mu)
-                        err1 = MSE_loss(z_recon, noise.detach())
+                        err1 = L1_loss(z_recon, noise.detach())
                         err = recon_weight * (err1)
                         err.backward(retain_graph=True)
                         generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
@@ -2265,7 +2265,7 @@ def train():
                     z = encoder(input)
                     x_recon = decoder(z)
 
-                    err1 = MSE_loss(x_recon, input.detach())
+                    err1 = L1_loss(x_recon, input.detach())
                     err = recon_weight * (err1)
                     err.backward(retain_graph=True)
                     generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
@@ -2281,7 +2281,7 @@ def train():
                         x = decoder(noise)
                         z_recon = encoder(x)
 
-                        err1 = MSE_loss(z_recon, noise.detach())
+                        err1 = L1_loss(z_recon, noise.detach())
                         err = recon_weight * (err1)
                         err.backward(retain_graph=True)
                         generator_grad_AE = LJY_utils.torch_model_gradient(decoder.parameters())
