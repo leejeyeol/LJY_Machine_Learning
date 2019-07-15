@@ -19,7 +19,7 @@ class RL_gym():
         #self.optimizer = optim.RMSprop(self.policy_network.parameters(), lr=2e-33)
         #self.optimizer = optim.SGD(self.policy_network.parameters(), lr=2e-3)
         self.epsilon = 1
-        self.decay = 0.9999
+        self.decay = 0.99999
         self.epsilon_min = 0.01
 
     def greedy_policy(self, q_value):
