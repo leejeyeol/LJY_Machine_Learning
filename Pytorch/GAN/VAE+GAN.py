@@ -2545,7 +2545,7 @@ def train():
                     elif options.intergrationType == 'AEonly':
                         testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0])), 2)
                     else:
-                        testImage = torch.cat(((input.data[0]), (x_recon.data[0]), (generated_fake.data[0])), 2)
+                        testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0]), unorm(generated_fake.data[0])), 2)
                     win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
 
             if options.display_type == 'per_iter':
@@ -3036,7 +3036,7 @@ def generate(epoch=None):
         #np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
 
         #toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
-        toimg(generated_fake.data[0].cpu()).save(generate_save_fake_path + "/%05d.png" % i)
+        toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path + "/%05d.png" % i)
 
         #print('[%d/%d]'%(i, num_gen))
 
