@@ -2545,7 +2545,7 @@ def train():
                     elif options.intergrationType == 'AEonly':
                         testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0])), 2)
                     else:
-                        testImage = torch.cat((unorm(input.data[0]), unorm(x_recon.data[0]), unorm(generated_fake.data[0])), 2)
+                        testImage = torch.cat(((input.data[0]), (x_recon.data[0]), (generated_fake.data[0])), 2)
                     win_dict = LJY_visualize_tools.draw_images_to_windict(win_dict, [testImage], ["Autoencoder"])
 
             if options.display_type == 'per_iter':
