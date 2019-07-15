@@ -3035,7 +3035,9 @@ def generate(epoch=None):
         generated_fake = decoder(noise.view(1, nz, 1, 1))
         #np.save(generate_save_path+"/%05d"%i,noise.data.cpu().numpy())
 
-        toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
+        #toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path+"/%05d.png"%i)
+        toimg(generated_fake.data[0].cpu()).save(generate_save_fake_path + "/%05d.png" % i)
+
         #print('[%d/%d]'%(i, num_gen))
 
     '''
