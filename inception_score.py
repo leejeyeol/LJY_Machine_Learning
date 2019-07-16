@@ -116,6 +116,7 @@ def exp(data_path,save_path):
     csv_saver = LJY_utils.Deep_Learning_CSV_Saver(save_path=save_path)
     csv_saver.add_column([result[0], result[1]])
     csv_saver.save()
+    print(save_path)
     try:
         shutil.rmtree(data_path)
     except OSError as e:
