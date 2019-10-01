@@ -51,7 +51,7 @@ parser.add_argument('--pretrainedEpoch', type=int, default=0, help="path of Deco
 parser.add_argument('--pretrainedModelName', default='Base_CelebA', help="path of Encoder networks.")
 parser.add_argument('--modelOutFolder', default='/home/mlpa/Workspace/experimental_result/LJY/VAEGAN', help="folder to model checkpoints. WC_lite_VAEGAN")
 parser.add_argument('--resultOutFolder', default='/home/mlpa/data_4T/experiment_results/ljy/results', help="folder to test results")
-parser.add_argument('--save_tick', type=int, default=1, help='save tick')
+parser.add_argument('--save_tick', type=int, default=1, help='save tick. default is 1')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -2788,6 +2788,7 @@ def train():
         # do checkpointing
         if epoch % options.save_tick == 0 and options.save:
             print("saving models")
+            print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
             torch.save(encoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
             torch.save(decoder.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % (epoch+ep)))
             torch.save(discriminator.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % (epoch+ep)))
