@@ -104,6 +104,7 @@ elif options.preset == 'alpha-gan':
     options.pretrainedModelName = options.preset + '_' + options.dataset
 elif options.preset == 'dcgan':
     recon_learn = False
+    options.intergrationType = 'GANonly'
     options.autoencoderType = 'GAN'
     options.pretrainedModelName = options.preset + '_' + options.dataset
 else :
@@ -115,12 +116,12 @@ else :
 if options.CSVsave :
     if options.intergrationType == 'GANonly':
         csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_GAN_result.csv")
-        csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient', 'zero'],
-                                                      save_path=csv_path)
+
     else:
         csv_path = os.path.join(options.modelOutFolder, options.pretrainedModelName + "_result.csv")
-        csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'],
-                                                      save_path=csv_path)
+
+    csv_saver = LJY_utils.Deep_Learning_CSV_Saver(rows=['D_gradient', 'G_gradient_AE', 'G_gradient', 'zero'],
+                                                  save_path=csv_path)
 
 # criterion set
 BCE_loss = nn.BCELoss()
