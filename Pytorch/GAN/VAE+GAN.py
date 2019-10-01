@@ -54,10 +54,6 @@ parser.add_argument('--resultOutFolder', default='/home/mlpa/data_4T/experiment_
 parser.add_argument('--save_tick', type=int, default=1, help='save tick. default is 1')
 parser.add_argument('--display_type', default='per_iter', help='displat tick',choices=['per_epoch', 'per_iter'])
 
-parser.add_argument('--cuda', action='store_true', help='enables cuda')
-parser.add_argument('--WassersteinCritic', action='store_true', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
-parser.add_argument('--save', action='store_true', help='save options. default:False.')
-parser.add_argument('--display', action='store_true', help='display options. default:False. NOT IMPLEMENTED')
 parser.add_argument('--ngpu', type=int, default=1, help='number of GPUs to use')
 parser.add_argument('--workers', type=int, default=1, help='number of data loading workers')
 parser.add_argument('--epoch', type=int, default=255, help='number of epochs to train for')
@@ -71,7 +67,15 @@ parser.add_argument('--ngf', type=int, default=64, help='number of generator fil
 parser.add_argument('--ndf', type=int, default=64, help='number of discriminator filters.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--CSVsave', action='store_true', help='save csv')
+
+parser.add_argument('--CSVsave', action='store_true', help='save csv for gradient')
+parser.add_argument('--save', action='store_true', help='save options. default:False.')
+parser.add_argument('--cuda', action='store_true', help='enables cuda')
+parser.add_argument('--WassersteinCritic', action='store_true', help='use Wasserstein Critic. please use --save options. WC MUST need validation set.')
+parser.add_argument('--display', action='store_true', help='display options. default:False. NOT IMPLEMENTED')
+parser.add_argument('--DiscriminatorLoad', action='store_true', help='loading discriminator only. for artificial vanishing gradeint')
+
+
 parser.add_argument('--inception_score', action='store_true', help='inception score calculated after the end of each epoch')
 parser.add_argument('--inception_score_path', default='/home/mlpa/data_4T/experiment_results/LJY_inception_score',help = 'path of things of inception score')
 
@@ -2100,10 +2104,13 @@ def train():
     save_path = LJY_utils.make_dir(save_path)
     ep = options.pretrainedEpoch
     if ep != 0:
-        encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
-        decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
-        discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
-        z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
+        if options.DiscriminatorLoad is True:
+            discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
+        else :
+            encoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % ep)))
+            decoder.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % ep)))
+            discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_discriminator" + "_%d.pth" % ep)))
+            z_discriminator.load_state_dict(torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_z_discriminator" + "_%d.pth" % ep)))
     if options.dataset == 'MNIST':
         dataloader = torch.utils.data.DataLoader(
             dset.MNIST(root='../../data', train=True, download=True,
