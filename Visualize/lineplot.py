@@ -27,8 +27,12 @@ data = np.column_stack((alpha,ours))
 data = np.column_stack((inception_score1[:,0],inception_score2[:,0]))
 '''
 
-data = np.genfromtxt(r'D:\experiments\paper_plot/dcgan_CelebA_GAN_result.csv', delimiter=',')
+
+data = np.genfromtxt(r'D:\experiments\dcgan_CelebA_GAN_result.csv', delimiter=',')
+#data = np.genfromtxt(r'D:\experiments\ours_CelebA_result.csv', delimiter=',')
+
 plt.plot(data)
+
 
 plt.legend(['gradient of discriminator','gradient of decoder', 'gradient of generator'])
 #plt.legend(['alphagan', 'ours'])

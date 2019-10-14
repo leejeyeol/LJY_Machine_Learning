@@ -68,6 +68,7 @@ parser.add_argument('--ndf', type=int, default=64, help='number of discriminator
 
 parser.add_argument('--seed', type=int, help='manual seed')
 
+parser.add_argument('--TrainingTimesave', action='store_true', help='save csv for gradient')
 parser.add_argument('--CSVsave', action='store_true', help='save csv for gradient')
 parser.add_argument('--save', action='store_true', help='save options. default:False.')
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
@@ -2828,7 +2829,8 @@ def train():
 
 
             #print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
-    #np.save('/media/leejeyeol/74B8D3C8B8D38750/Experiment/time/ours.npy', np.asarray(spend_time_log)[1:])
+    if options.DiscriminatorLoad is True:
+        np.save(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_timelog.npy"), np.asarray(spend_time_log)[1:])
 
 def tsne():
     ep = options.pretrainedEpoch
