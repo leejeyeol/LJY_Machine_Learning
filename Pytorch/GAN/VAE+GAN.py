@@ -2829,8 +2829,9 @@ def train():
 
 
             #print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_encoder" + "_%d.pth" % (epoch+ep)))
-    if options.DiscriminatorLoad is True:
+    if options.TrainingTimesave is True:
         np.save(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_timelog.npy"), np.asarray(spend_time_log)[1:])
+        print(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_timelog.npy"))
 
 def tsne():
     ep = options.pretrainedEpoch
