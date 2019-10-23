@@ -2998,32 +2998,14 @@ def visualize_latent_space():
     img = np.asarray(unorm(image.view(image.shape[2], image.shape[3])))
     plt.imshow(img)
     plt.show()
+
 def generate(epoch=None):
     if epoch is None :
         pretrained_epoch = options.pretrainedEpoch
     else:
         pretrained_epoch = epoch
     num_gen = 20000
-    '''
-    if options.dataset == 'CIFAR10':
-        dataloader = torch.utils.data.DataLoader(
-            dset.CIFAR10(root='../../data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),
-            batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
-    if options.dataset  =='CelebA':
-        celebA_imgsize = 64
-        dataloader = torch.utils.data.DataLoader(
-            custom_Dataloader(path=options.dataroot,
-                              transform=transforms.Compose([
-                                  transforms.CenterCrop(150),
-                                  transforms.Scale((celebA_imgsize, celebA_imgsize)),
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.5,), (0.5,))
-                       ])),batch_size=1, shuffle=True, num_workers=options.workers)
-    '''
+
     decoder.load_state_dict(
         torch.load(os.path.join(options.modelOutFolder, options.pretrainedModelName + "_decoder" + "_%d.pth" % pretrained_epoch)))
     unorm = LJY_visualize_tools.UnNormalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))
@@ -3037,11 +3019,6 @@ def generate(epoch=None):
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')
     LJY_utils.make_dir(generate_save_fake_path, allow_duplication=True)
 
-    '''
-    tmp
-    generate_save_real_path =os.path.join(generate_save_path, 'real')
-    LJY_utils.make_dir(generate_save_real_path, allow_duplication=True)
-    '''
 
     # generator(Vanilar)
     for i in range(num_gen):
@@ -3055,16 +3032,39 @@ def generate(epoch=None):
 
         #print('[%d/%d]'%(i, num_gen))
 
-    '''
-    tmp
+
+    
     # real sample generator
+
+    if options.dataset == 'CIFAR10':
+        dataloader = torch.utils.data.DataLoader(
+          dset.CIFAR10(root='../../data', train=True, download=True,
+                     transform=transforms.Compose([
+                         transforms.ToTensor(),
+                         transforms.Normalize((0.5,), (0.5,))
+                     ])),
+          batch_size=options.batchSize, shuffle=True, num_workers=options.workers)
+    if options.dataset  =='CelebA':
+      celebA_imgsize = 64
+      dataloader = torch.utils.data.DataLoader(
+          custom_Dataloader(path=options.dataroot,
+                            transform=transforms.Compose([
+                                transforms.CenterCrop(150),
+                                transforms.Scale((celebA_imgsize, celebA_imgsize)),
+                         transforms.ToTensor(),
+                         transforms.Normalize((0.5,), (0.5,))
+                     ])),batch_size=1, shuffle=True, num_workers=options.workers)
+
+    generate_save_real_path =os.path.join(generate_save_path, 'real')
+    LJY_utils.make_dir(generate_save_real_path, allow_duplication=True)
+
     for i, (data, _) in enumerate(dataloader, 0):
         input = Variable(data).cuda()
         toimg(unorm(input.data[0]).cpu()).save(generate_save_real_path + "/%05d.png" % i)
         #print('[%d/%d]' % (i, num_gen))
         if i == num_gen:
             break
-    '''
+
 
     #reconstruction generator
     '''

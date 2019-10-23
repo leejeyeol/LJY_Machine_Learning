@@ -27,10 +27,17 @@ data = np.column_stack((alpha,ours))
 data = np.column_stack((inception_score1[:,0],inception_score2[:,0]))
 '''
 
+#file_list=[r'D:\experiments\dcgan_CelebA_GAN_result.csv',r'D:\experiments\dcgan_CelebA_GAN_result.csv',r'D:\experiments\dcgan_CelebA_GAN_result.csv',r'D:\experiments\dcgan_CelebA_GAN_result.csv']
+
+
+
+
+
 
 data = np.genfromtxt(r'D:\experiments\dcgan_CelebA_GAN_result.csv', delimiter=',')
-#data = np.genfromtxt(r'D:\experiments\ours_CelebA_result.csv', delimiter=',')
-
+data = np.genfromtxt(r'D:\experiments\ours_CelebA_result.csv', delimiter=',')
+data = np.genfromtxt(r'D:\experiments\dcgan_MNIST_GAN_result.csv', delimiter=',')
+#data = np.genfromtxt(r'D:\experiments\ours_MNIST_result.csv', delimiter=',')
 plt.plot(data)
 
 

@@ -15,7 +15,7 @@ data = np.stack((data1,data2,data3,data4,data5),1)
 my_xticks = ['DCGAN', 'Ours(*)', 'Ours+Reconstruction', 'Ours_AAE', 'alpha-GAN']
 
 '''
-'''
+
 # Wasserstein Critic
 data1=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_WC/gans_9.npy')
 data2=np.load('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_WC/ours_9.npy')
@@ -79,4 +79,4 @@ for i in range(len(alpha_ep)):
         label.append('%d_ours'%ours_ep[i])
         data = []
         label = []
-
+'''

@@ -26,7 +26,6 @@ from scipy.ndimage.filters import convolve
 import tensorflow as tf
 import glob as glob
 import os
-
 import cv2
 
 def _FSpecialGauss(size, sigma):
