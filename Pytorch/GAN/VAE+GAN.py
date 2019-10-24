@@ -3012,8 +3012,8 @@ def generate(epoch=None):
     toimg = transforms.ToPILImage()
 
     print("Generating Start!")
-    #generate_save_path =os.path.join(options.resultOutFolder, options.preset+'_'+str(options.pretrainedEpoch))
-    generate_save_path = '/home/mlpa/data_4T/experiment_results/LJY_inception_score/images'
+    generate_save_path =os.path.join(options.resultOutFolder, 'images')
+
     print(os.path.abspath(generate_save_path))
     LJY_utils.make_dir(generate_save_path, allow_duplication=True)
     generate_save_fake_path =os.path.join(generate_save_path, 'fake')

@@ -23,7 +23,6 @@ import math
 import numpy as np
 from scipy import signal
 from scipy.ndimage.filters import convolve
-import tensorflow as tf
 import glob as glob
 import os
 import cv2
@@ -177,10 +176,16 @@ def MultiScaleSSIM(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5,
 
 if __name__ == '__main__':
   supplementNaN = True
-  case = 'bases'
-  ep = 9
-  img_folder1 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/ours_real_sample'
-  img_folder2 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d'%(case,ep)
+  case = 'ours'
+  ep = 20
+  #img_folder1 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/ours_real_sample'
+  #img_folder2 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d'%(case,ep)
+  save_path = 'D:\experiments\MSSSIM'
+  img_folder1 = r'D:\experiments\real'
+  img_folder2 = r'D:\experiments\%s_imgs\fake'%(case)
+
+
+
   imgs1 = sorted(glob.glob(os.path.join(img_folder1, "*")))
   imgs2 = sorted(glob.glob(os.path.join(img_folder2, "*")))
   num_of_imgs = len(imgs1) if len(imgs1) <= len(imgs2) else len(imgs2)
@@ -208,7 +213,7 @@ if __name__ == '__main__':
       MSSSIM_data.append(MSSSIM_mean)
   np_MSSSIM_data = np.asarray(MSSSIM_data)
 
-  np.save('/media/leejeyeol/74B8D3C8B8D38750/Experiment/VAEGAN_MSSSIM/%s_%d.npy'%(case,ep), np_MSSSIM_data)
+  np.save(os.path.join(save_path,'%s_%d.npy'%(case,ep)),np_MSSSIM_data)
   print('mean is %f' % MSSSIM_mean)
 
 
