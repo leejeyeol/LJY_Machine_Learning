@@ -176,8 +176,8 @@ def MultiScaleSSIM(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5,
 
 if __name__ == '__main__':
   supplementNaN = True
-  case = 'ours'
-  ep = 20
+  case = 'alpha-gan'
+  ep = 30
   #img_folder1 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/ours_real_sample'
   #img_folder2 = '/media/leejeyeol/74B8D3C8B8D38750/Experiment/AEGAN/WC_lite_VAEGAN/%s_generated_%d'%(case,ep)
   save_path = 'D:\experiments\MSSSIM'

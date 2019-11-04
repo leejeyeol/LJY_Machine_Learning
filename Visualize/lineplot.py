@@ -34,18 +34,11 @@ data = np.column_stack((inception_score1[:,0],inception_score2[:,0]))
 
 
 
-data = np.genfromtxt(r'D:\experiments\dcgan_CelebA_GAN_result.csv', delimiter=',')
-data = np.genfromtxt(r'D:\experiments\ours_CelebA_result.csv', delimiter=',')
+
 data = np.genfromtxt(r'D:\experiments\dcgan_MNIST_GAN_result.csv', delimiter=',')
-#data = np.genfromtxt(r'D:\experiments\ours_MNIST_result.csv', delimiter=',')
-plt.plot(data)
-
-
-plt.legend(['gradient of discriminator','gradient of decoder', 'gradient of generator'])
-#plt.legend(['alphagan', 'ours'])
-
-plt.xlabel('epoch')
-plt.ylabel('inception score')
+data = np.column_stack((data[:,2],data[:,0]))
+plt.xlabel("Iteration")
+plt.ylabel("Sum of absolute values of gradient")
+plt.plot(data[0:200,:])
+plt.legend(['Generator','Discriminator'])
 plt.show()
-
-print(1)

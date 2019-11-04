@@ -15,10 +15,3 @@ class Latent_Walk_Squre():
         latent_vectors[size-1][0] = four_points[2]
         latent_vectors[size-1][size-1] = four_points[3]
 
-class recur_object():
-    def __init__(self, size, index):
-        self.index = index
-        if
-        self.anchor1 = None
-        self.anchor2 = None
-        self.check_anchors()
