@@ -54,15 +54,15 @@ except OSError:
     pass
 
 # seed set  ============================================================================================================
-if options.seed is None:
+if options.seed  is None:
     options.seed = random.randint(1, 10000)
 print("Random Seed: ", options.seed)
 random.seed(options.seed)
 torch.manual_seed(options.seed)
-
-# cuda set  ============================================================================================================
 if options.cuda:
     torch.cuda.manual_seed(options.seed)
+
+# cuda set  ============================================================================================================
 
 torch.backends.cudnn.benchmark = True
 cudnn.benchmark = True

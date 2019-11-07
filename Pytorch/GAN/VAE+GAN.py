@@ -462,67 +462,67 @@ def model_init(autoencoder_type):
                 if img_size == self.sup_size[0]:
                     self.encoder = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2,
                         nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
                     )
                 if img_size == self.sup_size[1]:
                     self.encoder = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
                     )
                 if img_size == self.sup_size[2]:
                     self.encoder = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
                     )
                 if img_size == self.sup_size[3]:
                     self.encoder = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, z_size, 2, 2, 0, bias=False)
                     )
             else:
@@ -666,70 +666,70 @@ def model_init(autoencoder_type):
                 if img_size == self.sup_size[0]:
                     self.discriminator = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
                         nn.Sigmoid()
                     )
                 if img_size == self.sup_size[1]:
                     self.discriminator = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
                         nn.Sigmoid()
                     )
                 if img_size == self.sup_size[2]:
                     self.discriminator = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 8, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 8),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, 1, 2, 2, 0, bias=False),
                         nn.Sigmoid()
                     )
                 if img_size == self.sup_size[3]:
                     self.discriminator = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters, num_filters * 2, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 2),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 0, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2, inplace=True),
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, 1, 2, 2, 0, bias=False),
                         nn.Sigmoid()
                     )
@@ -989,19 +989,19 @@ def model_init(autoencoder_type):
             self.type = type
             self.encoder = nn.Sequential(
                 nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 2),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 8),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 nn.Conv2d(num_filters * 8, num_filters * 8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 8),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 nn.Conv2d(num_filters * 8, z_size, 4, 2, 1, bias=False),
             )
             if self.type == 'VAE':
@@ -1034,19 +1034,20 @@ def model_init(autoencoder_type):
             self.decoder = nn.Sequential(
                 nn.ConvTranspose2d(z_size, num_filters * 8, 4, 1, 0, bias=False),
                 nn.BatchNorm2d(num_filters * 8),
-                nn.ReLU(True),
+                nn.ReLU(),
+
                 # state size. (ngf*8) x 4 x 4
                 nn.ConvTranspose2d(num_filters * 8, num_filters * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 4),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf*4) x 8 x 8
                 nn.ConvTranspose2d(num_filters * 4, num_filters * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 2),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf*2) x 16 x 16
                 nn.ConvTranspose2d(num_filters * 2, num_filters, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf) x 32 x 32
                 nn.ConvTranspose2d(num_filters, num_in_channels, 4, 2, 1, bias=False),
                 nn.Tanh()
@@ -1069,19 +1070,19 @@ def model_init(autoencoder_type):
             self.main = nn.Sequential(
                 # input is (nc) x 64 x 64
                 nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf) x 32 x 32
                 nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 2),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*2) x 16 x 16
                 nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*4) x 8 x 8
                 nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 8),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*8) x 4 x 4
                 nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
                 nn.Sigmoid()
@@ -1103,19 +1104,19 @@ def model_init(autoencoder_type):
             self.main = nn.Sequential(
                 # input is (nc) x 64 x 64
                 nn.Conv2d(num_in_channels, num_filters, 4, 2, 1, bias=False),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf) x 32 x 32
                 nn.Conv2d(num_filters, num_filters * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 2),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*2) x 16 x 16
                 nn.Conv2d(num_filters * 2, num_filters * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*4) x 8 x 8
                 nn.Conv2d(num_filters * 4, num_filters * 8, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(num_filters * 8),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
                 # state size. (ndf*8) x 4 x 4
                 nn.Conv2d(num_filters * 8, 1, 4, 1, 0, bias=False),
             )
@@ -1137,11 +1138,11 @@ def model_init(autoencoder_type):
             self.main = nn.Sequential(
                 nn.Linear(nz, nz),
                 nn.BatchNorm1d(nz),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(nz, nz),
                 nn.BatchNorm1d(nz),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(nz, 1),
                 nn.Sigmoid()
@@ -1163,15 +1164,15 @@ def model_init(autoencoder_type):
             self.encoder = nn.Sequential(
                 nn.Conv2d(num_in_channels, 64, 5, 2, 1),
                 nn.BatchNorm2d(num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(2 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(4 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
             )
@@ -1230,15 +1231,15 @@ def model_init(autoencoder_type):
             self.discriminator = nn.Sequential(
                 nn.Conv2d(num_in_channels, 64, 5, 2, 1),
                 nn.BatchNorm2d(num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(2 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(4 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(4 * num_filters, 1, 3, 1, 0),
                 nn.Sigmoid()
@@ -1260,27 +1261,27 @@ def model_init(autoencoder_type):
             self.encoder = nn.Sequential(
                 nn.Conv2d(num_in_channels, 64, 3, 1, 0),
                 nn.BatchNorm2d(64),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(64, 128, 3, 1, 0),
                 nn.BatchNorm2d(128),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(128, 256, 3, 2, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(256, 256, 3, 1, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(256, 512, 3, 1, 0),
                 nn.BatchNorm2d(512),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(512, 512, 3, 2, 0),
                 nn.BatchNorm2d(512),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(512, z_size, 4, 1, 0),
 
@@ -1306,27 +1307,27 @@ def model_init(autoencoder_type):
 
             self.decoder = nn.Sequential(
                 nn.ConvTranspose2d(z_size, 512, 4, 1, 0),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(512, 512, 4, 2, 0),
                 nn.BatchNorm2d(512),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(512, 256, 3, 1, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(256, 256, 4, 2, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(256, 128, 3, 1, 0),
                 nn.BatchNorm2d(128),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(128, 64, 3, 1, 0),
                 nn.BatchNorm2d(64),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.ConvTranspose2d(64, num_in_channels, 3, 1, 0),
                 nn.Tanh()
@@ -1343,27 +1344,27 @@ def model_init(autoencoder_type):
             self.discriminator = nn.Sequential(
                 nn.Conv2d(num_in_channels, 64, 3, 1, 0),
                 nn.BatchNorm2d(64),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(64, 128, 3, 1, 0),
                 nn.BatchNorm2d(128),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(128, 256, 3, 2, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(256, 256, 3, 1, 0),
                 nn.BatchNorm2d(256),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(256, 512, 3, 1, 0),
                 nn.BatchNorm2d(512),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(512, 512, 3, 2, 0),
                 nn.BatchNorm2d(512),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(512, 1, 4, 1, 0),
                 nn.Sigmoid()
@@ -1379,15 +1380,15 @@ def model_init(autoencoder_type):
             self.type = type
             self.encoder = nn.Sequential(
                 nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf * 2),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf * 4, nz, 4, 2, 1, bias=True),
                 nn.AvgPool2d(2),
@@ -1414,19 +1415,19 @@ def model_init(autoencoder_type):
             self.decoder = nn.Sequential(
                 nn.ConvTranspose2d(nz, ngf * 8, 4, 1, 0, bias=False),
                 nn.BatchNorm2d(ngf * 8),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf*8) x 4 x 4
                 nn.ConvTranspose2d(ngf * 8, ngf * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 4),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf*4) x 8 x 8
                 nn.ConvTranspose2d(ngf * 4, ngf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 2),
-                nn.ReLU(True),
+                nn.ReLU(),
                 # state size. (ngf*2) x 16 x 16
                 nn.ConvTranspose2d(ngf * 2, ngf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ngf * 2),
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.Conv2d(ngf * 2, nc, 1, bias=True),
                 nn.Tanh()
 
@@ -1441,15 +1442,15 @@ def model_init(autoencoder_type):
             super().__init__()
             self.discriminator = nn.Sequential(
                 nn.Conv2d(nc, ndf, 4, 2, 1, bias=False),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf, ndf * 2, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf * 2),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf * 2, ndf * 4, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(ndf * 4),
-                nn.LeakyReLU(0.2, inplace=True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(ndf * 4, 1, 4, 2, 1, bias=True),
                 nn.AvgPool2d(2),
@@ -1465,10 +1466,10 @@ def model_init(autoencoder_type):
             super().__init__()
             self.discriminator = nn.Sequential(
                 nn.Linear(z_dim, N),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(N, N),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(N, 1),
                 nn.Sigmoid()
@@ -1492,15 +1493,15 @@ def model_init(autoencoder_type):
             self.encoder = nn.Sequential(
                 nn.Conv2d(num_in_channels, 64, 5, 2, 1),
                 nn.BatchNorm2d(num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(64, 2 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(2 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(128, 4 * num_filters, 4, 2, 1),
                 nn.BatchNorm2d(4 * num_filters),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(4 * num_filters, z_size, 3, 1, 0),
             )
@@ -1530,20 +1531,20 @@ def model_init(autoencoder_type):
 
             self.decoder_fc = nn.Sequential(
                 nn.Linear(z_size, 1024),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(1024, 1024),
                 nn.BatchNorm1d(1024),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(1024, 7 * 7 * 128),
                 nn.BatchNorm1d(7 * 7 * 128),
-                nn.LeakyReLU(0.2, True)
+                nn.LeakyReLU(0.2)
             )
             self.decoder_conv = nn.Sequential(
                 nn.ConvTranspose2d(128, 128, 5, bias=False),
                 nn.BatchNorm2d(128),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
                 nn.ConvTranspose2d(128, 1, 5, bias=False)
             )
             # init weights
@@ -1563,15 +1564,15 @@ def model_init(autoencoder_type):
             self.discriminator_conv = nn.Sequential(
                 nn.Conv2d(num_in_channels, 11, 2),
                 nn.BatchNorm2d(11),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Conv2d(11, 75, 2),
                 nn.BatchNorm2d(75),
-                nn.LeakyReLU(0.2, True))
+                nn.LeakyReLU(0.2))
             self.discriminator_fc = nn.Sequential(
                 nn.Linear(75, 1024),
                 nn.BatchNorm1d(1024),
-                nn.LeakyReLU(0.2, True),
+                nn.LeakyReLU(0.2),
 
                 nn.Linear(1024, 1),
                 nn.Sigmoid()
@@ -1661,13 +1662,13 @@ def model_init(autoencoder_type):
 
             self.main = nn.Sequential(
                 nn.Conv2d(1, 64, 4, 2, 1),
-                nn.LeakyReLU(0.1, inplace=True),
+                nn.LeakyReLU(0.1),
                 nn.Conv2d(64, 128, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(128),
-                nn.LeakyReLU(0.1, inplace=True),
+                nn.LeakyReLU(0.1),
                 nn.Conv2d(128, 1024, 7, bias=False),
                 nn.BatchNorm2d(1024),
-                nn.LeakyReLU(0.1, inplace=True),
+                nn.LeakyReLU(0.1),
             )
 
         def forward(self, x):
@@ -1695,7 +1696,7 @@ def model_init(autoencoder_type):
 
             self.conv = nn.Conv2d(1024, 128, 1, bias=False)
             self.bn = nn.BatchNorm2d(128)
-            self.lReLU = nn.LeakyReLU(0.1, inplace=True)
+            self.lReLU = nn.LeakyReLU(0.1)
             self.conv_mu = nn.Conv2d(128, 2, 1)
             self.conv_var = nn.Conv2d(128, 2, 1)
 
@@ -1715,13 +1716,13 @@ def model_init(autoencoder_type):
             self.main = nn.Sequential(
                 nn.ConvTranspose2d(74, 1024, 1, 1, bias=False),
                 nn.BatchNorm2d(1024),
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.ConvTranspose2d(1024, 128, 7, 1, bias=False),
                 nn.BatchNorm2d(128),
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.ConvTranspose2d(128, 64, 4, 2, 1, bias=False),
                 nn.BatchNorm2d(64),
-                nn.ReLU(True),
+                nn.ReLU(),
                 nn.ConvTranspose2d(64, 1, 4, 2, 1, bias=False),
                 nn.Sigmoid()
             )
@@ -1743,7 +1744,7 @@ def model_init(autoencoder_type):
             main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
                             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
             main.add_module('initial.relu.{0}'.format(ndf),
-                            nn.LeakyReLU(0.2, inplace=True))
+                            nn.LeakyReLU(0.2))
             csize, cndf = isize / 2, ndf
 
             # Extra layers
@@ -1751,7 +1752,7 @@ def model_init(autoencoder_type):
                 main.add_module('extra-layers-{0}.{1}.conv'.format(t, cndf),
                                 nn.Conv2d(cndf, cndf, 3, 1, 1, bias=False))
                 main.add_module('extra-layers-{0}.{1}.relu'.format(t, cndf),
-                                nn.LeakyReLU(0.2, inplace=True))
+                                nn.LeakyReLU(0.2))
 
             while csize > 4:
                 in_feat = cndf
@@ -1759,7 +1760,7 @@ def model_init(autoencoder_type):
                 main.add_module('pyramid.{0}-{1}.conv'.format(in_feat, out_feat),
                                 nn.Conv2d(in_feat, out_feat, 4, 2, 1, bias=False))
                 main.add_module('pyramid.{0}.relu'.format(out_feat),
-                                nn.LeakyReLU(0.2, inplace=True))
+                                nn.LeakyReLU(0.2))
                 cndf = cndf * 2
                 csize = csize / 2
 
@@ -1792,7 +1793,7 @@ def model_init(autoencoder_type):
             main.add_module('initial.conv.{0}-{1}'.format(nc, ndf),
                             nn.Conv2d(nc, ndf, 4, 2, 1, bias=False))
             main.add_module('initial.relu.{0}'.format(ndf),
-                            nn.LeakyReLU(0.2, inplace=True))
+                            nn.LeakyReLU(0.2))
             csize, cndf = isize / 2, ndf
 
             # Extra layers

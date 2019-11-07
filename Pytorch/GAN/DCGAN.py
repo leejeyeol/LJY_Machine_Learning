@@ -142,7 +142,7 @@ class _netD(nn.Module):
         self.main = nn.Sequential(
             # 1*28*28 => 64*14*14
             nn.Conv2d(in_channels=1, out_channels=64, kernel_size=4, stride=2, padding=1),
-            nn.LeakyReLU(0.2, inplace=True),
+            nn.LeakyReLU(0.2),
 
             # 64*14*14 => 128*7*7
             nn.Conv2d(64, 128, 4, 2, 1),

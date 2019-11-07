@@ -7,6 +7,7 @@ import math
 import time
 import csv
 import random
+import torch.backends.cudnn as cudnn
 class Deep_Learning_CSV_Saver():
     '''
     # Usage example : saving random int
@@ -133,6 +134,29 @@ def weights_init(m):
         m.weight.data.normal_(0.0, 0.02)
 
 #        nn.init.normal(m.weight.data)
+
+def make_dirs(paths,allow_duplication =False):
+    try :
+        len(paths)
+    except:
+        print("error : paths don't have length")
+        return
+    for i in range(len(paths)):
+        make_dir(paths[i],allow_duplication)
+
+def set_seed(seed):
+    if seed is None:
+        seed = random.randint(1, 10000)
+    print("Random Seed: ", seed)
+    random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+def set_cuda(is_cuda):
+    torch.backends.cudnn.benchmark = True
+    cudnn.benchmark = True
+    if torch.cuda.is_available() and not cuda:
+        print("WARNING: You have a CUDA device, so you should probably run with --cuda")
 
 def make_dir(path, allow_duplication = False):
     # if there is no directory, make a directory.
