@@ -10,16 +10,15 @@ import torch.utils.data
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.nn.functional as F
-import torchvision.utils as vutils
 from torch.autograd import Variable
 import numpy as np
-import copy
 import math
 import glob as glob
 import sys
-import inception_score
+from My_Lib.experiment import inception_score
 
 from PIL import Image
+
 
 #from sklearn.manifold import TSNE
 #import seaborn as sns
@@ -29,7 +28,7 @@ import matplotlib.pyplot as plt
 
 import LJY_utils
 import LJY_visualize_tools
-import Pytorch.Models.cifar10_resnet_AAE as cifar10_resnet_AAE
+
 time_calc = LJY_utils.Time_calculator()
 
 plt.style.use('ggplot')
@@ -468,7 +467,7 @@ def model_init(autoencoder_type):
                         nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 2, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
-                        nn.LeakyReLU(0.2,
+                        nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 4, num_filters * 4, 3, 2, 1, bias=False),
                         nn.BatchNorm2d(num_filters * 4),
                         nn.LeakyReLU(0.2),
@@ -480,6 +479,7 @@ def model_init(autoencoder_type):
                         nn.LeakyReLU(0.2),
                         nn.Conv2d(num_filters * 8, z_size, 2, 2, 0, bias=False)
                     )
+
                 if img_size == self.sup_size[1]:
                     self.encoder = nn.Sequential(
                         nn.Conv2d(num_in_channels, num_filters, 3, 2, 1, bias=False),
@@ -2823,7 +2823,7 @@ def train():
                 generated_fake = decoder(noise.view(1, nz, 1, 1))
                 toimg(unorm(generated_fake.data[0]).cpu()).save(generate_save_fake_path + "/%05d.png" % i)
 
-            inception_score.exp(generate_save_path, os.path.join(options.inception_score_path,options.pretrainedModelName + '_inception_score.csv'))
+            inception_score.exp(generate_save_path, os.path.join(options.inception_score_path, options.pretrainedModelName + '_inception_score.csv'))
 
         if options.WassersteinCritic == True:
             torch.save(W_critic.state_dict(), os.path.join(options.modelOutFolder, options.pretrainedModelName + "_WassersteinCritic" + "_%d.pth" % (epoch+ep)))

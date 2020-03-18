@@ -64,33 +64,42 @@ y_pred = sigmoid(h2)
 print(y_pred)
 '''
 
-#   XOR.py-A very simple neural network to do exclusive or.
+# -*- coding: utf-8 -*-
 import numpy as np
 
-epochs = 60000  # Number of iterations
+epochs = 3000
 inputLayerSize, hiddenLayerSize, outputLayerSize = 2, 3, 1
-
+# 인공적으로 랜덤 입력과 출력 만들기 x : 입력 y : 출력
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
 Y = np.array([[0], [1], [1], [0]])
 
 
-def sigmoid(x): return 1 / (1 + np.exp(-x))  # activation function
+# sigmoid와 그 미분을 함수로 선언
+def sigmoid(x): return 1 / (1 + np.exp(-x))
 
 
-def sigmoid_(x): return x * (1 - x)  # derivative of sigmoid
+def sigmoid_derivative(x): return x * (1 - x)
 
 
-# weights on layer inputs
 Wh = np.random.uniform(size=(inputLayerSize, hiddenLayerSize))
 Wz = np.random.uniform(size=(hiddenLayerSize, outputLayerSize))
 
 for i in range(epochs):
-    H = sigmoid(np.dot(X, Wh))  # hidden layer results
-    Z = sigmoid(np.dot(H, Wz))  # output layer results
-    E = Y - Z  # how much we missed (error)
-    dZ = E * sigmoid_(Z)  # delta Z
-    dH = dZ.dot(Wz.T) * sigmoid_(H)  # delta H
-    Wz += H.T.dot(dZ)  # update output layer weights
-    Wh += X.T.dot(dH)  # update hidden layer weights
+    H = sigmoid(np.dot(X, Wh))  # layer 1
+    Z = sigmoid(np.dot(H, Wz))  # layer 2
+    E = np.square(Y - Z).sum()  # error
 
+    # back propagation
+    # w 갱신 = 기존 W - 출발노드의 output * 도착 노드의 delta
+
+    dZ = (Y - Z) * sigmoid_derivative(Z)  # delta layer 2(output layer) : E에 대한 layer output 미분(Y-Z) * 활성화 함수 미분
+    dH = dZ.dot(Wz.T) * sigmoid_derivative(H)  # delta layer 1 : E에 대한 layer output 미분(delta layer 2*weight) * 활성화 함수 미분
+
+    Wz += H.T.dot(dZ)  # Wz = Wz + H.T.dot(dz)
+    Wh += X.T.dot(dH)
+print("Input is")
+print(X)
+print("expected output is")
+print(Y)
+print("actual output is ")
 print(Z)

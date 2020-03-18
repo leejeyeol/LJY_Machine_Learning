@@ -14,7 +14,7 @@ import torch.utils.data
 from torch.autograd import Variable
 
 import LJY_utils
-from legacy.Automatic_Polyp_Detection import superpixel as SUPERPIXEL
+from LJY_legacy.Automatic_Polyp_Detection import superpixel as SUPERPIXEL
 
 # import custom package
 

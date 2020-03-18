@@ -278,7 +278,6 @@ if options.dataset == 'CIFAR10':
 optimizer = optim.SGD([encoder.parameters(),classifier.parameters()], lr=0.001, momentum=0.9)
 #optimizer = optim.SGD(classifier.parameters(), lr=0.001, momentum=0.9)
 
-
 if options.cuda:
     encoder.cuda()
     classifier.cuda()

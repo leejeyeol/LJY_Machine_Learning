@@ -1,12 +1,9 @@
-import torch
-import numpy as np
-import torchvision
 import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torch.optim as optim
 import argparse
 import LJY_utils
-import default_dir
+from My_Lib import default_dir
 from .model import *
 #=======================================================================================================================
 # Options
@@ -42,7 +39,7 @@ options = parser.parse_args()
 print(options)
 
 
-dataDir, saveDir, resultDir = default_dir.dd_call(options.model+'_'+options.dataset)
+dataDir, saveDir, resultDir = default_dir.dd_call(options.model + '_' + options.dataset)
 LJY_utils.set_seed(options.seed)
 LJY_utils.set_cuda(options.is_cuda)
 

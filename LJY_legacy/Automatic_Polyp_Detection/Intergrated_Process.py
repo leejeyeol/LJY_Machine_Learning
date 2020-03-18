@@ -16,8 +16,8 @@ from skimage.segmentation import slic
 from torch.autograd import Variable
 
 import LJY_utils
-import LM_Filter
-from legacy.Automatic_Polyp_Detection import superpixel, mask_converter
+from My_Lib.experiment import LM_Filter
+from LJY_legacy.Automatic_Polyp_Detection import superpixel, mask_converter
 
 
 def MKB(weights, F, x):

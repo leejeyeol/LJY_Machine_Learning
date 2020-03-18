@@ -101,26 +101,33 @@ def Depth_evaluation(gt, predict, D_mask):
     rms = math.sqrt((((gt-predict).pow(2).data[0]*D_mask.data[0].cuda().float()).sum()/num_of_pixels))
 
     return rel, rms
-# one hot generator
-def one_hot(size, index):
-    """ Creates a matrix of one hot vectors.
-        ```
-        import torch
-        import torch_extras
-        setattr(torch, 'one_hot', torch_extras.one_hot)
-        size = (3, 3)
-        index = torch.LongTensor([2, 0, 1]).view(-1, 1)
-        torch.one_hot(size, index)
-        # [[0, 0, 1], [1, 0, 0], [0, 1, 0]]
-        ```
+
+def one_hot_embedding(labels, num_classes):
+    """Embedding labels to one-hot form.
+
+    Args:
+      labels: (LongTensor) class labels, sized [N,].
+      num_classes: (int) number of classes.
+
+    Returns:
+      (tensor) encoded labels, sized [N, #classes].
     """
-    mask = torch.LongTensor(*size).fill_(0)
-    ones = 1
-    if isinstance(index, Variable):
-        ones = Variable(torch.LongTensor(index.size()).fill_(1))
-        mask = Variable(mask, volatile=index.volatile)
-    ret = mask.scatter_(1, index, ones)
-    return ret
+    y = torch.eye(num_classes)
+    one_hot = y[labels]
+    return one_hot
+
+# softmax result => one hot encoding
+
+def softmax_to_one_hot(tensor):
+    # softmax 결과를 가장 높은 값이 1이 되도록 하여 원핫 벡터로 바꿔줍니다. acuuracy 구할 때 씁니다.
+    max_idx = torch.argmax(tensor, 1, keepdim=True)
+    if tensor.is_cuda :
+        one_hot = torch.zeros(tensor.shape).cuda()
+    else:
+        one_hot = torch.zeros(tensor.shape)
+    one_hot.scatter_(1, max_idx, 1)
+    return one_hot
+
 
 # custom weights initialization called on netG and netD
 def weights_init(m):
@@ -277,6 +284,15 @@ class Time_calculator():
         s = m_
         print("%s is %d:%02d:%.4f" % (string, h, m, s))
 
+def time2str(sec):
+    d = sec / 86400
+    hms = sec % 86400
+    h = hms / 3600
+    ms = hms % 3600
+    m = ms / 60
+    s = ms % 60
+    micro_sec = s - math.floor(s)
+    return "%d day %02d:%02d:%02d ms %f" % (d, h, m, s, micro_sec)
 
 def fold_loader(fold_num, root_path):
     fold_num = int(fold_num)

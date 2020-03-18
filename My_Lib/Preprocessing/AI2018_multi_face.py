@@ -1,18 +1,7 @@
-import cv2
-import math
-import matplotlib.pyplot as plt
-import numpy as np
-import numpy.matlib
 import glob
-import os
-from numpy.linalg import inv
-from numpy import linalg as LA
-import enum
 from skimage import io
 from skimage import color
 import face_alignment
-import Preprocessing.AI2018_face_alignment as AIFA
-from PIL import Image
 
 kTestPath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_faceswap/original'
 kSavePath = '/media/leejeyeol/74B8D3C8B8D38750/Data/AI2018_FACE_faceswap/aligned'

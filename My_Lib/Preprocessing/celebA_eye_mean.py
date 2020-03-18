@@ -30,7 +30,7 @@ for i in range(1,400):
         preds = preds[-1]
         left_eyes.append([preds[36:42, 0].mean(), preds[36:42, 1].mean()])
         right_eyes.append([preds[42:48, 0].mean(), preds[42:48, 1].mean()])
-        np.save('/media/leejeyeol/74B8D3C8B8D38750/experiment/AI2018/landmarks/1_%05d.npy' % i, preds)
+        np.save('/media/leejeyeol/74B8D3C8B8D38750/second_exp/AI2018/landmarks/1_%05d.npy' % i, preds)
         print("%d" % i)
 
     elif len(faces) == 0:
@@ -48,7 +48,7 @@ for i in range(1,400):
 
             left_eye_mean = ([preds[36:42, 0].mean(), preds[36:42, 1].mean()])
             right_eye_mean = ([preds[42:48, 0].mean(), preds[42:48, 1].mean()])
-            np.save('/media/leejeyeol/74B8D3C8B8D38750/experiment/AI2018/landmarks/1_%05d.npy' % i, preds)
+            np.save('/media/leejeyeol/74B8D3C8B8D38750/second_exp/AI2018/landmarks/1_%05d.npy' % i, preds)
             print("%d" % i)
 
     else:

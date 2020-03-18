@@ -51,14 +51,14 @@ parser.add_argument('--lr', type=float, default=0.0002, help='learning rate')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for Adam.')
 
 parser.add_argument('--seed', type=int, help='manual seed')
-parser.add_argument('--net_ER', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_R_epoch_5.pth', help='Encoder Red')
-parser.add_argument('--net_EG', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_G_epoch_5.pth', help='Encoder Green')
-parser.add_argument('--net_EB', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_B_epoch_5.pth', help='Encoder Blue')
-parser.add_argument('--net_ED', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/encoder_D_epoch_5.pth', help='Encoder Depth')
-parser.add_argument('--net_DR', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_R_epoch_5.pth', help='Decoder Red')
-parser.add_argument('--net_DG', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_G_epoch_5.pth', help='Decoder Green')
-parser.add_argument('--net_DB', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_B_epoch_5.pth', help='Decoder Blue')
-parser.add_argument('--net_DD', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE/fold_0/decoder_D_epoch_5.pth', help='Decoder Depth')
+parser.add_argument('--net_ER', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/encoder_R_epoch_5.pth', help='Encoder Red')
+parser.add_argument('--net_EG', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/encoder_G_epoch_5.pth', help='Encoder Green')
+parser.add_argument('--net_EB', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/encoder_B_epoch_5.pth', help='Encoder Blue')
+parser.add_argument('--net_ED', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/encoder_D_epoch_5.pth', help='Encoder Depth')
+parser.add_argument('--net_DR', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/decoder_R_epoch_5.pth', help='Decoder Red')
+parser.add_argument('--net_DG', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/decoder_G_epoch_5.pth', help='Decoder Green')
+parser.add_argument('--net_DB', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/decoder_B_epoch_5.pth', help='Decoder Blue')
+parser.add_argument('--net_DD', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE/fold_0/decoder_D_epoch_5.pth', help='Decoder Depth')
 
 
 # custom options

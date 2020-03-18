@@ -1,5 +1,6 @@
 import numpy as np
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 def plotDataAndCov(data):
     ACov = np.cov(data, rowvar=False, bias=True)
     print('Covariance matrix:\n', ACov)

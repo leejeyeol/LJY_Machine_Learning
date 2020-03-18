@@ -35,7 +35,7 @@ parser.add_argument('--fold_dataroot', default='/media/leejeyeol/74B8D3C8B8D3875
                     help='folds maked by Preprocessing/fold_divider')
 
 parser.add_argument('--net', default='', help="path of Generator networks.(to continue training)")
-parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/experiment/MMAE', help="folder to output images and model checkpoints")
+parser.add_argument('--outf', default='/media/leejeyeol/74B8D3C8B8D38750/second_exp/MMAE', help="folder to output images and model checkpoints")
 
 parser.add_argument('--cuda', action='store_true', help='enables cuda')
 parser.add_argument('--display', default=True, help='display options. default:False. NOT IMPLEMENTED')
