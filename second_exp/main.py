@@ -1,6 +1,3 @@
-import sys
-print(sys.path)
-
 from utils.config import parse_args
 from utils.data_loader import get_data_loader
 
