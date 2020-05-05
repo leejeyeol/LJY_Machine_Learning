@@ -139,10 +139,10 @@ for epi in range(train_iter):
     for i, meta_key in enumerate(info_meta_dict.keys()):
         info_dict = info_meta_dict[meta_key]
         ax[i+2].plot(np.asarray(info_dict[meta_key+'_train_average_move'])[:epi], marker='o', alpha=0.7, markersize=2)
-        ax[i+2].set_ylim(-2.5, 2.5)
+        #ax[i+2].set_ylim(-2.5, 2.5)
         ax[i+2].set_xlim(0, train_iter)
         ax[i+2].set_xlabel('Episode')
-        ax[i+2].set_ylabel(meta_key)
+        #ax[i+2].set_ylabel(meta_key)
         ax[i+2].legend([meta_key])
 
     #plt.show()
@@ -176,10 +176,10 @@ for epi in range(evel_iter):
     for i, meta_key in enumerate(info_meta_dict.keys()):
         info_dict = info_meta_dict[meta_key]
         ax[i+2].plot(np.asarray(info_dict[meta_key+'_eval_average_move'])[:epi], marker='o', alpha=0.7, markersize=2)
-        ax[i+2].set_ylim(0, 2.5)
+        #ax[i+2].set_ylim(0, 2.5)
         ax[i+2].set_xlim(0, train_iter)
         ax[i+2].set_xlabel('Episode')
-        ax[i+2].set_ylabel(meta_key)
+        #ax[i+2].set_ylabel(meta_key)
         ax[i+2].legend([meta_key])
 
     #plt.show()
@@ -188,7 +188,7 @@ for epi in range(evel_iter):
     print('[%d/%d]'%(epi, evel_iter))
 
 
-os.system(r'ffmpeg -r 16  -i D:\experiments\HANON\figure_animation\train\fig_%05d.png  -vf scale="480:480"  -filter:v "setpts=PTS"  -vcodec libx264 -pix_fmt yuv420p -acodec libvo_aacenc -ab 128k -y D:\experiments\HANON\figure_animation\train_x2.mov')
-os.system(r'ffmpeg -r 8  -i D:\experiments\HANON\figure_animation\train\fig_%05d.png  -vf scale="480:480"  -filter:v "setpts=PTS"  -vcodec libx264 -pix_fmt yuv420p -acodec libvo_aacenc -ab 128k -y D:\experiments\HANON\figure_animation\train.mov')
+os.system(r'ffmpeg -r 32  -i D:\experiments\HANON\figure_animation\train\fig_%05d.png  -vf scale="480:480"  -filter:v "setpts=PTS"  -vcodec libx264 -pix_fmt yuv420p -acodec libvo_aacenc -ab 128k -y D:\experiments\HANON\figure_animation\train_x2.mov')
+#os.system(r'ffmpeg -r 8  -i D:\experiments\HANON\figure_animation\train\fig_%05d.png  -vf scale="480:480"  -filter:v "setpts=PTS"  -vcodec libx264 -pix_fmt yuv420p -acodec libvo_aacenc -ab 128k -y D:\experiments\HANON\figure_animation\train.mov')
 os.system(r'ffmpeg -r 8  -i D:\experiments\HANON\figure_animation\eval\fig_%05d.png  -vf scale="480:480"  -filter:v "setpts=PTS"  -vcodec libx264 -pix_fmt yuv420p -acodec libvo_aacenc -ab 128k -y D:\experiments\HANON\figure_animation\eval.mov')
 

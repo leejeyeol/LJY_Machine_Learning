@@ -8,6 +8,18 @@ from second_exp.utils.inception_score import get_inception_score
 from itertools import chain
 from torchvision import utils
 
+L1_loss = nn.L1Loss()
+def Variational_loss(input, target, mu, logvar):
+    alpha = 1
+    beta = 1
+    recon_loss = L1_loss(input, target)
+    batch_size = logvar.data.shape[0]
+    nz = logvar.data.shape[1]
+    KLD_loss = (-0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())) / (nz * batch_size)
+    # print(input.data[:,1].max())
+    # print(input.data[:,1].min())
+    return alpha * recon_loss, beta * KLD_loss
+
 class Generator(torch.nn.Module):
     def __init__(self, channels):
         super().__init__()
@@ -77,15 +89,53 @@ class Discriminator(torch.nn.Module):
         x = self.main_module(x)
         return x.view(-1, 1024*4*4)
 
+class Encoder(torch.nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        # Filters [256, 512, 1024]
+        # Input_dim = channels (Cx64x64)
+        # Output_dim = 1
+        self.main_module = nn.Sequential(
+            # Image (Cx32x32)
+            nn.Conv2d(in_channels=channels, out_channels=256, kernel_size=4, stride=2, padding=1),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            # State (256x16x16)
+            nn.Conv2d(in_channels=256, out_channels=512, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.2, inplace=True),
+
+            # State (512x8x8)
+            nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=4, stride=2, padding=1),
+            nn.BatchNorm2d(1024),
+            nn.LeakyReLU(0.2, inplace=True))
+            # outptut of main module --> State (1024x4x4)
+
+        self.output_fc = nn.Sequential(
+            nn.Conv2d(in_channels=1024, out_channels=100, kernel_size=4, stride=1, padding=0),
+            )
+        self.output_logvar = nn.Sequential(
+            nn.Conv2d(in_channels=1024, out_channels=100, kernel_size=4, stride=1, padding=0),
+        )
+    def forward(self, x):
+        x = self.main_module(x)
+        mu = self.output_fc(x)
+        logvar = self.output_logvar(x)
+        return mu, logvar
+
+
+
 class VLGAN_MODEL(object):
     def __init__(self, args):
         print("VLGAN model initalization.")
         self.G = Generator(args.channels)
         self.D = Discriminator(args.channels)
+        self.E = Encoder(args.channels)
         self.C = args.channels
-
+        self.recon_weight = 5
         # binary cross entropy loss and optimizer
         self.loss = nn.BCELoss()
+        self.v_loss = Variational_loss
 
         self.cuda = "False"
         self.cuda_index = 0
@@ -95,6 +145,7 @@ class VLGAN_MODEL(object):
         # Using lower learning rate than suggested by (ADAM authors) lr=0.0002  and Beta_1 = 0.5 instead od 0.9 works better [Radford2015]
         self.d_optimizer = torch.optim.Adam(self.D.parameters(), lr=0.0002, betas=(0.5, 0.999))
         self.g_optimizer = torch.optim.Adam(self.G.parameters(), lr=0.0002, betas=(0.5, 0.999))
+        self.e_optimizer = torch.optim.Adam(self.E.parameters(), lr=0.0002, betas=(0.5, 0.999))
 
         self.epochs = args.epochs
         self.batch_size = args.batch_size
@@ -109,7 +160,19 @@ class VLGAN_MODEL(object):
             self.cuda = True
             self.D.cuda(self.cuda_index)
             self.G.cuda(self.cuda_index)
+            self.E.cuda(self.cuda_index)
             self.loss = nn.BCELoss().cuda(self.cuda_index)
+
+            L1_loss = nn.L1Loss().cuda(self.cuda_index)
+            def Variational_loss(input, target, mu, logvar):
+                alpha = 1
+                beta = 1
+                recon_loss = L1_loss(input, target)
+                batch_size = logvar.data.shape[0]
+                nz = logvar.data.shape[1]
+                KLD_loss = (-0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())) / (nz * batch_size)
+                return alpha * recon_loss, beta * KLD_loss
+            self.v_loss = Variational_loss
             print("Cuda enabled flag: ")
             print(self.cuda)
 
@@ -117,7 +180,7 @@ class VLGAN_MODEL(object):
     def train(self, train_loader):
         self.t_begin = t.time()
         generator_iter = 0
-        #self.file = open("inception_score_graph.txt", "w")
+        self.file = open("inception_score_graph.txt", "w")
 
         for epoch in range(self.epochs):
             self.epoch_start_time = t.time()
@@ -138,7 +201,26 @@ class VLGAN_MODEL(object):
                     images, z = Variable(images), Variable(z)
                     real_labels, fake_labels = Variable(real_labels), Variable(fake_labels)
 
+                self.e_optimizer.zero_grad()
+                self.g_optimizer.zero_grad()
+                mu, logvar = self.E(images)
+                std = torch.exp(0.5 * logvar)
+                eps = Variable(torch.randn(std.size()), requires_grad=False).cuda(self.cuda_index)
+                z = eps.mul(std).add_(mu)
+                recon_image = self.G(z)
+                err_recon, err_KLD = self.v_loss(recon_image, images.detach(), mu, logvar)
+                err = self.recon_weight * (err_recon + err_KLD)
+                err.backward()
+                self.e_optimizer.step()
+                self.g_optimizer.step()
 
+                if self.cuda:
+                    images, z = Variable(images).cuda(self.cuda_index), Variable(z).cuda(self.cuda_index)
+                    real_labels, fake_labels = Variable(real_labels).cuda(self.cuda_index), Variable(fake_labels).cuda(
+                        self.cuda_index)
+                else:
+                    images, z = Variable(images), Variable(z)
+                    real_labels, fake_labels = Variable(real_labels), Variable(fake_labels)
                 # Train discriminator
                 # Compute BCE_Loss using real images
                 outputs = self.D(images)
@@ -183,18 +265,18 @@ class VLGAN_MODEL(object):
                     # Workaround because graphic card memory can't store more than 800+ examples in memory for generating image
                     # Therefore doing loop and generating 800 examples and stacking into list of samples to get 8000 generated images
                     # This way Inception score is more correct since there are different generated examples from every class of Inception model
-                    # sample_list = []
-                    # for i in range(10):
-                    #     z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
-                    #     samples = self.G(z)
-                    #     sample_list.append(samples.data.cpu().numpy())
-                    #
-                    # # Flattening list of lists into one list of numpy arrays
-                    # new_sample_list = list(chain.from_iterable(sample_list))
-                    # print("Calculating Inception Score over 8k generated images")
-                    # # Feeding list of numpy arrays
-                    # inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=32,
-                    #                                       resize=True, splits=10)
+                    sample_list = []
+                    for i in range(10):
+                        z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
+                        samples = self.G(z)
+                        sample_list.append(samples.data.cpu().numpy())
+
+                    # Flattening list of lists into one list of numpy arrays
+                    new_sample_list = list(chain.from_iterable(sample_list))
+                    print("Calculating Inception Score over 8k generated images")
+                    # Feeding list of numpy arrays
+                    inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=16,
+                                                           resize=True, splits=10)
                     print('Epoch-{}'.format(epoch + 1))
                     self.save_model()
 
@@ -210,13 +292,13 @@ class VLGAN_MODEL(object):
                     utils.save_image(grid, 'training_result_images/img_generatori_iter_{}.png'.format(str(generator_iter).zfill(3)))
 
                     time = t.time() - self.t_begin
-                    #print("Inception score: {}".format(inception_score))
+                    print("Inception score: {}".format(inception_score))
                     print("Generator iter: {}".format(generator_iter))
                     print("Time {}".format(time))
 
                     # Write to file inception_score, gen_iters, time
-                    #output = str(generator_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
-                    #self.file.write(output)
+                    output = str(generator_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
+                    self.file.write(output)
 
 
                 if ((i + 1) % 100) == 0:
@@ -251,12 +333,12 @@ class VLGAN_MODEL(object):
                         self.logger.image_summary(tag, images, generator_iter)
 
 
-        self.t_end = t.time()
-        print('Time of training-{}'.format((self.t_end - self.t_begin)))
-        #self.file.close()
+            self.t_end = t.time()
+            print('Time of training-{}'.format((self.t_end - self.t_begin)))
+            #self.file.close()
 
-        # Save the trained parameters
-        self.save_model()
+            # Save the trained parameters
+            self.save_model()
 
     def evaluate(self, test_loader, D_model_path, G_model_path):
         self.load_model(D_model_path, G_model_path)

@@ -1,99 +1,187 @@
-import sys
 import numpy as np
-import collections
-# 완전탐색
-def not_finded(find_list, query):
-    flag = False
-    for num in query:
-        if find_list[num] == 0:
-            flag = True
-    return flag
-
-def solution(keypad, start_x, start_y, query):
-    start_x -= 1
-    start_y -= 1  # 좌표와 맞추기 위함
+import matplotlib.pyplot as plt
+import re
+import os
+plt.style.use(['makina-notebook'])
 
 
-    nearest_distance = [sys.maxsize for _ in range(10)]
-    find_list = [0 for _ in range(10)]
-    visited = np.zeros(keypad.shape)
-    four_direc = [(1, 0), (-1,0), (0,1), (0,-1)]
+def remove_char(line):
+    return re.sub('\[|\]', '', line)
 
-    queue = collections.deque([(start_y, start_x)])
-    queue_append = queue.append
 
-    cur_dist = 0
-    find_list[keypad[start_y][start_x]] = 1
-    visited[start_y][start_x] = 1
-    nearest_distance[keypad[start_y][start_x]] = cur_dist
+train_log_file = r'D:\experiments\HANON\log.txt'
+show_action = True
+action_list = ["rpm", "cooling_fan", "exv1", "exv2"]
+def action_mapping(action_name, action):
+    if action_name == "rpm":
+        return action * 8600 #* 15
+    elif action_name == "cooling_fan":
+        action = action + 1
+        return action * 1500 + 1500 #* 10
+    else:
+        action = action + 1
+        return action * 0.75 + 1.25 # * 5
 
-    while len(queue) != 0 and not_finded(find_list, query):
-        cur_dist += 1
-        len_cur_points = len(queue)
-        for _ in range(len_cur_points):
-            point = queue.popleft()
-            for direc in four_direc:
-                y = point[0] + direc[0]
-                x = point[1] + direc[1]
-                if x <= W-1 and y<=H-1 and x>=0 and y>=0: # 키패드를 넘지 않았을 때
-                    if visited[y][x] == 0: # 방문된적이 없다면
-                        if find_list[keypad[y][x]] == 0:
-                            find_list[keypad[y][x]] = 1 # 새로운 글자를 찾을 시 바뀐다.
-                            nearest_distance[keypad[y][x]] = cur_dist # nearest distance에서 해당 글자의 최소치를 갱신한다.
-                        visited[y][x] = 1 # 방문 여부 갱신
-                        queue_append((y, x)) # 다음 distance에서 계산할 좌표.
-    #탐색 완료
 
-    result = []
-    for num in query:
-        result.append(nearest_distance[num])
-    print(' '.join(map(str,result)))
+def moving_average(l, average_num = 10):
+    result = [sum(l[i:i + average_num]) / average_num for i in range(len(l) - 10)]
+    result = [0] * average_num + result
+    return result
 
-# 입력
-W, H = list(map(int,input().split(' ')))
-keypad = []
-for _ in range(H):
-    line = list(map(int, input()))
-    keypad.append(line)
-keypad = np.asarray(keypad)
-Q = int(input())
-for _ in range(Q):
-    x, y, len_query, query = input().split(' ')
-    x, y = int(x), int(y)
-    query = list(map(int, list(query)))
-    solution(keypad, x, y, query)
 
-'''
-5 5
-03237
-51668
-42097
-05345
-12198
-3
-3 4 4 3125
-1 1 3 513
-2 2 2 03
+f = open(train_log_file, 'r')
+lines = f.read().splitlines()
+f.close()
 
-0 1 2 1
-1 2 1
-2 1
+train_lst = []
+eval_lst = []
+train_tem_list = []
+eval_tem_list = []
+episode_tem_list = []
 
-5 5
-56047
-01715
-30483
-94291
-85489
-4
-3 3 3 281
-4 2 2 45
-1 4 2 71
-4 3 3 034
+w_list = lines[3].split(',')
+num_of_info = len(lines[3].split(',')) - 5
 
-1 1 2
-1 1
-4 3
-2 1 1
+info_meta_dict = {}
+for i in range(1, num_of_info+1):
+    info_dict = {}
+    key = w_list[i + 3].split()[0]
+    info_dict[key] = 0
+    info_dict[key+'_train_mean'] = []
+    info_dict[key+'_eval_mean'] = []
+    info_meta_dict[key] = info_dict
 
-'''
+reward = 0
+train_reward_mean_list = []
+eval_reward_mean_list = []
+
+for l in lines:
+    split_e = l.split()
+    split_w = l.split(',')
+    if l.startswith('Episode number'):
+        if split_e[4] == 'Training':
+            flag = 'train'
+        else:
+            flag = 'eval'
+        target_tem = -1
+
+    if l.startswith("Step number"):
+        if target_tem == -1:
+            target_tem = float(split_e[6]) - float(split_e[7])
+        episode_tem_list.append([float(split_e[6]), 0])
+
+        if show_action is True:
+            for i, action in enumerate(action_list):
+                if action == 'rpm':
+                    episode_tem_list[-1].append(float(remove_char(split_w[3]).split()[-1])*8600)
+
+                else:
+                    episode_tem_list[-1].append(action_mapping(action, float(remove_char(split_w[2]).split()[i+1])))
+
+        for i in range(1, num_of_info+1):
+            meta_key = split_w[i + 3].split()[0]
+            info_dict = info_meta_dict[meta_key]
+            if 'cop' in meta_key:
+                info_dict[meta_key] += np.clip(float(split_w[i + 3].split()[2]), 0, 20)
+            else:
+                info_dict[meta_key] += float(split_w[i + 3].split()[2])
+
+    if l.startswith('Episode score'):
+        if flag == 'train':
+            train_lst.append(float(split_e[2][:-1]))
+            train_tem_list.append(episode_tem_list)
+            episode_tem_list = []
+
+            for meta_key in info_meta_dict.keys():
+                info_dict = info_meta_dict[meta_key]
+                info_dict[meta_key+'_train_mean'].append(info_dict[meta_key] / 20)
+                info_dict[meta_key] = 0
+        else:
+            eval_lst.append(float(split_e[2][:-1]))
+            eval_tem_list.append(episode_tem_list)
+            episode_tem_list = []
+
+            for meta_key in info_meta_dict.keys():
+                info_dict = info_meta_dict[meta_key]
+                info_dict[meta_key+'_eval_mean'].append(info_dict[meta_key] / 20)
+                info_dict[meta_key] = 0
+
+for i in range(1, num_of_info + 1):
+    meta_key = w_list[i + 3].split()[0]
+    info_dict = info_meta_dict[meta_key]
+    info_dict[meta_key + '_train_average_move'] = moving_average(info_dict[meta_key + '_train_mean'])
+
+    info_dict[meta_key + '_eval_average_move'] = moving_average(info_dict[meta_key + '_eval_mean'])
+
+
+train_move = moving_average(train_lst)
+eval_move = moving_average(eval_lst)
+
+
+train_iter = len(train_tem_list)
+epi = train_iter
+#
+#
+# legends = ['Temperature', 'zero', 'RPM', 'Cooling fan', 'exv1', 'exv2']
+# for i in range(6):
+#     plt.plot(np.asarray(train_tem_list)[:,:,i].mean(axis=1), marker='o', alpha=0.7, markersize=5)
+#     plt.xlim(0, train_iter)
+#     plt.xlabel('Episode')
+#     plt.ylabel(legends[i])
+#     plt.legend([legends[i]])
+#     plt.show()
+#
+#
+# legends = ['Total Work','Temperature difference(Reward)','Comp Work(Reward)','Cool Work(Reward)']
+# for i, meta_key in enumerate(info_meta_dict.keys()):
+#     info_dict = info_meta_dict[meta_key]
+#     plt.plot(np.asarray(info_dict[meta_key + '_train_average_move'])[:epi], marker='o', alpha=0.7, markersize=2)
+#     # ax[i+2].set_ylim(0, 2.5)
+#     plt.xlim(0, train_iter)
+#     plt.xlabel('Episode')
+#     plt.ylabel(legends[i])
+#     plt.legend([legends[i]])
+#     plt.show()
+#     print(meta_key)
+#     plt.close()
+
+evel_iter = len(eval_tem_list)
+epi = evel_iter
+
+legends = ['Temperature', 'zero', 'RPM', 'Cooling fan', 'exv1', 'exv2']
+for i in range(6):
+    plt.plot(np.asarray(eval_tem_list)[157,:,i], marker='o', alpha=0.7, markersize=5)
+    plt.ylim(0, 8600)
+    plt.xlim(0, 20)
+    plt.xticks(np.arange(0, 20, step=5))
+    plt.xlabel('Episode')
+    plt.ylabel(legends[i])
+    plt.legend([legends[i]])
+    plt.show()
+    plt.close()
+
+
+print(1)
+#     #
+#     # ax[1].plot(np.asarray(eval_move)[:epi], marker='o', alpha=0.7, markersize=2)
+#     # #ax[1].set_ylim(-20, 120)
+#     # ax[1].set_xlim(0, evel_iter)
+#     # ax[1].set_xlabel('Episode')
+#     # ax[1].set_ylabel('Return')
+#     # ax[1].legend(['Return'])
+#
+#     for i, meta_key in enumerate(info_meta_dict.keys()):
+#         info_dict = info_meta_dict[meta_key]
+#         ax[0].plot(np.asarray(info_dict[meta_key+'_eval_average_move'])[:epi], marker='o', alpha=0.7, markersize=2)
+#         #ax[i+2].set_ylim(0, 2.5)
+#         ax[0].set_xlim(0, train_iter)
+#         ax[0].set_xlabel('Episode')
+#         ax[0].set_ylabel(meta_key)
+#         ax[0].legend([meta_key])
+#         plt.show()
+#         print(meta_key)
+#
+#
+#     plt.close()
+#
+

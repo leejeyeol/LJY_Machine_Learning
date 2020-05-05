@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import scipy.misc
 from io import BytesIO
+from PIL import Image
 
 
 class Logger(object):
@@ -26,7 +27,6 @@ class Logger(object):
                 s = StringIO()
             except:
                 s = BytesIO()
-            scipy.misc.toimage(img).save(s, format="png")
 
             # Create an Image object
             img_sum = tf.Summary.Image(encoded_image_string=s.getvalue(),

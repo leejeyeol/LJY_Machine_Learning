@@ -117,7 +117,7 @@ class DCGAN_MODEL(object):
     def train(self, train_loader):
         self.t_begin = t.time()
         generator_iter = 0
-        #self.file = open("inception_score_graph.txt", "w")
+        self.file = open("inception_score_graph.txt", "w")
 
         for epoch in range(self.epochs):
             self.epoch_start_time = t.time()
@@ -183,18 +183,18 @@ class DCGAN_MODEL(object):
                     # Workaround because graphic card memory can't store more than 800+ examples in memory for generating image
                     # Therefore doing loop and generating 800 examples and stacking into list of samples to get 8000 generated images
                     # This way Inception score is more correct since there are different generated examples from every class of Inception model
-                    # sample_list = []
-                    # for i in range(10):
-                    #     z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
-                    #     samples = self.G(z)
-                    #     sample_list.append(samples.data.cpu().numpy())
-                    #
-                    # # Flattening list of lists into one list of numpy arrays
-                    # new_sample_list = list(chain.from_iterable(sample_list))
-                    # print("Calculating Inception Score over 8k generated images")
-                    # # Feeding list of numpy arrays
-                    # inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=32,
-                    #                                       resize=True, splits=10)
+                    sample_list = []
+                    for i in range(10):
+                        z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
+                        samples = self.G(z)
+                        sample_list.append(samples.data.cpu().numpy())
+
+                    # Flattening list of lists into one list of numpy arrays
+                    new_sample_list = list(chain.from_iterable(sample_list))
+                    print("Calculating Inception Score over 8k generated images")
+                    # Feeding list of numpy arrays
+                    inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=32,
+                                                          resize=True, splits=10)
                     print('Epoch-{}'.format(epoch + 1))
                     self.save_model()
 
@@ -215,21 +215,21 @@ class DCGAN_MODEL(object):
                     print("Time {}".format(time))
 
                     # Write to file inception_score, gen_iters, time
-                    #output = str(generator_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
-                    #self.file.write(output)
+                    output = str(generator_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
+                    self.file.write(output)
 
 
                 if ((i + 1) % 100) == 0:
                     print("Epoch: [%2d] [%4d/%4d] D_loss: %.8f, G_loss: %.8f" %
-                          ((epoch + 1), (i + 1), train_loader.dataset.__len__() // self.batch_size, d_loss.data[0], g_loss.data[0]))
+                          ((epoch + 1), (i + 1), train_loader.dataset.__len__() // self.batch_size, d_loss.item(), g_loss.item()))
 
                     z = Variable(torch.randn(self.batch_size, 100, 1, 1).cuda(self.cuda_index))
 
                     # TensorBoard logging
                     # Log the scalar values
                     info = {
-                        'd_loss': d_loss.data[0],
-                        'g_loss': g_loss.data[0]
+                        'd_loss': d_loss.item(),
+                        'g_loss': g_loss.item()
                     }
 
                     for tag, value in info.items():

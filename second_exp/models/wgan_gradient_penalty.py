@@ -7,6 +7,7 @@ import time as t
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
 import os
+from second_exp.utils.inception_score import get_inception_score
 from second_exp.utils.tensorboard_logger import Logger
 from itertools import chain
 from torchvision import utils
@@ -99,7 +100,7 @@ class WGAN_GP(object):
         self.learning_rate = 1e-4
         self.b1 = 0.5
         self.b2 = 0.999
-        self.batch_size = 64
+        self.batch_size = args.batch_size
 
         # WGAN_gradient penalty uses ADAM
         self.d_optimizer = optim.Adam(self.D.parameters(), lr=self.learning_rate, betas=(self.b1, self.b2))
@@ -126,19 +127,19 @@ class WGAN_GP(object):
 
     def train(self, train_loader):
         self.t_begin = t.time()
-        self.file = open("inception_score_graph.txt", "w")
+        self.file = open(self.args.resultdir + "inception_score_graph.txt", "w")
 
         # Now batches are callable self.data.next()
         self.data = self.get_infinite_batches(train_loader)
 
-        one = torch.FloatTensor([1])
-        mone = one * -1
+        one = torch.tensor(1.0)
+        mone = torch.tensor(-1.0)
         if self.cuda:
             one = one.cuda(self.cuda_index)
             mone = mone.cuda(self.cuda_index)
 
         for g_iter in range(self.generator_iters):
-
+            print("[%d/%d]"%(g_iter, self.generator_iters))
             # Requires grad, Generator requires_grad = False
             for p in self.D.parameters():
                 p.requires_grad = True
@@ -183,7 +184,6 @@ class WGAN_GP(object):
                 gradient_penalty = self.calculate_gradient_penalty(images.data, fake_images.data)
                 gradient_penalty.backward(retain_graph=True)
 
-
                 d_loss = d_loss_fake - d_loss_real + gradient_penalty
                 Wasserstein_D = d_loss_real - d_loss_fake
                 self.d_optimizer.step()
@@ -202,71 +202,71 @@ class WGAN_GP(object):
             g_loss.backward(mone)
             g_cost = -g_loss
             self.g_optimizer.step()
+            with torch.no_grad():
+                # Saving model and sampling images every 1000th generator iterations
+                if (g_iter) % 1000 == 0:
+                    self.save_model()
+                    # # Workaround because graphic card memory can't store more than 830 examples in memory for generating image
+                    # # Therefore doing loop and generating 800 examples and stacking into list of samples to get 8000 generated images
+                    # # This way Inception score is more correct since there are different generated examples from every class of Inception model
+                    sample_list = []
+                    for i in range(10):
+                        #samples = self.data.__next__()
+                        z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
+                        samples = self.G(z)
+                        sample_list.append(samples.data.cpu().numpy())
+                    #
+                    # # Flattening list of list into one list
+                    new_sample_list = list(chain.from_iterable(sample_list))
+                    print("Calculating Inception Score over 8k generated images")
+                    # # Feeding list of numpy arrays
+                    inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=32,
+                                                          resize=True, splits=10)
 
-            # Saving model and sampling images every 1000th generator iterations
-            if (g_iter) % 1000 == 0:
-                self.save_model()
-                # # Workaround because graphic card memory can't store more than 830 examples in memory for generating image
-                # # Therefore doing loop and generating 800 examples and stacking into list of samples to get 8000 generated images
-                # # This way Inception score is more correct since there are different generated examples from every class of Inception model
-                # sample_list = []
-                # for i in range(125):
-                #     samples  = self.data.__next__()
-                # #     z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
-                # #     samples = self.G(z)
-                #     sample_list.append(samples.data.cpu().numpy())
-                # #
-                # # # Flattening list of list into one list
-                # new_sample_list = list(chain.from_iterable(sample_list))
-                # print("Calculating Inception Score over 8k generated images")
-                # # # Feeding list of numpy arrays
-                # inception_score = get_inception_score(new_sample_list, cuda=True, batch_size=32,
-                #                                       resize=True, splits=10)
+                    if not os.path.exists(self.args.resultdir + 'training_result_images/'):
+                        os.makedirs(self.args.resultdir + 'training_result_images/')
 
-                if not os.path.exists('training_result_images/'):
-                    os.makedirs('training_result_images/')
+                    # Denormalize images and save them in grid 8x8
+                    z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
+                    samples = self.G(z)
+                    samples = samples.mul(0.5).add(0.5)
+                    samples = samples.data.cpu()[:64]
+                    grid = utils.make_grid(samples)
+                    utils.save_image(grid, self.args.resultdir + 'training_result_images/img_generatori_iter_{}.png'.format(str(g_iter).zfill(3)))
 
-                # Denormalize images and save them in grid 8x8
-                z = Variable(torch.randn(800, 100, 1, 1)).cuda(self.cuda_index)
-                samples = self.G(z)
-                samples = samples.mul(0.5).add(0.5)
-                samples = samples.data.cpu()[:64]
-                grid = utils.make_grid(samples)
-                utils.save_image(grid, 'training_result_images/img_generatori_iter_{}.png'.format(str(g_iter).zfill(3)))
+                    # Testing
+                    time = t.time() - self.t_begin
+                    #print("Real Inception score: {}".format(inception_score))
+                    print("Generator iter: {}".format(g_iter))
+                    print("Time {}".format(time))
 
-                # Testing
-                time = t.time() - self.t_begin
-                #print("Real Inception score: {}".format(inception_score))
-                print("Generator iter: {}".format(g_iter))
-                print("Time {}".format(time))
-
-                # Write to file inception_score, gen_iters, time
-                #output = str(g_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
-                #self.file.write(output)
+                    # Write to file inception_score, gen_iters, time
+                    output = str(g_iter) + " " + str(time) + " " + str(inception_score[0]) + "\n"
+                    self.file.write(output)
 
 
-                # ============ TensorBoard logging ============#
-                # (1) Log the scalar values
-                info = {
-                    'Wasserstein distance': Wasserstein_D.item(),
-                    'Loss D': d_loss.item(),
-                    'Loss G': g_cost.item(),
-                    'Loss D Real': d_loss_real.item(),
-                    'Loss D Fake': d_loss_fake.item()
+                    # ============ TensorBoard logging ============#
+                    # (1) Log the scalar valuesself.args.resultdir +
+                    info = {
+                        'Wasserstein distance': Wasserstein_D.item(),
+                        'Loss D': d_loss.item(),
+                        'Loss G': g_cost.item(),
+                        'Loss D Real': d_loss_real.item(),
+                        'Loss D Fake': d_loss_fake.item()
 
-                }
+                    }
 
-                for tag, value in info.items():
-                    self.logger.scalar_summary(tag, value, g_iter + 1)
+                    for tag, value in info.items():
+                        self.logger.scalar_summary(tag, value, g_iter + 1)
 
-                # (3) Log the images
-                info = {
-                    'real_images': self.real_images(images, self.number_of_images),
-                    'generated_images': self.generate_img(z, self.number_of_images)
-                }
+                    # (3) Log the images
+                    info = {
+                        'real_images': self.real_images(images, self.number_of_images),
+                        'generated_images': self.generate_img(z, self.number_of_images)
+                    }
 
-                for tag, images in info.items():
-                    self.logger.image_summary(tag, images, g_iter + 1)
+                    for tag, images in info.items():
+                        self.logger.image_summary(tag, images, g_iter + 1)
 
 
 
@@ -285,7 +285,7 @@ class WGAN_GP(object):
         samples = samples.data.cpu()
         grid = utils.make_grid(samples)
         print("Grid of 8x8 images saved to 'dgan_model_image.png'.")
-        utils.save_image(grid, 'dgan_model_image.png')
+        utils.save_image(grid, self.args.resultdir + 'dgan_model_image.png')
 
 
     def calculate_gradient_penalty(self, real_images, fake_images):
@@ -339,8 +339,8 @@ class WGAN_GP(object):
         return x.data.cpu().numpy()
 
     def save_model(self):
-        torch.save(self.G.state_dict(), './generator.pkl')
-        torch.save(self.D.state_dict(), './discriminator.pkl')
+        torch.save(self.G.state_dict(), './' + self.args.resultdir + 'generator.pkl')
+        torch.save(self.D.state_dict(), './' + self.args.resultdir + 'discriminator.pkl')
         print('Models save to ./generator.pkl & ./discriminator.pkl ')
 
     def load_model(self, D_model_filename, G_model_filename):
@@ -357,8 +357,8 @@ class WGAN_GP(object):
                 yield images
 
     def generate_latent_walk(self, number):
-        if not os.path.exists('interpolated_images/'):
-            os.makedirs('interpolated_images/')
+        if not os.path.exists(self.args.resultdir + 'interpolated_images/'):
+            os.makedirs(self.args.resultdir + 'interpolated_images/')
 
         number_int = 10
         # interpolate between twe noise(z1, z2).
@@ -382,5 +382,5 @@ class WGAN_GP(object):
             images.append(fake_im.view(self.C,32,32).data.cpu())
 
         grid = utils.make_grid(images, nrow=number_int )
-        utils.save_image(grid, 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
+        utils.save_image(grid, self.args.resultdir + 'interpolated_images/interpolated_{}.png'.format(str(number).zfill(3)))
         print("Saved interpolated images.")
